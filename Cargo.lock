@@ -3,5 +3,5 @@
 version = 4
 
 [[package]]
-name = "hw1"
+name = "cs4999-compiler"
 version = "0.1.0"
