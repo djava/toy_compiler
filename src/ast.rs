@@ -30,3 +30,8 @@ pub enum Statement {
     Assign(Vec<String>, Expr),
     Expr(Expr)
 }
+
+#[derive(Debug, Clone, PartialEq)]
+pub enum Module {
+    Body(Vec<Statement>)
+}

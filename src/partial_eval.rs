@@ -1,9 +1,13 @@
 use crate::ast::*;
 
-pub fn partial_eval(s: &mut Statement) {
-    match s {
-        Statement::Assign(_dest, e) => partial_eval_expr(e),
-        Statement::Expr(e) => partial_eval_expr(e),
+pub fn partial_eval(m: &mut Module) {
+    let Module::Body(statements) = m;
+    
+    for s in statements {
+        match s {
+            Statement::Assign(_dest, e) => partial_eval_expr(e),
+            Statement::Expr(e) => partial_eval_expr(e),
+        }
     }
 }
 
