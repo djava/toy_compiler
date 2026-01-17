@@ -3,7 +3,7 @@ use std::collections::VecDeque;
 
 use cs4999_compiler::{ast::*, partial_eval::partial_eval};
 
-use crate::common::interpreter::interpret;
+use crate::common::{interpreter::interpret, type_check::type_check};
 
 struct TestCase {
     ast: Module,
@@ -11,9 +11,28 @@ struct TestCase {
     expected_outputs: VecDeque<i64>,
 }
 
+fn execute_test_case(mut tc: TestCase) {
+    println!("\n==================");
+
+    type_check(&tc.ast);
+    println!("Type-check passed on source");
+    
+    println!("AST before Partial Eval: {:?}", tc.ast);
+    partial_eval(&mut tc.ast);
+    println!("AST after Partial Eval: {:?}", tc.ast);
+
+    type_check(&tc.ast);
+    println!("Type-check passed after pass");
+
+    let mut outputs = VecDeque::<i64>::new();
+    interpret(&tc.ast, &mut tc.inputs, &mut outputs);
+
+    assert_eq!(outputs, tc.expected_outputs);
+}
+
 #[test]
 fn test_partial_eval_add() {
-    let mut tc = TestCase {
+    execute_test_case(TestCase {
         ast: Module::Body(vec![Statement::Expr(Expr::Call(
             String::from("print"),
             vec![Expr::BinaryOp(
@@ -24,44 +43,24 @@ fn test_partial_eval_add() {
         ))]),
         inputs: VecDeque::new(),
         expected_outputs: VecDeque::from(vec![42]),
-    };
-
-    println!("\n==================");
-    println!("AST before Partial Eval: {:?}", tc.ast);
-    partial_eval(&mut tc.ast);
-    println!("AST after Partial Eval: {:?}", tc.ast);
-
-    let mut outputs = VecDeque::<i64>::new();
-    interpret(&tc.ast, &mut tc.inputs, &mut outputs);
-
-    assert_eq!(outputs, tc.expected_outputs);
+    })
 }
 
 #[test]
 fn test_partial_eval_input() {
-    let mut tc = TestCase {
+    execute_test_case(TestCase {
         ast: Module::Body(vec![Statement::Expr(Expr::Call(
             String::from("print"),
             vec![Expr::Call(String::from("input_int"), vec![])],
         ))]),
         inputs: VecDeque::from(vec![42]),
         expected_outputs: VecDeque::from(vec![42]),
-    };
-
-    println!("\n==================");
-    println!("AST before Partial Eval: {:?}", tc.ast);
-    partial_eval(&mut tc.ast);
-    println!("AST after Partial Eval: {:?}", tc.ast);
-
-    let mut outputs = VecDeque::<i64>::new();
-    interpret(&tc.ast, &mut tc.inputs, &mut outputs);
-
-    assert_eq!(outputs, tc.expected_outputs);
+    })
 }
 
 #[test]
 fn test_partial_eval_subinput() {
-    let mut tc = TestCase {
+    execute_test_case(TestCase {
         ast: Module::Body(vec![Statement::Expr(Expr::Call(
             String::from("print"),
             vec![Expr::BinaryOp(
@@ -72,44 +71,24 @@ fn test_partial_eval_subinput() {
         ))]),
         inputs: VecDeque::from(vec![5, 3]),
         expected_outputs: VecDeque::from(vec![2]),
-    };
-
-    println!("\n==================");
-    println!("AST before Partial Eval: {:?}", tc.ast);
-    partial_eval(&mut tc.ast);
-    println!("AST after Partial Eval: {:?}", tc.ast);
-
-    let mut outputs = VecDeque::<i64>::new();
-    interpret(&tc.ast, &mut tc.inputs, &mut outputs);
-
-    assert_eq!(outputs, tc.expected_outputs);
+    });
 }
 
 #[test]
 fn test_partial_eval_zero() {
-    let mut tc = TestCase {
+    execute_test_case(TestCase {
         ast: Module::Body(vec![Statement::Expr(Expr::Call(
             String::from("print"),
             vec![Expr::Constant(Value::I64(0))],
         ))]),
         inputs: VecDeque::from(vec![]),
         expected_outputs: VecDeque::from(vec![0]),
-    };
-
-    println!("\n==================");
-    println!("AST before Partial Eval: {:?}", tc.ast);
-    partial_eval(&mut tc.ast);
-    println!("AST after Partial Eval: {:?}", tc.ast);
-
-    let mut outputs = VecDeque::<i64>::new();
-    interpret(&tc.ast, &mut tc.inputs, &mut outputs);
-
-    assert_eq!(outputs, tc.expected_outputs);
+    });
 }
 
 #[test]
 fn test_partial_eval_nested() {
-    let mut tc = TestCase {
+    execute_test_case(TestCase {
         ast: Module::Body(vec![Statement::Expr(Expr::Call(
             String::from("print"),
             vec![Expr::BinaryOp(
@@ -128,22 +107,12 @@ fn test_partial_eval_nested() {
         ))]),
         inputs: VecDeque::from(vec![]),
         expected_outputs: VecDeque::from(vec![84]),
-    };
-
-    println!("\n==================");
-    println!("AST before Partial Eval: {:?}", tc.ast);
-    partial_eval(&mut tc.ast);
-    println!("AST after Partial Eval: {:?}", tc.ast);
-
-    let mut outputs = VecDeque::<i64>::new();
-    interpret(&tc.ast, &mut tc.inputs, &mut outputs);
-
-    assert_eq!(outputs, tc.expected_outputs);
+    });
 }
 
 #[test]
 fn test_partial_eval_mixed() {
-    let mut tc = TestCase {
+    execute_test_case(TestCase {
         ast: Module::Body(vec![Statement::Expr(Expr::Call(
             String::from("print"),
             vec![Expr::BinaryOp(
@@ -162,15 +131,5 @@ fn test_partial_eval_mixed() {
         ))]),
         inputs: VecDeque::from(vec![-100]),
         expected_outputs: VecDeque::from(vec![44 - 100]),
-    };
-
-    println!("\n==================");
-    println!("AST before Partial Eval: {:?}", tc.ast);
-    partial_eval(&mut tc.ast);
-    println!("AST after Partial Eval: {:?}", tc.ast);
-
-    let mut outputs = VecDeque::<i64>::new();
-    interpret(&tc.ast, &mut tc.inputs, &mut outputs);
-
-    assert_eq!(outputs, tc.expected_outputs);
+    });
 }

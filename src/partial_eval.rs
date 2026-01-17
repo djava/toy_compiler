@@ -61,5 +61,8 @@ fn partial_eval_expr(e: &mut Expr) {
         Constant(_val) => {
             // Already a constant, nothing to evaluate
         },
+        Identifier(_name) => {
+            // Can't do anything
+        }
     }
 }

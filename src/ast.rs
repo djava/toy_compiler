@@ -1,4 +1,11 @@
 #[derive(Debug, Clone, Copy, PartialEq)]
+pub enum ValueType {
+    IntType,
+    FunctionType(u16),
+    None
+}
+
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub enum Value {
     I64(i64),
 }
@@ -23,11 +30,12 @@ pub enum Expr {
     BinaryOp(Box<Expr>, BinaryOperator, Box<Expr>),
     UnaryOp(UnaryOperator, Box<Expr>),
     Call(String, Vec<Expr>),
+    Identifier(String),
 }
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum Statement {
-    Assign(Vec<String>, Expr),
+    Assign(String, Expr),
     Expr(Expr)
 }
 
