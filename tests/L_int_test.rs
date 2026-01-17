@@ -11,12 +11,6 @@ struct TestCase {
     expected_outputs: VecDeque<i64>,
 }
 
-// let mut test_cases = vec![
-//
-//     ,
-//     T,
-// ];
-
 #[test]
 fn test_partial_eval_add() {
     let mut tc = TestCase {
