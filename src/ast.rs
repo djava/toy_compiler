@@ -24,13 +24,19 @@ pub enum UnaryOperator {
     Minus,
 }
 
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub enum Identifier {
+    Compiler(u64),
+    Named(String)
+}
+
 #[derive(Debug, Clone, PartialEq)]
 pub enum Expr {
     Constant(Value),
     BinaryOp(Box<Expr>, BinaryOperator, Box<Expr>),
     UnaryOp(UnaryOperator, Box<Expr>),
     Call(String, Vec<Expr>),
-    Identifier(String),
+    Id(Identifier),
 }
 
 #[derive(Debug, Clone, PartialEq)]

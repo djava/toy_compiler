@@ -1,7 +1,10 @@
 mod common;
 use std::collections::VecDeque;
 
-use cs4999_compiler::{ast::*, partial_eval::partial_eval};
+use cs4999_compiler::{
+    ast::*,
+    passes::{partial_eval::PartialEval, Pass},
+};
 
 use crate::common::{interpreter::interpret, type_check::type_check};
 
@@ -16,9 +19,9 @@ fn execute_test_case(mut tc: TestCase) {
 
     type_check(&tc.ast);
     println!("Type-check passed on source");
-    
+
     println!("AST before Partial Eval: {:?}", tc.ast);
-    partial_eval(&mut tc.ast);
+    PartialEval::run_pass(&mut tc.ast);
     println!("AST after Partial Eval: {:?}", tc.ast);
 
     type_check(&tc.ast);

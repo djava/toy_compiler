@@ -17,8 +17,8 @@ fn type_check_expr(e: &Expr, env: &mut TypeEnv) -> ValueType {
             assert_eq!(exp_type, ValueType::IntType);
             ValueType::IntType
         },
-        Identifier(id) => {
-            *env.get(id).expect(format!("Unknown Identifier: {id}").as_str())
+        Id(id) => {
+            *env.get(id).expect(format!("Unknown Identifier: {id:?}").as_str())
         },
         Constant(v) => {
             match v {
@@ -42,11 +42,12 @@ fn type_check_statements(statements: &[Statement], env: &mut TypeEnv) {
     if !statements.is_empty() {
         match &statements[0] {
             Assign(dest, e) => {
+                let dest_id = Identifier::Named(dest.clone());
                 let t = type_check_expr(e, env);
-                if env.contains_key(dest) {
-                    assert_eq!(env[dest], t)
+                if env.contains_key(&dest_id) {
+                    assert_eq!(env[&dest_id], t)
                 } else {
-                    env.insert(dest.clone(), t);
+                    env.insert(dest_id.clone(), t);
                 }
                 type_check_statements(&statements[1..], env);
             },

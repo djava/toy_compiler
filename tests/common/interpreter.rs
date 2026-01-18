@@ -33,8 +33,8 @@ fn interpret_expr(e: &Expr, inputs: &mut VecDeque<i64>, env: &mut ValueEnv) -> O
                 None
             }
         },
-        Identifier(id) => {
-            let Value::I64(ret) = env.get(id).expect(format!("Unknown variable name: {id}").as_str());
+        Id(id) => {
+            let Value::I64(ret) = env.get(id).expect(format!("Unknown variable name: {id:?}").as_str());
             Some(*ret)
         }
     }

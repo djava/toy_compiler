@@ -1,6 +1,14 @@
-use crate::ast::*;
+use crate::{ast::*, passes::Pass};
 
-pub fn partial_eval(m: &mut Module) {
+pub struct PartialEval {}
+
+impl Pass for PartialEval {
+    fn run_pass(m: &mut Module) {
+        partial_eval(m)
+    }
+}
+
+fn partial_eval(m: &mut Module) {
     let Module::Body(statements) = m;
     
     for s in statements {
@@ -61,7 +69,7 @@ fn partial_eval_expr(e: &mut Expr) {
         Constant(_val) => {
             // Already a constant, nothing to evaluate
         },
-        Identifier(_name) => {
+        Id(_name) => {
             // Can't do anything
         }
     }
