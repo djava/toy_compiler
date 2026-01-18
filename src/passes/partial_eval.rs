@@ -1,21 +1,19 @@
 use crate::{ast::*, passes::Pass};
 
-pub struct PartialEval {}
+pub struct PartialEval;
 
 impl Pass for PartialEval {
-    fn run_pass(m: &mut Module) {
-        partial_eval(m)
-    }
-}
-
-fn partial_eval(m: &mut Module) {
-    let Module::Body(statements) = m;
-    
-    for s in statements {
-        match s {
-            Statement::Assign(_dest, e) => partial_eval_expr(e),
-            Statement::Expr(e) => partial_eval_expr(e),
+    fn run_pass(m: Module) -> Module {
+        let Module::Body(mut statements) = m;
+        
+        for s in statements.iter_mut() {
+            match s {
+                Statement::Assign(_dest, e) => partial_eval_expr(e),
+                Statement::Expr(e) => partial_eval_expr(e),
+            }
         }
+
+        Module::Body(statements)
     }
 }
 

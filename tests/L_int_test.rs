@@ -21,14 +21,14 @@ fn execute_test_case(mut tc: TestCase) {
     println!("Type-check passed on source");
 
     println!("AST before Partial Eval: {:?}", tc.ast);
-    PartialEval::run_pass(&mut tc.ast);
-    println!("AST after Partial Eval: {:?}", tc.ast);
+    let post_run_ast = PartialEval::run_pass(tc.ast);
+    println!("AST after Partial Eval: {:?}", post_run_ast);
 
-    type_check(&tc.ast);
+    type_check(&post_run_ast);
     println!("Type-check passed after pass");
 
     let mut outputs = VecDeque::<i64>::new();
-    interpret(&tc.ast, &mut tc.inputs, &mut outputs);
+    interpret(&post_run_ast, &mut tc.inputs, &mut outputs);
 
     assert_eq!(outputs, tc.expected_outputs);
 }
