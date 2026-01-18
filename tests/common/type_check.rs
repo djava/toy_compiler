@@ -1,5 +1,5 @@
-use cs4999_compiler::ast::*;
 use crate::common::TypeEnv;
+use cs4999_compiler::ast::*;
 
 fn type_check_expr(e: &Expr, env: &mut TypeEnv) -> ValueType {
     use Expr::*;
@@ -11,26 +11,31 @@ fn type_check_expr(e: &Expr, env: &mut TypeEnv) -> ValueType {
             let r_type = type_check_expr(&*right, env);
             assert_eq!(r_type, ValueType::IntType);
             ValueType::IntType
-        },
+        }
         UnaryOp(_op, exp) => {
             let exp_type = type_check_expr(&*exp, env);
             assert_eq!(exp_type, ValueType::IntType);
             ValueType::IntType
-        },
-        Id(id) => {
-            *env.get(id).expect(format!("Unknown Identifier: {id:?}").as_str())
-        },
-        Constant(v) => {
-            match v {
-                Value::I64(_) => ValueType::IntType
-            }
+        }
+        Id(id) => *env
+            .get(id)
+            .expect(format!("Unknown Identifier: {id:?}").as_str()),
+        Constant(v) => match v {
+            Value::I64(_) => ValueType::IntType,
         },
         Call(id, _args) => {
             // TODO: Lookup function name to check arg types
-            match id.as_str() {
-                "input_int" => ValueType::IntType,
-                "print" => ValueType::None,
-                _ => unimplemented!("Unknown function name")
+            match id {
+                Identifier::Named(name) => {
+                    if name == "input_int" {
+                        ValueType::IntType
+                    } else if name == "print" {
+                        ValueType::None
+                    } else {
+                        unimplemented!("Unknown function name")
+                    }
+                }
+                _ => unimplemented!("Unknown function name"),
             }
         }
     }
@@ -42,15 +47,14 @@ fn type_check_statements(statements: &[Statement], env: &mut TypeEnv) {
     if !statements.is_empty() {
         match &statements[0] {
             Assign(dest, e) => {
-                let dest_id = Identifier::Named(dest.clone());
                 let t = type_check_expr(e, env);
-                if env.contains_key(&dest_id) {
-                    assert_eq!(env[&dest_id], t)
+                if env.contains_key(&dest) {
+                    assert_eq!(env[&dest], t)
                 } else {
-                    env.insert(dest_id.clone(), t);
+                    env.insert(dest.clone(), t);
                 }
                 type_check_statements(&statements[1..], env);
-            },
+            }
             Expr(e) => {
                 type_check_expr(e, env);
                 type_check_statements(&statements[1..], env);

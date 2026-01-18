@@ -37,7 +37,7 @@ fn execute_test_case(mut tc: TestCase) {
 fn test_partial_eval_add() {
     execute_test_case(TestCase {
         ast: Module::Body(vec![Statement::Expr(Expr::Call(
-            String::from("print"),
+            Identifier::Named(String::from("print")),
             vec![Expr::BinaryOp(
                 Box::new(Expr::Constant(Value::I64(40))),
                 BinaryOperator::Add,
@@ -53,8 +53,8 @@ fn test_partial_eval_add() {
 fn test_partial_eval_input() {
     execute_test_case(TestCase {
         ast: Module::Body(vec![Statement::Expr(Expr::Call(
-            String::from("print"),
-            vec![Expr::Call(String::from("input_int"), vec![])],
+            Identifier::Named(String::from("print")),
+            vec![Expr::Call(Identifier::Named(String::from("input_int")), vec![])],
         ))]),
         inputs: VecDeque::from(vec![42]),
         expected_outputs: VecDeque::from(vec![42]),
@@ -65,11 +65,11 @@ fn test_partial_eval_input() {
 fn test_partial_eval_subinput() {
     execute_test_case(TestCase {
         ast: Module::Body(vec![Statement::Expr(Expr::Call(
-            String::from("print"),
+            Identifier::Named(String::from("print")),
             vec![Expr::BinaryOp(
-                Box::new(Expr::Call(String::from("input_int"), vec![])),
+                Box::new(Expr::Call(Identifier::Named(String::from("input_int")), vec![])),
                 BinaryOperator::Subtract,
-                Box::new(Expr::Call(String::from("input_int"), vec![])),
+                Box::new(Expr::Call(Identifier::Named(String::from("input_int")), vec![])),
             )],
         ))]),
         inputs: VecDeque::from(vec![5, 3]),
@@ -81,7 +81,7 @@ fn test_partial_eval_subinput() {
 fn test_partial_eval_zero() {
     execute_test_case(TestCase {
         ast: Module::Body(vec![Statement::Expr(Expr::Call(
-            String::from("print"),
+            Identifier::Named(String::from("print")),
             vec![Expr::Constant(Value::I64(0))],
         ))]),
         inputs: VecDeque::from(vec![]),
@@ -93,7 +93,7 @@ fn test_partial_eval_zero() {
 fn test_partial_eval_nested() {
     execute_test_case(TestCase {
         ast: Module::Body(vec![Statement::Expr(Expr::Call(
-            String::from("print"),
+            Identifier::Named(String::from("print")),
             vec![Expr::BinaryOp(
                 Box::new(Expr::BinaryOp(
                     Box::new(Expr::Constant(Value::I64(40))),
@@ -117,10 +117,10 @@ fn test_partial_eval_nested() {
 fn test_partial_eval_mixed() {
     execute_test_case(TestCase {
         ast: Module::Body(vec![Statement::Expr(Expr::Call(
-            String::from("print"),
+            Identifier::Named(String::from("print")),
             vec![Expr::BinaryOp(
                 Box::new(Expr::BinaryOp(
-                    Box::new(Expr::Call(String::from("input_int"), vec![])),
+                    Box::new(Expr::Call(Identifier::Named(String::from("input_int")), vec![])),
                     BinaryOperator::Add,
                     Box::new(Expr::Constant(Value::I64(2))),
                 )),
