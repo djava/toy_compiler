@@ -7,6 +7,7 @@ use cs4999_compiler::{
         IRPass, IRToX86Pass, X86Pass, register_allocation::RegisterAllocation,
         remove_complex_operands::RemoveComplexOperands, select_instructions::SelectInstructions,
     },
+    x86_ast,
 };
 
 use crate::infra::{type_check::type_check, x86_interpreter::interpret_x86};
@@ -29,6 +30,22 @@ fn execute_test_case(mut tc: TestCase) {
     println!("-- AST before RegAlloc:\n{post_instr_sel_x86ast}");
     let post_reg_alloc_x86ast = RegisterAllocation::run_pass(post_instr_sel_x86ast);
     println!("-- AST after RegAlloc:\n{post_reg_alloc_x86ast}");
+
+    // Ensure that all the variable arguments have been removed
+    for i in &post_reg_alloc_x86ast.instrs {
+        use x86_ast::{Instr, Arg};
+        match i {
+            Instr::addq(s, d) | Instr::subq(s, d) | Instr::movq(s, d) => {
+                for arg in [s, d] {
+                    assert!(!matches!(arg, Arg::Variable(_)));
+                }
+            }
+            Instr::negq(arg) | Instr::pushq(arg) | Instr::popq(arg) => {
+                assert!(!matches!(arg, Arg::Variable(_)));
+            }
+            _ => {}
+        }
+    }
 
     let mut outputs = VecDeque::<i64>::new();
     interpret_x86(&post_reg_alloc_x86ast, &mut tc.inputs, &mut outputs);
