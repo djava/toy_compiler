@@ -25,9 +25,9 @@ fn execute_test_case(mut tc: TestCase) {
 
     let post_rco_ast = RemoveComplexOperands::run_pass(tc.ast);
 
-    println!("AST before SelInstr: {:?}", post_rco_ast);
+    println!("-- AST before SelInstr:\n{post_rco_ast:?}");
     let post_instr_sel_x86ast = SelectInstructions::run_pass(post_rco_ast);
-    println!("AST after SelInstr: {:#?}", post_instr_sel_x86ast);
+    println!("-- AST after SelInstr:\n{post_instr_sel_x86ast}");
 
     let mut outputs = VecDeque::<i64>::new();
     interpret_x86(&post_instr_sel_x86ast, &mut tc.inputs, &mut outputs);

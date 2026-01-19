@@ -127,11 +127,9 @@ fn run_instr(
 }
 
 pub fn interpret_x86(p: &X86Program, inputs: &mut VecDeque<i64>, outputs: &mut VecDeque<i64>) {
-    let X86Program::Body(instrs) = p;
-
     let mut env = X86Env::new();
 
-    for i in instrs {
+    for i in &p.instrs {
         run_instr(i, inputs, outputs, &mut env);
     }
 }

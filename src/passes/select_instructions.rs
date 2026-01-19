@@ -11,7 +11,10 @@ impl IRToX86Pass for SelectInstructions {
             program_instrs.extend(sel_for_statement(s));
         }
 
-        X86Program::Body(program_instrs)
+        X86Program {
+            instrs: program_instrs,
+            stack_size: 0,
+        }
     }
 }
 
