@@ -131,12 +131,17 @@ fn run_instr(
     }
 }
 
-pub fn interpret_x86(p: &X86Program, inputs: &mut VecDeque<i64>, outputs: &mut VecDeque<i64>) {
+pub fn interpret_x86(m: &X86Program, inputs: &mut VecDeque<i64>, outputs: &mut VecDeque<i64>) {
     let mut env = X86Env::new();
 
+    let main_instrs = &m
+        .functions
+        .iter()
+        .find(|(d, _)| d == &Directive::Label(String::from("main")))
+        .expect("Didn't find a main function").1;
     // TODO: This is not remotely sufficient for a program with actual
     // control flow - Need to follow %rip instead...
-    for i in &p.instrs {
+    for i in main_instrs {
         run_instr(i, inputs, outputs, &mut env);
     }
 }

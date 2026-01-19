@@ -46,8 +46,15 @@ pub enum Instr {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
+pub enum Directive {
+    Label(String),
+    Globl(String),
+    AttSyntax,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct X86Program {
-    pub instrs: Vec<Instr>,
+    pub functions: Vec<(Directive, Vec<Instr>)>,
     pub(crate) stack_size: usize
 }
 
@@ -104,10 +111,23 @@ impl Display for Instr {
     }
 }
 
+impl Display for Directive {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::Label(name) => write!(f, "{name}:"),
+            Self::Globl(name) => write!(f, "\t.globl {name}"),
+            Self::AttSyntax => write!(f, "\t.att_syntax"),
+        }
+    }
+}
+
 impl Display for X86Program {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        for i in &self.instrs {
-            writeln!(f, "{i}")?;
+        for (dir, instrs) in &self.functions {
+            writeln!(f, "{dir}")?;
+            for i in instrs {
+                writeln!(f, "\t{i}")?;
+            }
         }
         Ok(())
     }

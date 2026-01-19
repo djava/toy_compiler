@@ -3,12 +3,19 @@ use crate::{passes::X86Pass, x86_ast::*};
 pub struct PatchInstructions;
 
 impl X86Pass for PatchInstructions {
-    fn run_pass(m: X86Program) -> X86Program {
+    fn run_pass(mut m: X86Program) -> X86Program {
+        let main_instrs = &mut m
+            .functions
+            .iter_mut()
+            .find(|(d, _)| d == &Directive::Label(String::from("main")))
+            .expect("Didn't find a main function")
+            .1;
+
         let mut new_instrs = vec![];
         // Reserve for worst case because why not
-        new_instrs.reserve(m.instrs.len() * 2);
+        new_instrs.reserve(main_instrs.len() * 2);
 
-        for i in m.instrs {
+        for i in main_instrs.iter_mut() {
             match &i {
                 // If both args to an instr are derefs, we need to add a
                 // patch instruction
@@ -38,13 +45,11 @@ impl X86Pass for PatchInstructions {
                         _ => unreachable!(),
                     });
                 }
-                _ => new_instrs.push(i),
+                _ => new_instrs.push(i.clone()),
             }
         }
 
-        X86Program {
-            instrs: new_instrs,
-            stack_size: m.stack_size,
-        }
+        *main_instrs = new_instrs;
+        m
     }
 }

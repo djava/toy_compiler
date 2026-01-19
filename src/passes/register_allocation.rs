@@ -10,16 +10,22 @@ impl X86Pass for RegisterAllocation {
         let mut curr_offset = 0i32;
         let mut var_map = HashMap::<Identifier, i32>::new();
 
-        for i in &mut m.instrs {
+        let main_instrs = &mut m
+            .functions
+            .iter_mut()
+            .find(|(d, _)| d == &Directive::Label(String::from("main")))
+            .expect("Didn't find a main function").1;
+
+        for i in main_instrs {
             match i {
                 Instr::addq(s, d) | Instr::subq(s, d) | Instr::movq(s, d) => {
                     for arg in [s, d] {
                         stack_allocate(arg, &mut curr_offset, &mut var_map);
                     }
-                },
+                }
                 Instr::negq(a) | Instr::pushq(a) | Instr::popq(a) => {
                     stack_allocate(a, &mut curr_offset, &mut var_map);
-                },
+                }
                 _ => {}
             }
         }

@@ -12,7 +12,7 @@ impl IRToX86Pass for SelectInstructions {
         }
 
         X86Program {
-            instrs: program_instrs,
+            functions: vec![(Directive::Label(String::from("main")), program_instrs)],
             stack_size: 0,
         }
     }

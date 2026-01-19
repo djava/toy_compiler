@@ -34,7 +34,7 @@ fn execute_test_case(mut tc: TestCase) {
     println!("-- AST after PatchInstr:\n{post_patch_instrs_x86ast}");
 
     // Ensure that all the variable arguments have been removed
-    for i in &post_patch_instrs_x86ast.instrs {
+    for i in post_patch_instrs_x86ast.functions.iter().map(|x| &x.1).flatten() {
         use x86_ast::{Arg, Instr};
         match i {
             Instr::addq(s, d) | Instr::subq(s, d) | Instr::movq(s, d)
