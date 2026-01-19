@@ -3,7 +3,7 @@ use std::collections::VecDeque;
 
 use cs4999_compiler::{
     ast::*,
-    passes::{Pass, remove_complex_operands::RemoveComplexOperands},
+    passes::{IRPass, remove_complex_operands::RemoveComplexOperands},
 };
 
 use crate::infra::{interpreter::interpret, type_check::type_check};

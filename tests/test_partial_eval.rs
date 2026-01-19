@@ -3,7 +3,7 @@ use std::collections::VecDeque;
 
 use cs4999_compiler::{
     ast::*,
-    passes::{partial_eval::PartialEval, Pass},
+    passes::{partial_eval::PartialEval, IRPass},
 };
 
 use crate::infra::{interpreter::interpret, type_check::type_check};
