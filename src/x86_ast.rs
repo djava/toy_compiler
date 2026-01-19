@@ -1,7 +1,7 @@
 use crate::ast::Identifier;
 
 #[allow(non_camel_case_types)]
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 #[repr(u8)]
 pub enum Register {
     rax = 0u8,
@@ -22,11 +22,11 @@ pub enum Register {
     r15 = 15u8,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum Arg {
     Intermediate(i32),
     Reg(Register),
-    Deref(u8, i32),
+    Deref(Register, i32),
     Variable(Identifier),
 }
 
