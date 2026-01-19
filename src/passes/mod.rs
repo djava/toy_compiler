@@ -5,6 +5,7 @@ pub mod partial_eval;
 pub mod remove_complex_operands;
 pub mod select_instructions;
 pub mod register_allocation;
+pub mod patch_instructions;
 
 pub trait IRPass {
     fn run_pass(m: ast::Module) -> ast::Module;
