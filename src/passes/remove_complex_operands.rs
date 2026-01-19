@@ -1,4 +1,4 @@
-use crate::{ast::*, passes::Pass};
+use crate::{ast::*, passes::IRPass};
 
 pub struct RemoveComplexOperands;
 
@@ -7,7 +7,7 @@ struct ExprTransformation {
     ephemeral_assigns: Vec<(Identifier, Expr)>,
 }
 
-impl Pass for RemoveComplexOperands {
+impl IRPass for RemoveComplexOperands {
     fn run_pass(m: Module) -> Module {
         let Module::Body(old_body) = m;
 

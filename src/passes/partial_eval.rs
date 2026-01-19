@@ -1,8 +1,8 @@
-use crate::{ast::*, passes::Pass};
+use crate::{ast::*, passes::IRPass};
 
 pub struct PartialEval;
 
-impl Pass for PartialEval {
+impl IRPass for PartialEval {
     fn run_pass(m: Module) -> Module {
         let Module::Body(mut statements) = m;
 
