@@ -5,7 +5,7 @@ pub struct PartialEval;
 impl Pass for PartialEval {
     fn run_pass(m: Module) -> Module {
         let Module::Body(mut statements) = m;
-        
+
         for s in statements.iter_mut() {
             match s {
                 Statement::Assign(_dest, e) => partial_eval_expr(e),
@@ -37,36 +37,30 @@ fn partial_eval_expr(e: &mut Expr) {
                     BinaryOperator::Subtract => {
                         *e = Constant(Value::I64(l_val - r_val));
                     }
-                    BinaryOperator::Multiply => {
-                        *e = Constant(Value::I64(l_val * r_val));
-                    }
-                    BinaryOperator::Divide => {
-                        *e = Constant(Value::I64(l_val / r_val));
-                    }
                 }
             }
-        },
+        }
         UnaryOp(op, expr) => {
             // Try and evaluate the operand recursively, then if its
             // constant we can evaluate the whole expression
             partial_eval_expr(&mut *expr);
             if let Constant(Value::I64(val)) = **expr {
                 match op {
-                    UnaryOperator::Minus => { *e = Constant(Value::I64(-val)) },
-                    UnaryOperator::Plus => { *e = Constant(Value::I64(val)) },
+                    UnaryOperator::Minus => *e = Constant(Value::I64(-val)),
+                    UnaryOperator::Plus => *e = Constant(Value::I64(val)),
                 }
             }
-        },
+        }
         Call(_name, args) => {
             // Can't evaluate through function calls right now, but try
             // to evaluate the arguments regardless
             for i in args {
                 partial_eval_expr(i);
             }
-        },
+        }
         Constant(_val) => {
             // Already a constant, nothing to evaluate
-        },
+        }
         Id(_name) => {
             // Can't do anything
         }
