@@ -1,4 +1,4 @@
-mod common;
+mod infra;
 use std::collections::VecDeque;
 
 use cs4999_compiler::{
@@ -6,7 +6,7 @@ use cs4999_compiler::{
     passes::{Pass, remove_complex_operands::RemoveComplexOperands},
 };
 
-use crate::common::{interpreter::interpret, type_check::type_check};
+use crate::infra::{interpreter::interpret, type_check::type_check};
 
 struct TestCase {
     ast: Module,

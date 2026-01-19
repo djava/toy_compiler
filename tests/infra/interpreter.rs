@@ -1,4 +1,4 @@
-use crate::common::ValueEnv;
+use crate::infra::ValueEnv;
 use cs4999_compiler::ast::*;
 use std::collections::VecDeque;
 

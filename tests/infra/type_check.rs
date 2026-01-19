@@ -1,4 +1,4 @@
-use crate::common::TypeEnv;
+use crate::infra::TypeEnv;
 use cs4999_compiler::ast::*;
 
 fn type_check_expr(e: &Expr, env: &mut TypeEnv) -> ValueType {
