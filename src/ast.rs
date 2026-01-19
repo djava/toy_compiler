@@ -16,8 +16,6 @@ pub enum Value {
 pub enum BinaryOperator {
     Add,
     Subtract,
-    Multiply,
-    Divide,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq)]

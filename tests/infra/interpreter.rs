@@ -19,8 +19,6 @@ fn interpret_expr(
             match op {
                 BinaryOperator::Add => Some(l_val + r_val),
                 BinaryOperator::Subtract => Some(l_val - r_val),
-                BinaryOperator::Multiply => Some(l_val * r_val),
-                BinaryOperator::Divide => Some(l_val / r_val),
             }
         }
         UnaryOp(UnaryOperator::Minus, v) => Some(
