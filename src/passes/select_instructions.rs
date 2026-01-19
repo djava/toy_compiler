@@ -26,9 +26,9 @@ fn sel_for_statement(s: Statement) -> Vec<Instr> {
             Expr::UnaryOp(UnaryOperator::Plus, val) => sel_for_unary_plus(dest_id, val),
             Expr::UnaryOp(UnaryOperator::Minus, val) => sel_for_unary_minus(dest_id, val),
             Expr::Constant(Value::I64(val)) => vec![Instr::movq(
-                Arg::Intermediate(val as _),
+                Arg::Immediate(val as _),
                 Arg::Variable(dest_id),
-            )], // TODO: non-lossy i64 intermediates
+            )],
             Expr::Id(id) => vec![Instr::movq(Arg::Variable(id), Arg::Variable(dest_id))],
             Expr::Call(func_id, args) => sel_for_call(Some(dest_id), func_id, args),
         },
@@ -148,10 +148,7 @@ fn sel_for_call(dest_id: Option<Identifier>, func_id: Identifier, args: Vec<Expr
 fn atom_to_arg(e: Expr) -> Arg {
     // Atomic values are either constants or variables, all others are non-atomic
     match e {
-        Expr::Constant(Value::I64(val)) => {
-            // Potentially lossy i64->i32 !! TODO: Assigning 64-bit intermediates
-            Arg::Intermediate(val as _)
-        }
+        Expr::Constant(Value::I64(val)) => Arg::Immediate(val),
         Expr::Id(id) => Arg::Variable(id),
         _ => panic!("Non-Atom `{e:?}` passed to atom_to_arg"),
     }

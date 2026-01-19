@@ -26,7 +26,7 @@ pub enum Register {
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum Arg {
-    Intermediate(i32),
+    Immediate(i64),
     Reg(Register),
     Deref(Register, i32),
     Variable(Identifier),
@@ -77,7 +77,7 @@ impl Display for Register {
 impl Display for Arg {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Arg::Intermediate(val) => write!(f, "${}", val),
+            Arg::Immediate(val) => write!(f, "${}", val),
             Arg::Reg(reg) => write!(f, "{reg}"),
             Arg::Deref(reg, offset) => write!(f, "{offset}({reg})"),
             Arg::Variable(id) => match id {

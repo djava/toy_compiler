@@ -40,7 +40,7 @@ impl X86Env {
                     self.memory[addr + idx] = *byte;
                 }
             }
-            Arg::Intermediate(_) => panic!("Can't write to an intermediate"),
+            Arg::Immediate(_) => panic!("Can't write to an intermediate"),
         }
     }
 
@@ -62,7 +62,7 @@ impl X86Env {
                 }
                 i64::from_le_bytes(bytes)
             }
-            Arg::Intermediate(val) => *val as i64,
+            Arg::Immediate(val) => *val as i64,
         }
     }
 }
@@ -134,6 +134,8 @@ fn run_instr(
 pub fn interpret_x86(p: &X86Program, inputs: &mut VecDeque<i64>, outputs: &mut VecDeque<i64>) {
     let mut env = X86Env::new();
 
+    // TODO: This is not remotely sufficient for a program with actual
+    // control flow - Need to follow %rip instead...
     for i in &p.instrs {
         run_instr(i, inputs, outputs, &mut env);
     }
