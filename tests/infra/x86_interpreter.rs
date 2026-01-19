@@ -11,11 +11,16 @@ struct X86Env {
 
 impl X86Env {
     fn new() -> Self {
-        Self {
+        let mut ret = Self {
             vars: ValueEnv::new(),
             regs: [0; 16],
             memory: [0; 2048],
-        }
+        };
+
+        ret.regs[Register::rsp as usize] = 2048;
+        ret.regs[Register::rbp as usize] = 2048;
+
+        ret
     }
 
     fn write_arg(&mut self, arg: &Arg, value: i64) {
