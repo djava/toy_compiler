@@ -23,10 +23,10 @@ fn execute_test_case(mut tc: TestCase) {
     type_check(&tc.ast);
     println!("Type-check passed on source");
 
-    let post_rco_ast = RemoveComplexOperands::run_pass(tc.ast);
+    let post_rco_ast = RemoveComplexOperands.run_pass(tc.ast);
 
     println!("-- AST before SelInstr:\n{post_rco_ast:?}");
-    let post_instr_sel_x86ast = SelectInstructions::run_pass(post_rco_ast);
+    let post_instr_sel_x86ast = SelectInstructions.run_pass(post_rco_ast);
     println!("-- AST after SelInstr:\n{post_instr_sel_x86ast}");
 
     let mut outputs = VecDeque::<i64>::new();

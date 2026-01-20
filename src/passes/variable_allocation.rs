@@ -6,7 +6,7 @@ use x86_ast::*;
 pub struct VariableAllocation;
 
 impl X86Pass for VariableAllocation {
-    fn run_pass(mut m: X86Program) -> X86Program {
+    fn run_pass(self, mut m: X86Program) -> X86Program {
         let mut curr_offset = 0i32;
         let mut var_map = HashMap::<Identifier, i32>::new();
 
@@ -14,7 +14,8 @@ impl X86Pass for VariableAllocation {
             .functions
             .iter_mut()
             .find(|(d, _)| d == &Directive::Label(String::from("main")))
-            .expect("Didn't find a main function").1;
+            .expect("Didn't find a main function")
+            .1;
 
         for i in main_instrs {
             match i {

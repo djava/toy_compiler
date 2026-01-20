@@ -1,15 +1,7 @@
 mod infra;
 use std::collections::VecDeque;
 
-use cs4999_compiler::{
-    ast::*,
-    passes::{
-        IRPass, IRToX86Pass, X86Pass, patch_instructions::PatchInstructions,
-        variable_allocation::VariableAllocation, remove_complex_operands::RemoveComplexOperands,
-        select_instructions::SelectInstructions,
-    },
-    x86_ast,
-};
+use cs4999_compiler::{ast::*, passes::*, pipeline::Pipeline, x86_ast};
 
 use crate::infra::{type_check::type_check, x86_interpreter::interpret_x86};
 
@@ -25,16 +17,19 @@ fn execute_test_case(mut tc: TestCase) {
     type_check(&tc.ast);
     println!("Type-check passed on source");
 
-    let post_rco_ast = RemoveComplexOperands::run_pass(tc.ast);
+    let pipeline = Pipeline {
+        ir_passes: vec![IRtoIR::from(RemoveComplexOperands)],
+        ir_to_x86_pass: IRtoX86::from(SelectInstructions),
+        x86_passes: vec![X86toX86::from(PatchInstructions)],
+    };
 
-    let post_instr_sel_x86ast = SelectInstructions::run_pass(post_rco_ast);
-    let post_reg_alloc_x86ast = VariableAllocation::run_pass(post_instr_sel_x86ast);
-    println!("-- AST before PatchInstr:\n{post_reg_alloc_x86ast}");
-    let post_patch_instrs_x86ast = PatchInstructions::run_pass(post_reg_alloc_x86ast);
-    println!("-- AST after PatchInstr:\n{post_patch_instrs_x86ast}");
+    let before_ast = pipeline.run(tc.ast);
+    println!("-- AST before PatchInstr:\n{before_ast}");
+    let after_ast = PatchInstructions.run_pass(before_ast);
+    println!("-- AST after PatchInstr:\n{after_ast}");
 
     // Ensure that all the variable arguments have been removed
-    for i in post_patch_instrs_x86ast.functions.iter().map(|x| &x.1).flatten() {
+    for i in after_ast.functions.iter().map(|x| &x.1).flatten() {
         use x86_ast::{Arg, Instr};
         match i {
             Instr::addq(s, d) | Instr::subq(s, d) | Instr::movq(s, d)
@@ -44,16 +39,18 @@ fn execute_test_case(mut tc: TestCase) {
             }
             Instr::addq(s, d) | Instr::subq(s, d) | Instr::movq(s, d)
                 if matches!(s, Arg::Immediate(v) if i32::try_from(*v).is_err())
-                && matches!(d, Arg::Deref(_, _)) =>
+                    && matches!(d, Arg::Deref(_, _)) =>
             {
-                panic!("PatchInstructions should remove all memory-access + 64-bit-imm instructions");
+                panic!(
+                    "PatchInstructions should remove all memory-access + 64-bit-imm instructions"
+                );
             }
             _ => {}
         }
     }
 
     let mut outputs = VecDeque::<i64>::new();
-    interpret_x86(&post_patch_instrs_x86ast, &mut tc.inputs, &mut outputs);
+    interpret_x86(&after_ast, &mut tc.inputs, &mut outputs);
 
     assert_eq!(outputs, tc.expected_outputs);
 }

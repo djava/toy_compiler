@@ -3,7 +3,7 @@ use crate::{ast::*, passes::IRToX86Pass, x86_ast::*};
 pub struct SelectInstructions;
 
 impl IRToX86Pass for SelectInstructions {
-    fn run_pass(m: Module) -> X86Program {
+    fn run_pass(self, m: Module) -> X86Program {
         let Module::Body(statements) = m;
 
         let mut program_instrs = vec![];

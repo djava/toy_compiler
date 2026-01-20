@@ -21,7 +21,7 @@ fn execute_test_case(mut tc: TestCase) {
     println!("Type-check passed on source");
 
     println!("AST before RCO: {:#?}", tc.ast);
-    let post_run_ast = RemoveComplexOperands::run_pass(tc.ast);
+    let post_run_ast = RemoveComplexOperands.run_pass(tc.ast);
     println!("AST after RCO: {:#?}", post_run_ast);
 
     type_check(&post_run_ast);

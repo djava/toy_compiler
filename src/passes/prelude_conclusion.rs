@@ -3,7 +3,7 @@ use crate::{passes::X86Pass, x86_ast::*};
 pub struct PreludeConclusion;
 
 impl X86Pass for PreludeConclusion {
-    fn run_pass(mut m: X86Program) -> X86Program {
+    fn run_pass(self, mut m: X86Program) -> X86Program {
         let prelude_directives: [Directive; 2] = [
             Directive::AttSyntax,
             Directive::Globl(String::from("main")),

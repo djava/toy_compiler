@@ -3,7 +3,7 @@ use crate::{passes::X86Pass, x86_ast::*};
 pub struct PatchInstructions;
 
 impl X86Pass for PatchInstructions {
-    fn run_pass(mut m: X86Program) -> X86Program {
+    fn run_pass(self, mut m: X86Program) -> X86Program {
         let main_instrs = &mut m
             .functions
             .iter_mut()

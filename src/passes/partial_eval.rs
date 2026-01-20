@@ -3,7 +3,7 @@ use crate::{ast::*, passes::IRPass};
 pub struct PartialEval;
 
 impl IRPass for PartialEval {
-    fn run_pass(m: Module) -> Module {
+    fn run_pass(self, m: Module) -> Module {
         let Module::Body(mut statements) = m;
 
         for s in statements.iter_mut() {

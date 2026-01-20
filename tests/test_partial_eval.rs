@@ -3,7 +3,7 @@ use std::collections::VecDeque;
 
 use cs4999_compiler::{
     ast::*,
-    passes::{partial_eval::PartialEval, IRPass},
+    passes::{IRPass, partial_eval::PartialEval},
 };
 
 use crate::infra::{interpreter::interpret, type_check::type_check};
@@ -21,7 +21,7 @@ fn execute_test_case(mut tc: TestCase) {
     println!("Type-check passed on source");
 
     println!("AST before Partial Eval: {:?}", tc.ast);
-    let post_run_ast = PartialEval::run_pass(tc.ast);
+    let post_run_ast = PartialEval.run_pass(tc.ast);
     println!("AST after Partial Eval: {:?}", post_run_ast);
 
     type_check(&post_run_ast);

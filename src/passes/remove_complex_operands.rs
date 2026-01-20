@@ -8,7 +8,7 @@ struct ExprTransformation {
 }
 
 impl IRPass for RemoveComplexOperands {
-    fn run_pass(m: Module) -> Module {
+    fn run_pass(self, m: Module) -> Module {
         let Module::Body(old_body) = m;
 
         let mut new_body: Vec<Statement> = vec![];
