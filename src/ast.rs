@@ -24,14 +24,14 @@ pub enum UnaryOperator {
     Minus,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub enum Identifier {
+#[derive(Debug, Clone, Copy,PartialEq, Eq, Hash)]
+pub enum Identifier<'a> {
     Ephemeral(u64),
-    Named(String)
+    Named(&'a str)
 }
 
-impl Identifier {
-    pub fn new_ephemeral() -> Identifier {
+impl<'a> Identifier<'a> {
+    pub fn new_ephemeral() -> Identifier<'a> {
         static COUNTER: AtomicU64 = AtomicU64::new(0);
         
         let current_counter = COUNTER.load(Ordering::Relaxed);
@@ -41,21 +41,21 @@ impl Identifier {
 }
 
 #[derive(Debug, Clone, PartialEq)]
-pub enum Expr {
+pub enum Expr<'a> {
     Constant(Value),
-    BinaryOp(Box<Expr>, BinaryOperator, Box<Expr>),
-    UnaryOp(UnaryOperator, Box<Expr>),
-    Call(Identifier, Vec<Expr>),
-    Id(Identifier),
+    BinaryOp(Box<Expr<'a>>, BinaryOperator, Box<Expr<'a>>),
+    UnaryOp(UnaryOperator, Box<Expr<'a>>),
+    Call(Identifier<'a>, Vec<Expr<'a>>),
+    Id(Identifier<'a>),
 }
 
 #[derive(Debug, Clone, PartialEq)]
-pub enum Statement {
-    Assign(Identifier, Expr),
-    Expr(Expr)
+pub enum Statement<'a> {
+    Assign(Identifier<'a>, Expr<'a>),
+    Expr(Expr<'a>)
 }
 
 #[derive(Debug, Clone, PartialEq)]
-pub enum Module {
-    Body(Vec<Statement>)
+pub enum Module<'a> {
+    Body(Vec<Statement<'a>>)
 }

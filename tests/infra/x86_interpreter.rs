@@ -3,13 +3,13 @@ use std::collections::VecDeque;
 use crate::infra::ValueEnv;
 use cs4999_compiler::{ast::Value, x86_ast::*};
 
-struct X86Env {
-    vars: ValueEnv,
+struct X86Env<'a> {
+    vars: ValueEnv<'a>,
     regs: [i64; 16],
     memory: [u8; 2048],
 }
 
-impl X86Env {
+impl<'a> X86Env<'a> {
     fn new() -> Self {
         let mut ret = Self {
             vars: ValueEnv::new(),
@@ -23,13 +23,13 @@ impl X86Env {
         ret
     }
 
-    fn write_arg(&mut self, arg: &Arg, value: i64) {
+    fn write_arg(&mut self, arg: &Arg<'a>, value: i64) {
         match arg {
             Arg::Reg(n) => {
                 self.regs[*n as usize] = value;
             }
             Arg::Variable(id) => {
-                self.vars.insert(id.clone(), Value::I64(value));
+                self.vars.insert(*id, Value::I64(value));
             }
             Arg::Deref(reg, offset) => {
                 let base = self.regs[*reg as usize];
@@ -68,7 +68,7 @@ impl X86Env {
 }
 
 fn execute_runtime_calls(
-    label: &String,
+    label: &str,
     inputs: &mut VecDeque<i64>,
     outputs: &mut VecDeque<i64>,
     env: &mut X86Env,
@@ -87,11 +87,11 @@ fn execute_runtime_calls(
     }
 }
 
-fn run_instr(
-    instr: &Instr,
+fn run_instr<'a>(
+    instr: &Instr<'a>,
     inputs: &mut VecDeque<i64>,
     outputs: &mut VecDeque<i64>,
-    env: &mut X86Env,
+    env: &mut X86Env<'a>,
 ) {
     match instr {
         Instr::addq(s, d) => {
@@ -137,7 +137,7 @@ pub fn interpret_x86(m: &X86Program, inputs: &mut VecDeque<i64>, outputs: &mut V
     let main_instrs = &m
         .functions
         .iter()
-        .find(|(d, _)| d == &Directive::Label(String::from("main")))
+        .find(|(d, _)| d == &Directive::Label("main"))
         .expect("Didn't find a main function").1;
     // TODO: This is not remotely sufficient for a program with actual
     // control flow - Need to follow %rip instead...

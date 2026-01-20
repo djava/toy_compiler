@@ -31,9 +31,9 @@ fn interpret_expr(
         ),
         Constant(Value::I64(v)) => Some(*v),
         Call(name, args) => {
-            if name == &Identifier::Named(String::from("input_int")) && args.is_empty() {
+            if name == &Identifier::Named("input_int") && args.is_empty() {
                 Some(inputs.pop_front().expect("Ran out of inputs"))
-            } else if name == &Identifier::Named(String::from("print")) && args.len() == 1 {
+            } else if name == &Identifier::Named("print") && args.len() == 1 {
                 let val = interpret_expr(&args[0], inputs, outputs, env)
                     .expect(format!("{:?} didn't evaluate to a constant", args[0]).as_str());
                 outputs.push_back(val);
@@ -54,12 +54,12 @@ fn interpret_expr(
     }
 }
 
-fn interpret_statement(
-    s: &Statement,
+fn interpret_statement<'a>(
+    s: &Statement<'a>,
     inputs: &mut VecDeque<i64>,
     outputs: &mut VecDeque<i64>,
-    remaining_stmts: &[Statement],
-    env: &mut ValueEnv,
+    remaining_stmts: &[Statement<'a>],
+    env: &mut ValueEnv<'a>,
 ) {
     match s {
         Statement::Expr(e) => {
@@ -76,7 +76,7 @@ fn interpret_statement(
         }
         Statement::Assign(id, e) => {
             let result = interpret_expr(e, inputs, outputs, env);
-            env.insert(id.clone(), Value::I64(result.expect(format!("Expr `{e:?} did not return a value").as_str())));
+            env.insert(*id, Value::I64(result.expect(format!("Expr `{e:?} did not return a value").as_str())));
 
             if !remaining_stmts.is_empty() {
                 interpret_statement(

@@ -24,37 +24,37 @@ pub enum Register {
     r15 = 15u8,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub enum Arg {
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+pub enum Arg<'a> {
     Immediate(i64),
     Reg(Register),
     Deref(Register, i32),
-    Variable(Identifier),
+    Variable(Identifier<'a>),
 }
 
 #[allow(non_camel_case_types)]
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub enum Instr {
-    addq(Arg, Arg),
-    subq(Arg, Arg),
-    negq(Arg),
-    movq(Arg, Arg),
-    pushq(Arg),
-    popq(Arg),
-    callq(String, u16),
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+pub enum Instr<'a> {
+    addq(Arg<'a>, Arg<'a>),
+    subq(Arg<'a>, Arg<'a>),
+    negq(Arg<'a>),
+    movq(Arg<'a>, Arg<'a>),
+    pushq(Arg<'a>),
+    popq(Arg<'a>),
+    callq(&'a str, u16),
     retq,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub enum Directive {
-    Label(String),
-    Globl(String),
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+pub enum Directive<'a> {
+    Label(&'a str),
+    Globl(&'a str),
     AttSyntax,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct X86Program {
-    pub functions: Vec<(Directive, Vec<Instr>)>,
+pub struct X86Program<'a> {
+    pub functions: Vec<(Directive<'a>, Vec<Instr<'a>>)>,
     pub(crate) stack_size: usize
 }
 
@@ -81,7 +81,7 @@ impl Display for Register {
     }
 }
 
-impl Display for Arg {
+impl<'a> Display for Arg<'a> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Arg::Immediate(val) => write!(f, "${}", val),
@@ -96,7 +96,7 @@ impl Display for Arg {
     }
 }
 
-impl Display for Instr {
+impl<'a> Display for Instr<'a> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Instr::addq(arg, arg1) => write!(f, "addq {arg}, {arg1}"),
@@ -111,7 +111,7 @@ impl Display for Instr {
     }
 }
 
-impl Display for Directive {
+impl<'a> Display for Directive<'a> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Self::Label(name) => write!(f, "{name}:"),
@@ -121,7 +121,7 @@ impl Display for Directive {
     }
 }
 
-impl Display for X86Program {
+impl<'a> Display for X86Program<'a> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         for (dir, instrs) in &self.functions {
             writeln!(f, "{dir}")?;

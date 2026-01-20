@@ -13,7 +13,7 @@ impl X86Pass for VariableAllocation {
         let main_instrs = &mut m
             .functions
             .iter_mut()
-            .find(|(d, _)| d == &Directive::Label(String::from("main")))
+            .find(|(d, _)| d == &Directive::Label("main"))
             .expect("Didn't find a main function")
             .1;
 
@@ -39,14 +39,14 @@ impl X86Pass for VariableAllocation {
     }
 }
 
-fn stack_allocate(arg: &mut Arg, curr_offset: &mut i32, var_map: &mut HashMap<Identifier, i32>) {
+fn stack_allocate<'a>(arg: &mut Arg<'a>, curr_offset: &mut i32, var_map: &mut HashMap<Identifier<'a>, i32>) {
     if let Arg::Variable(id) = arg {
         if !var_map.contains_key(&id) {
             // If the variable hasn't been allocated yet, bump offset by
             // 8 and add it to the map.
             *curr_offset -= 8;
 
-            var_map.insert(id.clone(), *curr_offset);
+            var_map.insert(*id, *curr_offset);
         }
 
         *arg = Arg::Deref(Register::rbp, *var_map.get(&id).unwrap());

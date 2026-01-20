@@ -12,7 +12,7 @@ impl IRToX86Pass for SelectInstructions {
         }
 
         X86Program {
-            functions: vec![(Directive::Label(String::from("main")), program_instrs)],
+            functions: vec![(Directive::Label("main"), program_instrs)],
             stack_size: 0,
         }
     }
@@ -39,7 +39,11 @@ fn sel_for_statement(s: Statement) -> Vec<Instr> {
     }
 }
 
-fn sel_for_add(dest_id: Identifier, left: Box<Expr>, right: Box<Expr>) -> Vec<Instr> {
+fn sel_for_add<'a>(
+    dest_id: Identifier<'a>,
+    left: Box<Expr<'a>>,
+    right: Box<Expr<'a>>,
+) -> Vec<Instr<'a>> {
     if let Expr::Id(left_id) = &*left
         && left_id == &dest_id
     {
@@ -56,13 +60,17 @@ fn sel_for_add(dest_id: Identifier, left: Box<Expr>, right: Box<Expr>) -> Vec<In
         // Expression requires two instructions - load
         // left into dest, then add right into dest
         vec![
-            Instr::movq(atom_to_arg(*left), Arg::Variable(dest_id.clone())),
+            Instr::movq(atom_to_arg(*left), Arg::Variable(dest_id)),
             Instr::addq(atom_to_arg(*right), Arg::Variable(dest_id)),
         ]
     }
 }
 
-fn sel_for_sub(dest_id: Identifier, left: Box<Expr>, right: Box<Expr>) -> Vec<Instr> {
+fn sel_for_sub<'a>(
+    dest_id: Identifier<'a>,
+    left: Box<Expr<'a>>,
+    right: Box<Expr<'a>>,
+) -> Vec<Instr<'a>> {
     if let Expr::Id(left_id) = &*left
         && left_id == &dest_id
     {
@@ -73,13 +81,13 @@ fn sel_for_sub(dest_id: Identifier, left: Box<Expr>, right: Box<Expr>) -> Vec<In
         // Expression requires two instructions - load
         // left into dest, then subtract right from dest
         vec![
-            Instr::movq(atom_to_arg(*left), Arg::Variable(dest_id.clone())),
+            Instr::movq(atom_to_arg(*left), Arg::Variable(dest_id)),
             Instr::subq(atom_to_arg(*right), Arg::Variable(dest_id)),
         ]
     }
 }
 
-fn sel_for_unary_plus(dest_id: Identifier, val: Box<Expr>) -> Vec<Instr> {
+fn sel_for_unary_plus<'a>(dest_id: Identifier<'a>, val: Box<Expr<'a>>) -> Vec<Instr<'a>> {
     if let Expr::Id(val_id) = &*val
         && val_id == &dest_id
     {
@@ -91,7 +99,7 @@ fn sel_for_unary_plus(dest_id: Identifier, val: Box<Expr>) -> Vec<Instr> {
     }
 }
 
-fn sel_for_unary_minus(dest_id: Identifier, val: Box<Expr>) -> Vec<Instr> {
+fn sel_for_unary_minus<'a>(dest_id: Identifier<'a>, val: Box<Expr<'a>>) -> Vec<Instr<'a>> {
     if let Expr::Id(val_id) = &*val
         && val_id == &dest_id
     {
@@ -100,13 +108,17 @@ fn sel_for_unary_minus(dest_id: Identifier, val: Box<Expr>) -> Vec<Instr> {
     } else {
         // x = -y
         vec![
-            Instr::movq(atom_to_arg(*val), Arg::Variable(dest_id.clone())),
+            Instr::movq(atom_to_arg(*val), Arg::Variable(dest_id)),
             Instr::negq(Arg::Variable(dest_id)),
         ]
     }
 }
 
-fn sel_for_call(dest_id: Option<Identifier>, func_id: Identifier, args: Vec<Expr>) -> Vec<Instr> {
+fn sel_for_call<'a>(
+    dest_id: Option<Identifier<'a>>,
+    func_id: Identifier<'a>,
+    args: Vec<Expr<'a>>,
+) -> Vec<Instr<'a>> {
     if args.len() > 6 {
         unimplemented!("Only register arg passing is implemented, max of 6 args");
     }

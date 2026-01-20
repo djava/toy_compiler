@@ -6,7 +6,7 @@ impl X86Pass for PreludeConclusion {
     fn run_pass(self, mut m: X86Program) -> X86Program {
         let prelude_directives: [Directive; 2] = [
             Directive::AttSyntax,
-            Directive::Globl(String::from("main")),
+            Directive::Globl("main"),
         ];
 
         let prelude_instrs: [Instr; 3] = [
@@ -22,13 +22,13 @@ impl X86Pass for PreludeConclusion {
         ];
 
         for (idx, d) in prelude_directives.iter().enumerate() {
-            m.functions.insert(idx, (d.clone(), vec![]));
+            m.functions.insert(idx, (*d, vec![]));
         }
 
         let main_func = m
             .functions
             .iter_mut()
-            .find(|x| x.0 == Directive::Label(String::from("main")))
+            .find(|x| x.0 == Directive::Label("main"))
             .expect("No main function found");
 
         let mut wrapped_main_instrs: Vec<Instr> = vec![];

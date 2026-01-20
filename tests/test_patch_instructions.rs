@@ -5,8 +5,8 @@ use cs4999_compiler::{ast::*, passes::*, pipeline::Pipeline, x86_ast};
 
 use crate::infra::{type_check::type_check, x86_interpreter::interpret_x86};
 
-struct TestCase {
-    ast: Module,
+struct TestCase<'a> {
+    ast: Module<'a>,
     inputs: VecDeque<i64>,
     expected_outputs: VecDeque<i64>,
 }
@@ -59,7 +59,7 @@ fn execute_test_case(mut tc: TestCase) {
 fn test_patch_instructions_add() {
     execute_test_case(TestCase {
         ast: Module::Body(vec![Statement::Expr(Expr::Call(
-            Identifier::Named(String::from("print")),
+            Identifier::Named("print"),
             vec![Expr::BinaryOp(
                 Box::new(Expr::Constant(Value::I64(40))),
                 BinaryOperator::Add,
@@ -75,9 +75,9 @@ fn test_patch_instructions_add() {
 fn test_patch_instructions_input() {
     execute_test_case(TestCase {
         ast: Module::Body(vec![Statement::Expr(Expr::Call(
-            Identifier::Named(String::from("print")),
+            Identifier::Named("print"),
             vec![Expr::Call(
-                Identifier::Named(String::from("input_int")),
+                Identifier::Named("input_int"),
                 vec![],
             )],
         ))]),
@@ -90,15 +90,15 @@ fn test_patch_instructions_input() {
 fn test_patch_instructions_subinput() {
     execute_test_case(TestCase {
         ast: Module::Body(vec![Statement::Expr(Expr::Call(
-            Identifier::Named(String::from("print")),
+            Identifier::Named("print"),
             vec![Expr::BinaryOp(
                 Box::new(Expr::Call(
-                    Identifier::Named(String::from("input_int")),
+                    Identifier::Named("input_int"),
                     vec![],
                 )),
                 BinaryOperator::Subtract,
                 Box::new(Expr::Call(
-                    Identifier::Named(String::from("input_int")),
+                    Identifier::Named("input_int"),
                     vec![],
                 )),
             )],
@@ -112,7 +112,7 @@ fn test_patch_instructions_subinput() {
 fn test_patch_instructions_zero() {
     execute_test_case(TestCase {
         ast: Module::Body(vec![Statement::Expr(Expr::Call(
-            Identifier::Named(String::from("print")),
+            Identifier::Named("print"),
             vec![Expr::Constant(Value::I64(0))],
         ))]),
         inputs: VecDeque::from(vec![]),
@@ -124,7 +124,7 @@ fn test_patch_instructions_zero() {
 fn test_patch_instructions_nested() {
     execute_test_case(TestCase {
         ast: Module::Body(vec![Statement::Expr(Expr::Call(
-            Identifier::Named(String::from("print")),
+            Identifier::Named("print"),
             vec![Expr::BinaryOp(
                 Box::new(Expr::BinaryOp(
                     Box::new(Expr::Constant(Value::I64(40))),
@@ -148,11 +148,11 @@ fn test_patch_instructions_nested() {
 fn test_patch_instructions_mixed() {
     execute_test_case(TestCase {
         ast: Module::Body(vec![Statement::Expr(Expr::Call(
-            Identifier::Named(String::from("print")),
+            Identifier::Named("print"),
             vec![Expr::BinaryOp(
                 Box::new(Expr::BinaryOp(
                     Box::new(Expr::Call(
-                        Identifier::Named(String::from("input_int")),
+                        Identifier::Named("input_int"),
                         vec![],
                     )),
                     BinaryOperator::Add,
@@ -176,12 +176,12 @@ fn test_patch_instructions_simple_assignment() {
     execute_test_case(TestCase {
         ast: Module::Body(vec![
             Statement::Assign(
-                Identifier::Named(String::from("x")),
+                Identifier::Named("x"),
                 Expr::Constant(Value::I64(1000)),
             ),
             Statement::Expr(Expr::Call(
-                Identifier::Named(String::from("print")),
-                vec![Expr::Id(Identifier::Named(String::from("x")))],
+                Identifier::Named("print"),
+                vec![Expr::Id(Identifier::Named("x"))],
             )),
         ]),
         inputs: VecDeque::from(vec![]),
@@ -194,12 +194,12 @@ fn test_patch_instructions_simple_assignment_imm64() {
     execute_test_case(TestCase {
         ast: Module::Body(vec![
             Statement::Assign(
-                Identifier::Named(String::from("x")),
+                Identifier::Named("x"),
                 Expr::Constant(Value::I64(i64::MAX)),
             ),
             Statement::Expr(Expr::Call(
-                Identifier::Named(String::from("print")),
-                vec![Expr::Id(Identifier::Named(String::from("x")))],
+                Identifier::Named("print"),
+                vec![Expr::Id(Identifier::Named("x"))],
             )),
         ]),
         inputs: VecDeque::from(vec![]),
@@ -221,11 +221,11 @@ fn test_patch_instructions_complex_assignment() {
     execute_test_case(TestCase {
         ast: Module::Body(vec![
             Statement::Assign(
-                Identifier::Named(String::from("foofoo")),
+                Identifier::Named("foofoo"),
                 Expr::BinaryOp(
                     Box::new(Expr::BinaryOp(
                         Box::new(Expr::Call(
-                            Identifier::Named(String::from("input_int")),
+                            Identifier::Named("input_int"),
                             vec![],
                         )),
                         BinaryOperator::Add,
@@ -240,8 +240,8 @@ fn test_patch_instructions_complex_assignment() {
                 ),
             ),
             Statement::Expr(Expr::Call(
-                Identifier::Named(String::from("print")),
-                vec![Expr::Id(Identifier::Named(String::from("foofoo")))],
+                Identifier::Named("print"),
+                vec![Expr::Id(Identifier::Named("foofoo"))],
             )),
         ]),
         inputs: VecDeque::from(vec![10]),
@@ -253,11 +253,11 @@ fn test_patch_instructions_complex_assignment() {
 fn test_patch_instructions_complex_args() {
     execute_test_case(TestCase {
         ast: Module::Body(vec![Statement::Expr(Expr::Call(
-            Identifier::Named(String::from("print")),
+            Identifier::Named("print"),
             vec![Expr::BinaryOp(
                 Box::new(Expr::BinaryOp(
                     Box::new(Expr::Call(
-                        Identifier::Named(String::from("input_int")),
+                        Identifier::Named("input_int"),
                         vec![],
                     )),
                     BinaryOperator::Add,
@@ -300,52 +300,52 @@ fn test_patch_instructions_cascading_assigns() {
     execute_test_case(TestCase {
         ast: Module::Body(vec![
             Statement::Assign(
-                Identifier::Named(String::from("foo")),
-                Expr::Call(Identifier::Named(String::from("input_int")), vec![]),
+                Identifier::Named("foo"),
+                Expr::Call(Identifier::Named("input_int"), vec![]),
             ),
             Statement::Assign(
-                Identifier::Named(String::from("bar")),
+                Identifier::Named("bar"),
                 Expr::BinaryOp(
                     Box::new(Expr::Call(
-                        Identifier::Named(String::from("input_int")),
+                        Identifier::Named("input_int"),
                         vec![],
                     )),
                     BinaryOperator::Add,
-                    Box::new(Expr::Id(Identifier::Named(String::from("foo")))),
+                    Box::new(Expr::Id(Identifier::Named("foo"))),
                 ),
             ),
             Statement::Assign(
-                Identifier::Named(String::from("baz")),
+                Identifier::Named("baz"),
                 Expr::BinaryOp(
                     Box::new(Expr::Call(
-                        Identifier::Named(String::from("input_int")),
+                        Identifier::Named("input_int"),
                         vec![],
                     )),
                     BinaryOperator::Add,
-                    Box::new(Expr::Id(Identifier::Named(String::from("bar")))),
+                    Box::new(Expr::Id(Identifier::Named("bar"))),
                 ),
             ),
             Statement::Assign(
-                Identifier::Named(String::from("bop")),
+                Identifier::Named("bop"),
                 Expr::BinaryOp(
                     Box::new(Expr::BinaryOp(
-                        Box::new(Expr::Id(Identifier::Named(String::from("foo")))),
+                        Box::new(Expr::Id(Identifier::Named("foo"))),
                         BinaryOperator::Add,
-                        Box::new(Expr::Id(Identifier::Named(String::from("bar")))),
+                        Box::new(Expr::Id(Identifier::Named("bar"))),
                     )),
                     BinaryOperator::Add,
-                    Box::new(Expr::Id(Identifier::Named(String::from("baz")))),
+                    Box::new(Expr::Id(Identifier::Named("baz"))),
                 ),
             ),
             Statement::Expr(Expr::Call(
-                Identifier::Named(String::from("print")),
+                Identifier::Named("print"),
                 vec![Expr::BinaryOp(
                     Box::new(Expr::Call(
-                        Identifier::Named(String::from("input_int")),
+                        Identifier::Named("input_int"),
                         vec![],
                     )),
                     BinaryOperator::Add,
-                    Box::new(Expr::Id(Identifier::Named(String::from("bop")))),
+                    Box::new(Expr::Id(Identifier::Named("bop"))),
                 )],
             )),
         ]),

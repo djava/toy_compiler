@@ -7,5 +7,5 @@ pub mod interpreter;
 pub mod type_check;
 pub mod x86_interpreter;
 
-type ValueEnv = HashMap<Identifier, Value>;
-type TypeEnv = HashMap<Identifier, ValueType>;
+type ValueEnv<'a> = HashMap<Identifier<'a>, Value>;
+type TypeEnv<'a> = HashMap<Identifier<'a>, ValueType>;

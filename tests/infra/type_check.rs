@@ -27,9 +27,9 @@ fn type_check_expr(e: &Expr, env: &mut TypeEnv) -> ValueType {
             // TODO: Lookup function name to check arg types
             match id {
                 Identifier::Named(name) => {
-                    if name == "input_int" {
+                    if *name == "input_int" {
                         ValueType::IntType
-                    } else if name == "print" {
+                    } else if *name == "print" {
                         ValueType::None
                     } else {
                         unimplemented!("Unknown function name")
@@ -41,7 +41,7 @@ fn type_check_expr(e: &Expr, env: &mut TypeEnv) -> ValueType {
     }
 }
 
-fn type_check_statements(statements: &[Statement], env: &mut TypeEnv) {
+fn type_check_statements<'a>(statements: &[Statement<'a>], env: &mut TypeEnv<'a>) {
     use Statement::*;
 
     if !statements.is_empty() {
@@ -51,7 +51,7 @@ fn type_check_statements(statements: &[Statement], env: &mut TypeEnv) {
                 if env.contains_key(&dest) {
                     assert_eq!(env[&dest], t)
                 } else {
-                    env.insert(dest.clone(), t);
+                    env.insert(*dest, t);
                 }
                 type_check_statements(&statements[1..], env);
             }
