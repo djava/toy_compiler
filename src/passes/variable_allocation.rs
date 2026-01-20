@@ -3,9 +3,9 @@ use std::collections::HashMap;
 use crate::{ast::Identifier, passes::X86Pass, x86_ast};
 use x86_ast::*;
 
-pub struct RegisterAllocation;
+pub struct VariableAllocation;
 
-impl X86Pass for RegisterAllocation {
+impl X86Pass for VariableAllocation {
     fn run_pass(mut m: X86Program) -> X86Program {
         let mut curr_offset = 0i32;
         let mut var_map = HashMap::<Identifier, i32>::new();

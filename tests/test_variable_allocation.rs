@@ -4,7 +4,7 @@ use std::collections::VecDeque;
 use cs4999_compiler::{
     ast::*,
     passes::{
-        IRPass, IRToX86Pass, X86Pass, register_allocation::RegisterAllocation,
+        IRPass, IRToX86Pass, X86Pass, variable_allocation::VariableAllocation,
         remove_complex_operands::RemoveComplexOperands, select_instructions::SelectInstructions,
     },
     x86_ast,
@@ -28,7 +28,7 @@ fn execute_test_case(mut tc: TestCase) {
 
     let post_instr_sel_x86ast = SelectInstructions::run_pass(post_rco_ast);
     println!("-- AST before RegAlloc:\n{post_instr_sel_x86ast}");
-    let post_reg_alloc_x86ast = RegisterAllocation::run_pass(post_instr_sel_x86ast);
+    let post_reg_alloc_x86ast = VariableAllocation::run_pass(post_instr_sel_x86ast);
     println!("-- AST after RegAlloc:\n{post_reg_alloc_x86ast}");
 
     // Ensure that all the variable arguments have been removed
@@ -54,7 +54,7 @@ fn execute_test_case(mut tc: TestCase) {
 }
 
 #[test]
-fn test_register_allocation_add() {
+fn test_variable_allocation_add() {
     execute_test_case(TestCase {
         ast: Module::Body(vec![Statement::Expr(Expr::Call(
             Identifier::Named(String::from("print")),
@@ -70,7 +70,7 @@ fn test_register_allocation_add() {
 }
 
 #[test]
-fn test_register_allocation_input() {
+fn test_variable_allocation_input() {
     execute_test_case(TestCase {
         ast: Module::Body(vec![Statement::Expr(Expr::Call(
             Identifier::Named(String::from("print")),
@@ -85,7 +85,7 @@ fn test_register_allocation_input() {
 }
 
 #[test]
-fn test_register_allocation_subinput() {
+fn test_variable_allocation_subinput() {
     execute_test_case(TestCase {
         ast: Module::Body(vec![Statement::Expr(Expr::Call(
             Identifier::Named(String::from("print")),
@@ -107,7 +107,7 @@ fn test_register_allocation_subinput() {
 }
 
 #[test]
-fn test_register_allocation_zero() {
+fn test_variable_allocation_zero() {
     execute_test_case(TestCase {
         ast: Module::Body(vec![Statement::Expr(Expr::Call(
             Identifier::Named(String::from("print")),
@@ -119,7 +119,7 @@ fn test_register_allocation_zero() {
 }
 
 #[test]
-fn test_register_allocation_nested() {
+fn test_variable_allocation_nested() {
     execute_test_case(TestCase {
         ast: Module::Body(vec![Statement::Expr(Expr::Call(
             Identifier::Named(String::from("print")),
@@ -143,7 +143,7 @@ fn test_register_allocation_nested() {
 }
 
 #[test]
-fn test_register_allocation_mixed() {
+fn test_variable_allocation_mixed() {
     execute_test_case(TestCase {
         ast: Module::Body(vec![Statement::Expr(Expr::Call(
             Identifier::Named(String::from("print")),
@@ -170,7 +170,7 @@ fn test_register_allocation_mixed() {
 }
 
 #[test]
-fn test_register_allocation_simple_assignment() {
+fn test_variable_allocation_simple_assignment() {
     execute_test_case(TestCase {
         ast: Module::Body(vec![
             Statement::Assign(
@@ -188,7 +188,7 @@ fn test_register_allocation_simple_assignment() {
 }
 
 #[test]
-fn test_register_allocation_complex_assignment() {
+fn test_variable_allocation_complex_assignment() {
     // -- Original
     // print((input_int() + 2) + (40 - 2))
 
@@ -230,7 +230,7 @@ fn test_register_allocation_complex_assignment() {
 }
 
 #[test]
-fn test_register_allocation_complex_args() {
+fn test_variable_allocation_complex_args() {
     execute_test_case(TestCase {
         ast: Module::Body(vec![Statement::Expr(Expr::Call(
             Identifier::Named(String::from("print")),
@@ -257,7 +257,7 @@ fn test_register_allocation_complex_args() {
 }
 
 #[test]
-fn test_register_allocation_cascading_assigns() {
+fn test_variable_allocation_cascading_assigns() {
     // -- Original
     // foo = input_int(10)        # 10
     // bar = input_int(20) + foo  # 20 + 10 = 30

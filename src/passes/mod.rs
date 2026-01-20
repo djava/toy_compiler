@@ -4,7 +4,7 @@ use super::x86_ast;
 pub mod partial_eval;
 pub mod remove_complex_operands;
 pub mod select_instructions;
-pub mod register_allocation;
+pub mod variable_allocation;
 pub mod patch_instructions;
 pub mod prelude_conclusion;
 

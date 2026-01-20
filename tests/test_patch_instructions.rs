@@ -5,7 +5,7 @@ use cs4999_compiler::{
     ast::*,
     passes::{
         IRPass, IRToX86Pass, X86Pass, patch_instructions::PatchInstructions,
-        register_allocation::RegisterAllocation, remove_complex_operands::RemoveComplexOperands,
+        variable_allocation::VariableAllocation, remove_complex_operands::RemoveComplexOperands,
         select_instructions::SelectInstructions,
     },
     x86_ast,
@@ -28,7 +28,7 @@ fn execute_test_case(mut tc: TestCase) {
     let post_rco_ast = RemoveComplexOperands::run_pass(tc.ast);
 
     let post_instr_sel_x86ast = SelectInstructions::run_pass(post_rco_ast);
-    let post_reg_alloc_x86ast = RegisterAllocation::run_pass(post_instr_sel_x86ast);
+    let post_reg_alloc_x86ast = VariableAllocation::run_pass(post_instr_sel_x86ast);
     println!("-- AST before PatchInstr:\n{post_reg_alloc_x86ast}");
     let post_patch_instrs_x86ast = PatchInstructions::run_pass(post_reg_alloc_x86ast);
     println!("-- AST after PatchInstr:\n{post_patch_instrs_x86ast}");
