@@ -54,7 +54,10 @@ fn test_partial_eval_input() {
     execute_test_case(TestCase {
         ast: Module::Body(vec![Statement::Expr(Expr::Call(
             Identifier::Named(String::from("print")),
-            vec![Expr::Call(Identifier::Named(String::from("input_int")), vec![])],
+            vec![Expr::Call(
+                Identifier::Named(String::from("input_int")),
+                vec![],
+            )],
         ))]),
         inputs: VecDeque::from(vec![42]),
         expected_outputs: VecDeque::from(vec![42]),
@@ -67,9 +70,15 @@ fn test_partial_eval_subinput() {
         ast: Module::Body(vec![Statement::Expr(Expr::Call(
             Identifier::Named(String::from("print")),
             vec![Expr::BinaryOp(
-                Box::new(Expr::Call(Identifier::Named(String::from("input_int")), vec![])),
+                Box::new(Expr::Call(
+                    Identifier::Named(String::from("input_int")),
+                    vec![],
+                )),
                 BinaryOperator::Subtract,
-                Box::new(Expr::Call(Identifier::Named(String::from("input_int")), vec![])),
+                Box::new(Expr::Call(
+                    Identifier::Named(String::from("input_int")),
+                    vec![],
+                )),
             )],
         ))]),
         inputs: VecDeque::from(vec![5, 3]),
@@ -120,7 +129,10 @@ fn test_partial_eval_mixed() {
             Identifier::Named(String::from("print")),
             vec![Expr::BinaryOp(
                 Box::new(Expr::BinaryOp(
-                    Box::new(Expr::Call(Identifier::Named(String::from("input_int")), vec![])),
+                    Box::new(Expr::Call(
+                        Identifier::Named(String::from("input_int")),
+                        vec![],
+                    )),
                     BinaryOperator::Add,
                     Box::new(Expr::Constant(Value::I64(2))),
                 )),

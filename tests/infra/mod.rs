@@ -1,5 +1,7 @@
-use std::collections::HashMap;
+#![allow(dead_code)]
+
 use cs4999_compiler::ast::{Identifier, Value, ValueType};
+use std::collections::HashMap;
 
 pub mod interpreter;
 pub mod type_check;
