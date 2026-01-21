@@ -73,11 +73,11 @@ fn execute_runtime_calls(
     outputs: &mut VecDeque<i64>,
     env: &mut X86Env,
 ) -> bool {
-    if label == "print" {
+    if label == "print_int" {
         let int = env.read_arg(&Arg::Reg(Register::rdi));
         outputs.push_back(int);
         return true;
-    } else if label == "input_int" {
+    } else if label == "read_int" {
         let int = inputs.pop_front().expect("Overflowed input values");
         env.write_arg(&Arg::Reg(Register::rax), int);
         return true;

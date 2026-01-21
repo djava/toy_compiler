@@ -27,9 +27,9 @@ fn type_check_expr(e: &Expr, env: &mut TypeEnv) -> ValueType {
             // TODO: Lookup function name to check arg types
             match id {
                 Identifier::Named(name) => {
-                    if *name == "input_int" {
+                    if *name == "read_int" {
                         ValueType::IntType
-                    } else if *name == "print" {
+                    } else if *name == "print_int" {
                         ValueType::None
                     } else {
                         unimplemented!("Unknown function name")

@@ -59,7 +59,7 @@ fn execute_test_case(mut tc: TestCase) {
 fn test_patch_instructions_add() {
     execute_test_case(TestCase {
         ast: Module::Body(vec![Statement::Expr(Expr::Call(
-            Identifier::Named("print"),
+            Identifier::Named("print_int"),
             vec![Expr::BinaryOp(
                 Box::new(Expr::Constant(Value::I64(40))),
                 BinaryOperator::Add,
@@ -75,9 +75,9 @@ fn test_patch_instructions_add() {
 fn test_patch_instructions_input() {
     execute_test_case(TestCase {
         ast: Module::Body(vec![Statement::Expr(Expr::Call(
-            Identifier::Named("print"),
+            Identifier::Named("print_int"),
             vec![Expr::Call(
-                Identifier::Named("input_int"),
+                Identifier::Named("read_int"),
                 vec![],
             )],
         ))]),
@@ -90,15 +90,15 @@ fn test_patch_instructions_input() {
 fn test_patch_instructions_subinput() {
     execute_test_case(TestCase {
         ast: Module::Body(vec![Statement::Expr(Expr::Call(
-            Identifier::Named("print"),
+            Identifier::Named("print_int"),
             vec![Expr::BinaryOp(
                 Box::new(Expr::Call(
-                    Identifier::Named("input_int"),
+                    Identifier::Named("read_int"),
                     vec![],
                 )),
                 BinaryOperator::Subtract,
                 Box::new(Expr::Call(
-                    Identifier::Named("input_int"),
+                    Identifier::Named("read_int"),
                     vec![],
                 )),
             )],
@@ -112,7 +112,7 @@ fn test_patch_instructions_subinput() {
 fn test_patch_instructions_zero() {
     execute_test_case(TestCase {
         ast: Module::Body(vec![Statement::Expr(Expr::Call(
-            Identifier::Named("print"),
+            Identifier::Named("print_int"),
             vec![Expr::Constant(Value::I64(0))],
         ))]),
         inputs: VecDeque::from(vec![]),
@@ -124,7 +124,7 @@ fn test_patch_instructions_zero() {
 fn test_patch_instructions_nested() {
     execute_test_case(TestCase {
         ast: Module::Body(vec![Statement::Expr(Expr::Call(
-            Identifier::Named("print"),
+            Identifier::Named("print_int"),
             vec![Expr::BinaryOp(
                 Box::new(Expr::BinaryOp(
                     Box::new(Expr::Constant(Value::I64(40))),
@@ -148,11 +148,11 @@ fn test_patch_instructions_nested() {
 fn test_patch_instructions_mixed() {
     execute_test_case(TestCase {
         ast: Module::Body(vec![Statement::Expr(Expr::Call(
-            Identifier::Named("print"),
+            Identifier::Named("print_int"),
             vec![Expr::BinaryOp(
                 Box::new(Expr::BinaryOp(
                     Box::new(Expr::Call(
-                        Identifier::Named("input_int"),
+                        Identifier::Named("read_int"),
                         vec![],
                     )),
                     BinaryOperator::Add,
@@ -180,7 +180,7 @@ fn test_patch_instructions_simple_assignment() {
                 Expr::Constant(Value::I64(1000)),
             ),
             Statement::Expr(Expr::Call(
-                Identifier::Named("print"),
+                Identifier::Named("print_int"),
                 vec![Expr::Id(Identifier::Named("x"))],
             )),
         ]),
@@ -198,7 +198,7 @@ fn test_patch_instructions_simple_assignment_imm64() {
                 Expr::Constant(Value::I64(i64::MAX)),
             ),
             Statement::Expr(Expr::Call(
-                Identifier::Named("print"),
+                Identifier::Named("print_int"),
                 vec![Expr::Id(Identifier::Named("x"))],
             )),
         ]),
@@ -225,7 +225,7 @@ fn test_patch_instructions_complex_assignment() {
                 Expr::BinaryOp(
                     Box::new(Expr::BinaryOp(
                         Box::new(Expr::Call(
-                            Identifier::Named("input_int"),
+                            Identifier::Named("read_int"),
                             vec![],
                         )),
                         BinaryOperator::Add,
@@ -240,7 +240,7 @@ fn test_patch_instructions_complex_assignment() {
                 ),
             ),
             Statement::Expr(Expr::Call(
-                Identifier::Named("print"),
+                Identifier::Named("print_int"),
                 vec![Expr::Id(Identifier::Named("foofoo"))],
             )),
         ]),
@@ -253,11 +253,11 @@ fn test_patch_instructions_complex_assignment() {
 fn test_patch_instructions_complex_args() {
     execute_test_case(TestCase {
         ast: Module::Body(vec![Statement::Expr(Expr::Call(
-            Identifier::Named("print"),
+            Identifier::Named("print_int"),
             vec![Expr::BinaryOp(
                 Box::new(Expr::BinaryOp(
                     Box::new(Expr::Call(
-                        Identifier::Named("input_int"),
+                        Identifier::Named("read_int"),
                         vec![],
                     )),
                     BinaryOperator::Add,
@@ -301,13 +301,13 @@ fn test_patch_instructions_cascading_assigns() {
         ast: Module::Body(vec![
             Statement::Assign(
                 Identifier::Named("foo"),
-                Expr::Call(Identifier::Named("input_int"), vec![]),
+                Expr::Call(Identifier::Named("read_int"), vec![]),
             ),
             Statement::Assign(
                 Identifier::Named("bar"),
                 Expr::BinaryOp(
                     Box::new(Expr::Call(
-                        Identifier::Named("input_int"),
+                        Identifier::Named("read_int"),
                         vec![],
                     )),
                     BinaryOperator::Add,
@@ -318,7 +318,7 @@ fn test_patch_instructions_cascading_assigns() {
                 Identifier::Named("baz"),
                 Expr::BinaryOp(
                     Box::new(Expr::Call(
-                        Identifier::Named("input_int"),
+                        Identifier::Named("read_int"),
                         vec![],
                     )),
                     BinaryOperator::Add,
@@ -338,10 +338,10 @@ fn test_patch_instructions_cascading_assigns() {
                 ),
             ),
             Statement::Expr(Expr::Call(
-                Identifier::Named("print"),
+                Identifier::Named("print_int"),
                 vec![Expr::BinaryOp(
                     Box::new(Expr::Call(
-                        Identifier::Named("input_int"),
+                        Identifier::Named("read_int"),
                         vec![],
                     )),
                     BinaryOperator::Add,

@@ -31,9 +31,9 @@ fn interpret_expr(
         ),
         Constant(Value::I64(v)) => Some(*v),
         Call(name, args) => {
-            if name == &Identifier::Named("input_int") && args.is_empty() {
+            if name == &Identifier::Named("read_int") && args.is_empty() {
                 Some(inputs.pop_front().expect("Ran out of inputs"))
-            } else if name == &Identifier::Named("print") && args.len() == 1 {
+            } else if name == &Identifier::Named("print_int") && args.len() == 1 {
                 let val = interpret_expr(&args[0], inputs, outputs, env)
                     .expect(format!("{:?} didn't evaluate to a constant", args[0]).as_str());
                 outputs.push_back(val);
