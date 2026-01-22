@@ -1,4 +1,8 @@
-use std::{collections::HashSet, hash::Hash};
+use petgraph::graph::{NodeIndex, UnGraph};
+use std::{
+    collections::{HashMap, HashSet},
+    hash::Hash,
+};
 
 use crate::{ast::Identifier, x86_ast::*};
 
@@ -29,7 +33,10 @@ impl<'a> LivenessMap<'a> {
     pub fn from_instrs(instrs: &'a [&'a Instr<'a>]) -> Self {
         let alive_befores = LivenessMap::make_alive_befores(instrs);
 
-        Self { instrs, alive_befores }
+        Self {
+            instrs,
+            alive_befores,
+        }
     }
 
     fn make_alive_befores(instrs: &'a [&'a Instr<'a>]) -> Vec<HashSet<Location<'a>>> {
@@ -55,6 +62,47 @@ impl<'a> LivenessMap<'a> {
 
         alive_befores.reverse();
         alive_befores
+    }
+
+    fn make_interference_graph(
+        instrs: &'a [&'a Instr<'a>],
+        alive_befores: &[HashSet<Location<'a>>],
+    ) -> UnGraph<Location<'a>, ()> {
+        let mut graph = UnGraph::<Location<'a>, ()>::new_undirected();
+        let mut loc_to_node: HashMap<Location<'_>, NodeIndex> = HashMap::new();
+
+        // Extra l_after for the last instruction, since it wouldn't
+        // have one because these after's are being converted from before's.
+        let last_l_after = &HashSet::new();
+        let alive_afters = alive_befores.iter().skip(1).chain([last_l_after]);
+
+        // Following algoirthm from textbook
+        for (i, l_after) in instrs.iter().zip(alive_afters) {
+            if let Instr::movq(s_arg, d_arg) = i
+                && let Some(s) = Location::try_from_arg(s_arg)
+                && let Some(d) = Location::try_from_arg(d_arg)
+            {
+                // If instruction is movq, for each v in L_after, if v
+                // is neither s nor d, add edge (d, v)
+                for v in l_after {
+                    if *v != s && *v != d {
+                        add_graph_edge(&d, v, &mut graph, &mut loc_to_node);
+                    }
+                }
+            } else {
+                // If instruction is not movq, for each d in W(k) and v
+                // in L_after, if v != d, add edge (d,v)
+                for d in locs_written(i) {
+                    for v in l_after {
+                        if *v != d {
+                            add_graph_edge(&d, v, &mut graph, &mut loc_to_node);
+                        }
+                    }
+                }
+            }
+        }
+
+        todo!()
     }
 }
 
@@ -143,4 +191,30 @@ fn locs_written<'a>(i: &'a Instr) -> Vec<Location<'a>> {
     };
 
     locations
+}
+
+fn get_or_add_node<'a>(
+    key: &Location<'a>,
+    graph: &mut UnGraph<Location<'a>, ()>,
+    loc_to_node: &mut HashMap<Location<'a>, NodeIndex>,
+) -> NodeIndex {
+    if let Some(node) = loc_to_node.get(key) {
+        *node
+    } else {
+        let node = graph.add_node(*key);
+        loc_to_node.insert(*key, node);
+        node
+    }
+}
+
+fn add_graph_edge<'a>(
+    loc1: &Location<'a>,
+    loc2: &Location<'a>,
+    graph: &mut UnGraph<Location<'a>, ()>,
+    loc_to_node: &mut HashMap<Location<'a>, NodeIndex>,
+) {
+    let node1 = get_or_add_node(loc1, graph, loc_to_node);
+    let node2 = get_or_add_node(loc2, graph, loc_to_node);
+
+    graph.add_edge(node1, node2, ());
 }
