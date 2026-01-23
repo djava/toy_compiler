@@ -376,7 +376,7 @@ fn test_parser_multiline() {
             Token::Int(101010),
             Token::Plus,
             Token::Int(1001010),
-            Token::Newline
+            Token::Newline,
         ],
         expected_parse_tree: pt::Module {
             statements: vec![
@@ -412,4 +412,31 @@ fn test_parser_multiline() {
     };
 
     tc.run()
+}
+
+#[test]
+fn test_parser_space_delimited_unary() {
+    let tc = ParserTestCase {
+        input_str: r"2 + - 5",
+        expected_tokens: vec![Token::Int(2), Token::Plus, Token::Minus, Token::Int(5)],
+        expected_parse_tree: pt::Module {
+            statements: vec![pt::Statement::Expr(pt::Expr::Binary(
+                Box::new(pt::Expr::Int(2)),
+                pt::Operator::Plus,
+                Box::new(pt::Expr::Unary(
+                    pt::Operator::Minus,
+                    Box::new(pt::Expr::Int(5)),
+                )),
+            ))],
+        },
+        expected_ast: ast::Module::Body(vec![ast::Statement::Expr(ast::Expr::BinaryOp(
+                Box::new(ast::Expr::Constant(ast::Value::I64(2))),
+                ast::BinaryOperator::Add,
+                Box::new(ast::Expr::UnaryOp(
+                    ast::UnaryOperator::Minus,
+                    Box::new(ast::Expr::Constant(ast::Value::I64(5))),
+                )),
+            ))],),
+    };
+    tc.run();
 }
