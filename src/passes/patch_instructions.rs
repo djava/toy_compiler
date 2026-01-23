@@ -45,6 +45,11 @@ impl X86Pass for PatchInstructions {
                         _ => unreachable!(),
                     });
                 }
+
+                Instr::movq(s, d) if s == d => {
+                    // Trival mov to itself, don't keep this instruction
+                }
+
                 _ => new_instrs.push(*i),
             }
         }
