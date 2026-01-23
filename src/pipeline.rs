@@ -43,7 +43,7 @@ impl Pipeline {
             ],
             ir_to_x86_pass: IRtoX86::from(SelectInstructions),
             x86_passes: vec![
-                X86toX86::from(VariableAllocation),
+                X86toX86::from(RegisterAllocation),
                 X86toX86::from(PatchInstructions),
                 X86toX86::from(PreludeConclusion),
             ],
@@ -55,7 +55,7 @@ impl Pipeline {
             ir_passes: vec![IRtoIR::from(RemoveComplexOperands)],
             ir_to_x86_pass: IRtoX86::from(SelectInstructions),
             x86_passes: vec![
-                X86toX86::from(VariableAllocation),
+                X86toX86::from(RegisterAllocation),
                 X86toX86::from(PatchInstructions),
                 X86toX86::from(PreludeConclusion),
             ],

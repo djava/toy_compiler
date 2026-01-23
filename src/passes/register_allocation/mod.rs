@@ -1,1 +1,154 @@
+mod graph_coloring;
 mod liveness_analysis;
+
+use std::collections::HashMap;
+
+use crate::{
+    ast::Identifier,
+    passes::{X86Pass, register_allocation::graph_coloring::COLOR_TO_REG_STORAGE},
+    x86_ast,
+};
+use graph_coloring::color_location_graph;
+use liveness_analysis::LivenessMap;
+use x86_ast::*;
+
+const RESERVED_REGISTERS: [Register; 5] = [
+    Register::rax,
+    Register::r11,
+    Register::r15,
+    Register::rsp,
+    Register::rbp,
+];
+
+pub struct RegisterAllocation;
+
+impl X86Pass for RegisterAllocation {
+    fn run_pass(self, mut m: X86Program) -> X86Program {
+        let mut stack_size: i32 = 0;
+        for func in m.functions.iter_mut() {
+            // Stack size can be the sum of all the function's stack sizes, even
+            // though that's pretty silly..
+            // TODO: Change how stack_size is calculated, once we
+            // support functions.
+            stack_size += run_for_function(&mut func.1);
+        }
+
+        m.stack_size = stack_size as _;
+        m
+    }
+}
+
+#[derive(Debug, Clone, Copy, Hash, PartialEq, Eq)]
+enum Location<'a> {
+    Id(Identifier<'a>),
+    Reg(Register),
+}
+
+impl<'a> Location<'a> {
+    fn try_from_arg(arg: &'a Arg) -> Option<Self> {
+        match arg {
+            Arg::Deref(reg, _) => Some(Location::Reg(*reg)),
+            Arg::Variable(id) => Some(Location::Id(*id)),
+            // We don't want to do register allocation for reserved
+            // registers, since it'll mess up the calling convention and
+            // such. For now, the easiest way to do this is to just not
+            // consider these to be "Locations" in the RegAlloc sense.
+            //
+            // TODO: This will likely cause issues later, when
+            //       implementing functions. A better way to do it would
+            //       be to reimplement a modified version of the DSATUR
+            //       coloring algorithm, which can guarantee that each
+            //       color has a max of 1 reserved reg in it, and that
+            //       the color is assigned to that reserved reg. This
+            //       would also improve the performance of the emitted
+            //       programs by increasing the number of registers
+            //       avaiable to be used in variable allocation.
+            Arg::Reg(reg) if RESERVED_REGISTERS.contains(reg) => None,
+            Arg::Reg(reg) => Some(Location::Reg(*reg)),
+            Arg::Immediate(_) => None,
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy, Hash, PartialEq, Eq)]
+enum Storage {
+    Stack(i32),
+    Reg(Register),
+}
+
+impl<'a> Storage {
+    pub fn to_arg(self) -> Arg<'a> {
+        match self {
+            Storage::Stack(offset) => Arg::Deref(Register::rbp, offset),
+            Storage::Reg(reg) => Arg::Reg(reg),
+        }
+    }
+}
+
+fn run_for_function(instrs: &mut Vec<Instr>) -> i32 {
+    // TODO: Change instr storage types to kill this .clone(). It exists
+    //       because the Locations reference back to the Identifiers in
+    //       the Instrs' all the way back up the chain, so instrs is
+    //       borrowed as long as any of the Locations live.
+    let clone_instrs = instrs.clone();
+    let liveness = LivenessMap::from_instrs(&clone_instrs);
+
+    let (location_to_storage, stack_size) = allocate_storage(liveness);
+
+    for i in instrs {
+        match i {
+            Instr::addq(s, d) | Instr::subq(s, d) | Instr::movq(s, d) => {
+                for arg in [s, d] {
+                    if let Some(loc) = Location::try_from_arg(arg)
+                        && let Some(storage) = location_to_storage.get(&loc)
+                    {
+                        *arg = storage.to_arg();
+                    }
+                }
+            }
+            Instr::negq(a) | Instr::pushq(a) | Instr::popq(a) => {
+                if let Some(loc) = Location::try_from_arg(a)
+                    && let Some(storage) = location_to_storage.get(&loc)
+                {
+                    *a = storage.to_arg();
+                }
+            }
+            _ => {}
+        }
+    }
+
+    stack_size
+}
+
+fn allocate_storage(liveness: LivenessMap) -> (HashMap<Location, Storage>, i32) {
+    let mut curr_stack_offset = 0i32;
+
+    let graph_colors = color_location_graph(&liveness.interference_graph);
+    dbg!(&graph_colors);
+    let mut location_to_storage = HashMap::new();
+    let mut color_to_storage = HashMap::from(COLOR_TO_REG_STORAGE);
+
+    for (location, color) in &graph_colors {
+        let storage = if let Some(storage) = color_to_storage.get(color) {
+            // If this color was already allocated a storage, use that
+            *storage
+        } else {
+            // Color hasn't been seen before - has to be past the end of
+            // the register colors because we prefill the map with
+            // register colors. Allocate it a new stack storage
+            curr_stack_offset -= 8;
+            let s = Storage::Stack(curr_stack_offset);
+            color_to_storage.insert(*color, s);
+            s
+        };
+
+        location_to_storage.insert(*location, storage);
+    }
+
+    dbg!(&location_to_storage);
+
+    // Offset is negative because stack grows down. We negate it to get
+    // the stack size.
+    let stack_size = -curr_stack_offset;
+    (location_to_storage, stack_size)
+}

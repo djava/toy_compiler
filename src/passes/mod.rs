@@ -8,13 +8,12 @@ pub mod patch_instructions;
 pub use patch_instructions::PatchInstructions;
 pub mod prelude_conclusion;
 pub use prelude_conclusion::PreludeConclusion;
-pub mod variable_allocation;
-pub use variable_allocation::VariableAllocation;
+pub mod register_allocation;
+pub use register_allocation::RegisterAllocation;
 pub mod remove_complex_operands;
 pub use remove_complex_operands::RemoveComplexOperands;
 pub mod select_instructions;
 pub use select_instructions::SelectInstructions;
-pub mod register_allocation;
 
 #[enum_dispatch]
 pub trait IRPass {
@@ -44,7 +43,7 @@ pub trait X86Pass {
 
 #[enum_dispatch(X86Pass)]
 pub enum X86toX86 {
-    VariableAllocation,
+    RegisterAllocation,
     PatchInstructions,
     PreludeConclusion,
 }
