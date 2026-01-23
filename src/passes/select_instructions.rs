@@ -35,7 +35,11 @@ fn sel_for_statement(s: Statement) -> Vec<Instr> {
         },
         Statement::Expr(e) => match e {
             Expr::Call(func_id, args) => sel_for_call(None, func_id, args),
-            _ => vec![], // If a statement is just an Expr but not a call, it's always a no-op
+            // If a statement is just an Expr but not a call, it's
+            // always a no-op. Any sub-exprs are necessarily either Id's
+            // or constants because of remove_complex_operands - if this
+            // isn't true, atom_to_arg() will panic.
+            _ => vec![],
         },
     }
 }
