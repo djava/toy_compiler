@@ -11,7 +11,6 @@ pub struct LivenessMap<'a> {
 impl<'a> LivenessMap<'a> {
     pub fn from_instrs(instrs: &'a [Instr<'a>]) -> Self {
         let alive_befores = LivenessMap::make_alive_befores(instrs);
-        dbg!(&alive_befores);
         let all_locations: HashSet<_> = instrs.iter().map(locs_written).flatten().collect();
         let interference_graph = LivenessMap::make_interference_graph(instrs, &alive_befores, &all_locations);
 
@@ -57,7 +56,6 @@ impl<'a> LivenessMap<'a> {
             .into_iter()
             .map(|loc| (*loc, graph.add_node(*loc)))
             .collect();
-        dbg!(&loc_to_node);
 
         // Extra l_after for the last instruction, since it wouldn't
         // have one because these after's are being converted from before's.

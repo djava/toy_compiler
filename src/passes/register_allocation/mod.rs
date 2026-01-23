@@ -83,6 +83,14 @@ impl<'a> Storage {
             Storage::Reg(reg) => Arg::Reg(reg),
         }
     }
+
+    pub fn with_stack_offset(self, off: i32) -> Self {
+        if let Storage::Stack(offset) = self {
+            Storage::Stack(offset + off)
+        } else {
+            self
+        }
+    }
 }
 
 fn run_for_function(instrs: &mut Vec<Instr>) -> i32 {
@@ -93,16 +101,22 @@ fn run_for_function(instrs: &mut Vec<Instr>) -> i32 {
     let clone_instrs = instrs.clone();
     let liveness = LivenessMap::from_instrs(&clone_instrs);
 
-    let (location_to_storage, stack_size) = allocate_storage(liveness);
+    let (location_to_storage, stack_var_size) = allocate_storage(liveness);
 
-    for i in instrs {
+    let callee_saved_used: Vec<_> = location_to_storage
+        .keys()
+        .filter(|loc| matches!(loc, Location::Reg(reg) if CALLEE_SAVED_REGISTERS.contains(reg)))
+        .collect();
+    let callee_offset = -((callee_saved_used.len() * size_of::<i64>()) as i32);
+
+    for i in instrs.iter_mut() {
         match i {
             Instr::addq(s, d) | Instr::subq(s, d) | Instr::movq(s, d) => {
                 for arg in [s, d] {
                     if let Some(loc) = Location::try_from_arg(arg)
                         && let Some(storage) = location_to_storage.get(&loc)
                     {
-                        *arg = storage.to_arg();
+                        *arg = storage.with_stack_offset(callee_offset).to_arg();
                     }
                 }
             }
@@ -117,14 +131,38 @@ fn run_for_function(instrs: &mut Vec<Instr>) -> i32 {
         }
     }
 
-    stack_size
+    let callee_pushqs = callee_saved_used.iter().filter_map(|loc| {
+        if let Location::Reg(reg) = loc {
+            Some(Instr::pushq(Arg::Reg(*reg)))
+        } else {
+            None
+        }
+    });
+    instrs.splice(0..0, callee_pushqs);
+
+    let callee_popqs = callee_saved_used.iter().rev().filter_map(|loc| {
+        if let Location::Reg(reg) = loc {
+            Some(Instr::popq(Arg::Reg(*reg)))
+        } else {
+            None
+        }
+    });
+    instrs.extend(callee_popqs);
+
+    let used_stack = callee_offset + stack_var_size;
+    let aligned_stack_size = if used_stack % STACK_ALIGNMENT == 0 {
+        used_stack
+    } else {
+        used_stack + (STACK_ALIGNMENT - (used_stack % STACK_ALIGNMENT))
+    };
+
+    aligned_stack_size
 }
 
 fn allocate_storage(liveness: LivenessMap) -> (HashMap<Location, Storage>, i32) {
     let mut curr_stack_offset = 0i32;
 
     let graph_colors = color_location_graph(&liveness.interference_graph);
-    dbg!(&graph_colors);
     let mut location_to_storage = HashMap::new();
     let mut color_to_storage = HashMap::from(COLOR_TO_REG_STORAGE);
 
@@ -144,8 +182,6 @@ fn allocate_storage(liveness: LivenessMap) -> (HashMap<Location, Storage>, i32) 
 
         location_to_storage.insert(*location, storage);
     }
-
-    dbg!(&location_to_storage);
 
     // Offset is negative because stack grows down. We negate it to get
     // the stack size.

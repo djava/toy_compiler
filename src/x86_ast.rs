@@ -24,6 +24,30 @@ pub enum Register {
     r15 = 15u8,
 }
 
+pub const STACK_ALIGNMENT: i32 = 16;
+
+pub const CALLEE_SAVED_REGISTERS: [Register; 7] = [
+    Register::rsp,
+    Register::rbp,
+    Register::rbx,
+    Register::r12,
+    Register::r13,
+    Register::r14,
+    Register::r15,
+];
+
+pub const CALLER_SAVED_REGISTERS: [Register; 9] = [
+    Register::rax,
+    Register::rcx,
+    Register::rdx,
+    Register::rsi,
+    Register::rdi,
+    Register::r8,
+    Register::r9,
+    Register::r10,
+    Register::r11,
+];
+
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub enum Arg<'a> {
     Immediate(i64),
@@ -55,7 +79,7 @@ pub enum Directive<'a> {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct X86Program<'a> {
     pub functions: Vec<(Directive<'a>, Vec<Instr<'a>>)>,
-    pub(crate) stack_size: usize
+    pub(crate) stack_size: usize,
 }
 
 impl Display for Register {
@@ -91,7 +115,7 @@ impl<'a> Display for Arg<'a> {
                 // write!(f, "@{id}"),
                 Identifier::Named(name) => write!(f, "@{name}"),
                 Identifier::Ephemeral(id) => write!(f, "@EE#{id}"),
-            }
+            },
         }
     }
 }
