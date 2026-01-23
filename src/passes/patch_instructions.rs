@@ -6,7 +6,7 @@ pub struct PatchInstructions;
 impl X86Pass for PatchInstructions {
     fn run_pass(self, mut m: X86Program) -> X86Program {
         let main_instrs = &mut m
-            .functions
+            .blocks
             .iter_mut()
             .find(|(d, _)| d == &Directive::Label(Arc::from("main")))
             .expect("Didn't find a main function")

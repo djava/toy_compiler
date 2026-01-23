@@ -23,11 +23,11 @@ impl X86Pass for PreludeConclusion {
         ];
 
         for (idx, d) in prelude_directives.iter().enumerate() {
-            m.functions.insert(idx, (d.clone(), vec![]));
+            m.blocks.insert(idx, (d.clone(), vec![]));
         }
 
         let main_func = m
-            .functions
+            .blocks
             .iter_mut()
             .find(|x| x.0 == Directive::Label(Arc::from("main")))
             .expect("No main function found");

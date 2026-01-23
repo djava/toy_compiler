@@ -136,7 +136,7 @@ pub fn interpret_x86(m: &X86Program, inputs: &mut VecDeque<i64>, outputs: &mut V
     let mut env = X86Env::new();
 
     let main_instrs = &m
-        .functions
+        .blocks
         .iter()
         .find(|(d, _)| d == &Directive::Label(Arc::from("main")))
         .expect("Didn't find a main function").1;

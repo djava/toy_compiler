@@ -18,7 +18,7 @@ pub struct RegisterAllocation;
 impl X86Pass for RegisterAllocation {
     fn run_pass(self, mut m: X86Program) -> X86Program {
         let mut stack_size: i32 = 0;
-        for func in m.functions.iter_mut() {
+        for func in m.blocks.iter_mut() {
             // Stack size can be the sum of all the function's stack sizes, even
             // though that's pretty silly..
             // TODO: Change how stack_size is calculated, once we

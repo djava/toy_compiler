@@ -79,7 +79,7 @@ pub enum Directive {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct X86Program {
-    pub functions: Vec<(Directive, Vec<Instr>)>,
+    pub blocks: Vec<(Directive, Vec<Instr>)>,
     pub(crate) stack_size: usize,
 }
 
@@ -148,7 +148,7 @@ impl Display for Directive {
 
 impl Display for X86Program {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        for (dir, instrs) in &self.functions {
+        for (dir, instrs) in &self.blocks {
             writeln!(f, "{dir}")?;
             for i in instrs {
                 writeln!(f, "\t{i}")?;
