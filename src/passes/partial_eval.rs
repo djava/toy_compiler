@@ -17,6 +17,99 @@ impl IRPass for PartialEval {
     }
 }
 
+trait BinaryOperatorExt {
+    fn eval(&self, l: &Value, r: &Value) -> Value;
+}
+
+impl BinaryOperatorExt for BinaryOperator {
+    fn eval(&self, l: &Value, r: &Value) -> Value {
+        use ValueType::*;
+
+        match (ValueType::from(l), ValueType::from(r)) {
+            (IntType, IntType) => {
+                if let Value::I64(l_val) = l
+                    && let Value::I64(r_val) = r
+                {
+                    match self {
+                        BinaryOperator::Add => Value::I64(l_val + r_val),
+                        BinaryOperator::Subtract => Value::I64(l_val - r_val),
+                        BinaryOperator::Equals => Value::Bool(l_val == r_val),
+                        BinaryOperator::NotEquals => Value::Bool(l_val != r_val),
+                        BinaryOperator::Greater => Value::Bool(l_val > r_val),
+                        BinaryOperator::GreaterEquals => Value::Bool(l_val >= r_val),
+                        BinaryOperator::LessThan => Value::Bool(l_val < r_val),
+                        BinaryOperator::LessThanEquals => Value::Bool(l_val <= r_val),
+                        _ => panic!(
+                            "Unsupported operand types (int, int) to BinaryOperator {self:?}"
+                        ),
+                    }
+                } else {
+                    panic!("ValueType didnt match Value variant - bug in ValueType::from()?");
+                }
+            }
+            (BoolType, BoolType) => {
+                if let Value::Bool(l_val) = l
+                    && let Value::Bool(r_val) = r
+                {
+                    match self {
+                        BinaryOperator::And => Value::Bool(*l_val && *r_val),
+                        BinaryOperator::Or => Value::Bool(*l_val || *r_val),
+                        BinaryOperator::Equals => Value::Bool(*l_val == *r_val),
+                        BinaryOperator::NotEquals => Value::Bool(*l_val != *r_val),
+                        _ => panic!(
+                            "Unsupported operand types (bool, bool) to BinaryOperator {self:?}"
+                        ),
+                    }
+                } else {
+                    panic!("ValueType didnt match Value variant - bug in ValueType::from()?");
+                }
+            }
+            _ => panic!(
+                "Unsupported operand type ({:?}, {:?}) to UnaryOperator {self:?}",
+                ValueType::from(l),
+                ValueType::from(r)
+            ),
+        }
+    }
+}
+trait UnaryOperatorExt {
+    fn eval(&self, v: &Value) -> Value;
+}
+
+impl UnaryOperatorExt for UnaryOperator {
+    fn eval(&self, v: &Value) -> Value {
+        use ValueType::*;
+
+        match ValueType::from(v) {
+            IntType => {
+                if let Value::I64(val) = v {
+                    match self {
+                        UnaryOperator::Minus => Value::I64(-val),
+                        UnaryOperator::Plus => Value::I64(*val),
+                        _ => panic!("Unsupported operand type (int) to UnaryOperator {self:?}"),
+                    }
+                } else {
+                    panic!("ValueType didnt match Value variant - bug in ValueType::from()?");
+                }
+            }
+            BoolType => {
+                if let Value::Bool(val) = v {
+                    match self {
+                        UnaryOperator::Not => Value::Bool(!val),
+                        _ => panic!("Unsupported operand type bool to UnaryOperator {self:?}"),
+                    }
+                } else {
+                    panic!("ValueType didnt match Value variant - bug in ValueType::from()?");
+                }
+            }
+            _ => panic!(
+                "Unsupported operand type ({:?}) to UnaryOperator {self:?}",
+                ValueType::from(v)
+            ),
+        }
+    }
+}
+
 fn partial_eval_expr(e: &mut Expr) {
     use Expr::*;
 
@@ -27,28 +120,19 @@ fn partial_eval_expr(e: &mut Expr) {
             // expression
             partial_eval_expr(&mut *left);
             partial_eval_expr(&mut *right);
-            if let Constant(Value::I64(l_val)) = **left
-                && let Constant(Value::I64(r_val)) = **right
+
+            if let Constant(l_val) = **left
+                && let Constant(r_val) = **right
             {
-                match op {
-                    BinaryOperator::Add => {
-                        *e = Constant(Value::I64(l_val + r_val));
-                    }
-                    BinaryOperator::Subtract => {
-                        *e = Constant(Value::I64(l_val - r_val));
-                    }
-                }
+                *e = Constant(op.eval(&l_val, &r_val))
             }
         }
         UnaryOp(op, expr) => {
             // Try and evaluate the operand recursively, then if its
             // constant we can evaluate the whole expression
             partial_eval_expr(&mut *expr);
-            if let Constant(Value::I64(val)) = **expr {
-                match op {
-                    UnaryOperator::Minus => *e = Constant(Value::I64(-val)),
-                    UnaryOperator::Plus => *e = Constant(Value::I64(val)),
-                }
+            if let Constant(val) = **expr {
+                *e = Constant(op.eval(&val));
             }
         }
         Call(_name, args) => {

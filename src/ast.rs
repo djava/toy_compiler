@@ -37,12 +37,78 @@ impl From<&Value> for i64 {
 pub enum BinaryOperator {
     Add,
     Subtract,
+    And,
+    Or,
+    Equals,
+    NotEquals,
+    Greater,
+    GreaterEquals,
+    LessThan,
+    LessThanEquals
+}
+
+impl BinaryOperator {
+    pub fn type_of(&self, l: &ValueType, r: &ValueType) -> Option<ValueType> {
+        use ValueType::*;
+        use BinaryOperator::*;
+
+        match (l, r) {
+            (IntType, IntType) => {
+                match self {
+                    Add => Some(IntType),
+                    Subtract => Some(IntType),
+                    Equals => Some(BoolType),
+                    NotEquals => Some(BoolType),
+                    Greater => Some(BoolType),
+                    GreaterEquals => Some(BoolType),
+                    LessThan => Some(BoolType),
+                    LessThanEquals => Some(BoolType),
+                    _ => None
+                }
+            },
+            (BoolType, BoolType) => {
+                match self { 
+                    And => Some(BoolType),
+                    Or => Some(BoolType),
+                    Equals => Some(BoolType),
+                    NotEquals => Some(BoolType),
+                    _ => None
+                }
+            },
+            (_, _) => None
+        }
+
+    }
+
 }
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum UnaryOperator {
     Plus,
     Minus,
+    Not,
+}
+
+impl UnaryOperator {
+    pub fn type_of(&self, v: &ValueType) -> Option<ValueType> {
+        use ValueType::*;
+        use UnaryOperator::*;
+
+        match v {
+            IntType => {
+                match self {
+                    Plus => Some(IntType),
+                    Minus => Some(IntType),
+                    _ => None,
+                }
+            },
+            BoolType => match self {
+                Not => Some(BoolType),
+                _ => None,
+            },
+            _ => None
+        }
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]

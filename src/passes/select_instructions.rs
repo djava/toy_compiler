@@ -24,8 +24,10 @@ fn sel_for_statement(s: Statement) -> Vec<Instr> {
         Statement::Assign(dest_id, e) => match e {
             Expr::BinaryOp(l, BinaryOperator::Add, r) => sel_for_add(dest_id, l, r),
             Expr::BinaryOp(l, BinaryOperator::Subtract, r) => sel_for_sub(dest_id, l, r),
+            Expr::BinaryOp(_, _, _) => unimplemented!("InstrSel for some binary operators isn't implemented yet"),
             Expr::UnaryOp(UnaryOperator::Plus, val) => sel_for_unary_plus(dest_id, val),
             Expr::UnaryOp(UnaryOperator::Minus, val) => sel_for_unary_minus(dest_id, val),
+            Expr::UnaryOp(_, _) => unimplemented!("InstrSel for some unary operators isn't implemented yet"),
             Expr::Constant(val) => vec![Instr::movq(
                 Arg::Immediate(val.into()),
                 Arg::Variable(dest_id),

@@ -17,6 +17,88 @@ impl OptionValueExt for Option<Value> {
     }
 }
 
+trait BinaryOperatorExt {
+    fn try_eval(&self, l: &Value, r: &Value) -> Option<Value>;
+}
+
+impl BinaryOperatorExt for BinaryOperator {
+    fn try_eval(&self, l: &Value, r: &Value) -> Option<Value> {
+        use ValueType::*;
+
+        match (ValueType::from(l), ValueType::from(r)) {
+            (IntType, IntType) => {
+                if let Value::I64(l_val) = l
+                    && let Value::I64(r_val) = r
+                {
+                    match self {
+                        BinaryOperator::Add => Some(Value::I64(l_val + r_val)),
+                        BinaryOperator::Subtract => Some(Value::I64(l_val - r_val)),
+                        BinaryOperator::Equals => Some(Value::Bool(l_val == r_val)),
+                        BinaryOperator::NotEquals => Some(Value::Bool(l_val != r_val)),
+                        BinaryOperator::Greater => Some(Value::Bool(l_val > r_val)),
+                        BinaryOperator::GreaterEquals => Some(Value::Bool(l_val >= r_val)),
+                        BinaryOperator::LessThan => Some(Value::Bool(l_val < r_val)),
+                        BinaryOperator::LessThanEquals => Some(Value::Bool(l_val <= r_val)),
+                        _ => None,
+                    }
+                } else {
+                    panic!("ValueType didnt match Value variant - bug in ValueType::from()?");
+                }
+            }
+            (BoolType, BoolType) => {
+                if let Value::Bool(l_val) = l
+                    && let Value::Bool(r_val) = r
+                {
+                    match self {
+                        BinaryOperator::And => Some(Value::Bool(*l_val && *r_val)),
+                        BinaryOperator::Or => Some(Value::Bool(*l_val || *r_val)),
+                        BinaryOperator::Equals => Some(Value::Bool(*l_val == *r_val)),
+                        BinaryOperator::NotEquals => Some(Value::Bool(*l_val != *r_val)),
+                        _ => None,
+                    }
+                } else {
+                    panic!("ValueType didnt match Value variant - bug in ValueType::from()?");
+                }
+            }
+            _ => None,
+        }
+    }
+}
+trait UnaryOperatorExt {
+    fn try_eval(&self, v: &Value) -> Option<Value>;
+}
+
+impl UnaryOperatorExt for UnaryOperator {
+    fn try_eval(&self, v: &Value) -> Option<Value> {
+        use ValueType::*;
+
+        match ValueType::from(v) {
+            IntType => {
+                if let Value::I64(val) = v {
+                    match self {
+                        UnaryOperator::Minus => Some(Value::I64(-val)),
+                        UnaryOperator::Plus => Some(Value::I64(*val)),
+                        _ => None,
+                    }
+                } else {
+                    panic!("ValueType didnt match Value variant - bug in ValueType::from()?");
+                }
+            }
+            BoolType => {
+                if let Value::Bool(val) = v {
+                    match self {
+                        UnaryOperator::Not => Some(Value::Bool(!val)),
+                        _ => None,
+                    }
+                } else {
+                    panic!("ValueType didnt match Value variant - bug in ValueType::from()?");
+                }
+            }
+            _ => None,
+        }
+    }
+}
+
 fn interpret_expr(
     e: &Expr,
     inputs: &mut VecDeque<i64>,
@@ -27,24 +109,23 @@ fn interpret_expr(
 
     match e {
         BinaryOp(left, op, right) => {
-            let l_val = interpret_expr(&*left, inputs, outputs, env).expect_int();
-            let r_val = interpret_expr(&*right, inputs, outputs, env).expect_int();
-
-            match op {
-                BinaryOperator::Add => Some(Value::I64(l_val + r_val)),
-                BinaryOperator::Subtract => Some(Value::I64(l_val - r_val)),
+            if let Some(l_val) = interpret_expr(&*left, inputs, outputs, env)
+                && let Some(r_val) = interpret_expr(&*right, inputs, outputs, env)
+            {
+                op.try_eval(&l_val, &r_val)
+            } else {
+                None
             }
         }
 
-        UnaryOp(UnaryOperator::Minus, v) => {
-            let val = interpret_expr(&*v, inputs, outputs, env).expect_int();
-            Some(Value::I64(val))
+        UnaryOp(op, expr) => {
+            if let Some(v) = interpret_expr(&*expr, inputs, outputs, env) {
+                op.try_eval(&v)
+            } else {
+                None
+            }
         }
 
-        UnaryOp(UnaryOperator::Plus, v) => Some(
-            interpret_expr(&*v, inputs, outputs, env)
-                .expect(format!("{v:?} didn't evalute to a constant").as_str()),
-        ),
         Constant(v) => Some((*v).into()),
         Call(name, args) => {
             if name == &Identifier::Named(Arc::from("read_int")) && args.is_empty() {
@@ -91,10 +172,7 @@ fn interpret_statement(
         }
         Statement::Assign(id, e) => {
             let result = interpret_expr(e, inputs, outputs, env).expect_int();
-            env.insert(
-                id.clone(),
-                Value::I64(result),
-            );
+            env.insert(id.clone(), Value::I64(result));
 
             if !remaining_stmts.is_empty() {
                 interpret_statement(
