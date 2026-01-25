@@ -6,13 +6,24 @@ pub enum ValueType {
     IntType,
     FunctionType(u16),
     BoolType,
-    None
+    NoneType
+}
+
+impl From<&Value> for ValueType {
+    fn from(value: &Value) -> Self {
+        match value {
+            Value::I64(_) => Self::IntType,
+            Value::Bool(_) => Self::BoolType,
+            Value::None => Self::NoneType,
+        }
+    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum Value {
     I64(i64),
     Bool(bool),
+    None
 }
 
 impl Into<i64> for Value {
@@ -20,6 +31,7 @@ impl Into<i64> for Value {
         match self {
             Value::I64(val) => val,
             Value::Bool(val) => val as _,
+            Value::None => panic!("Cannot convert Value::None into i64")
         }
     }
 }
@@ -29,6 +41,7 @@ impl From<&Value> for i64 {
         match value {
             Value::I64(val) => *val,
             Value::Bool(val) => *val as _,
+            Value::None => panic!("Cannot convert Value::None into i64")
         }
     }
 }

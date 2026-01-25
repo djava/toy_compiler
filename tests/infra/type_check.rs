@@ -20,10 +20,7 @@ fn type_check_expr(e: &Expr, env: &mut TypeEnv) -> ValueType {
         Id(id) => *env
             .get(id)
             .expect(format!("Unknown Identifier: {id:?}").as_str()),
-        Constant(v) => match v {
-            Value::I64(_) => ValueType::IntType,
-            Value::Bool(_) => ValueType::BoolType,
-        },
+        Constant(v) => ValueType::from(v),
         Call(id, _args) => {
             // TODO: Lookup function name to check arg types
             match id {
@@ -31,7 +28,7 @@ fn type_check_expr(e: &Expr, env: &mut TypeEnv) -> ValueType {
                     if name.as_ref() == "read_int" {
                         ValueType::IntType
                     } else if name.as_ref() == "print_int" {
-                        ValueType::None
+                        ValueType::NoneType
                     } else {
                         unimplemented!("Unknown function name")
                     }

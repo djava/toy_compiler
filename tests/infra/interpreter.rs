@@ -133,10 +133,8 @@ fn interpret_expr(
             } else if name == &Identifier::Named(Arc::from("print_int")) && args.len() == 1 {
                 let val = interpret_expr(&args[0], inputs, outputs, env).expect_int();
                 outputs.push_back(val);
-                // TODO: Should actually return
-                // Expr::Constant(Value::None) but for now, Value is
-                // always an I64.
-                None
+
+                Some(Value::None)
             } else {
                 unimplemented!("Invalid call statement")
             }
