@@ -12,14 +12,6 @@ use graph_coloring::color_location_graph;
 use liveness_analysis::LivenessMap;
 use x86_ast::*;
 
-const RESERVED_REGISTERS: [Register; 5] = [
-    Register::rax,
-    Register::r11,
-    Register::r15,
-    Register::rsp,
-    Register::rbp,
-];
-
 pub struct RegisterAllocation;
 
 impl X86Pass for RegisterAllocation {
@@ -89,8 +81,8 @@ fn run_for_function(instrs: &mut Vec<Instr>) -> i32 {
     let (location_to_storage, stack_var_size) = allocate_storage(liveness);
 
     let callee_saved_used: Vec<_> = location_to_storage
-        .keys()
-        .filter(|loc| matches!(loc, Location::Reg(reg) if CALLEE_SAVED_REGISTERS.contains(reg)))
+        .values()
+        .filter(|stg| matches!(stg, Storage::Reg(reg) if CALLEE_SAVED_REGISTERS.contains(reg)))
         .collect();
     let callee_offset = -((callee_saved_used.len() * size_of::<i64>()) as i32);
 
@@ -117,7 +109,7 @@ fn run_for_function(instrs: &mut Vec<Instr>) -> i32 {
     }
 
     let callee_pushqs = callee_saved_used.iter().filter_map(|loc| {
-        if let Location::Reg(reg) = loc {
+        if let Storage::Reg(reg) = loc {
             Some(Instr::pushq(Arg::Reg(*reg)))
         } else {
             None
@@ -126,7 +118,7 @@ fn run_for_function(instrs: &mut Vec<Instr>) -> i32 {
     instrs.splice(0..0, callee_pushqs);
 
     let callee_popqs = callee_saved_used.iter().rev().filter_map(|loc| {
-        if let Location::Reg(reg) = loc {
+        if let Storage::Reg(reg) = loc {
             Some(Instr::popq(Arg::Reg(*reg)))
         } else {
             None

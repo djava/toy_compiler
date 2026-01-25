@@ -335,3 +335,62 @@ fn test_register_allocation_force_spills() {
         expected_outputs: VecDeque::from([(0..23).sum::<i64>()]),
     });
 }
+
+#[test]
+fn test_register_allocation_force_spills_constants() {
+    execute_test_case(TestCase {
+        ast: Module::Body(vec![
+            Statement::Assign(Identifier::Named("x1"), Expr::Constant(Value::I64(1))),
+            Statement::Assign(Identifier::Named("x2"), Expr::Constant(Value::I64(1))),
+            Statement::Assign(Identifier::Named("x3"), Expr::Constant(Value::I64(1))),
+            Statement::Assign(Identifier::Named("x4"), Expr::Constant(Value::I64(1))),
+            Statement::Assign(Identifier::Named("x5"), Expr::Constant(Value::I64(1))),
+            Statement::Assign(Identifier::Named("x6"), Expr::Constant(Value::I64(1))),
+            Statement::Assign(Identifier::Named("x7"), Expr::Constant(Value::I64(1))),
+            Statement::Assign(Identifier::Named("x8"), Expr::Constant(Value::I64(1))),
+            Statement::Assign(Identifier::Named("x9"), Expr::Constant(Value::I64(1))),
+            Statement::Assign(Identifier::Named("x10"), Expr::Constant(Value::I64(1))),
+            Statement::Assign(Identifier::Named("x11"), Expr::Constant(Value::I64(1))),
+            Statement::Assign(Identifier::Named("x12"), Expr::Constant(Value::I64(1))),
+            Statement::Assign(Identifier::Named("x13"), Expr::Constant(Value::I64(1))),
+            Statement::Assign(Identifier::Named("x14"), Expr::Constant(Value::I64(1))),
+            Statement::Assign(Identifier::Named("x15"), Expr::Constant(Value::I64(1))),
+            Statement::Assign(Identifier::Named("x16"), Expr::Constant(Value::I64(1))),
+            Statement::Assign(Identifier::Named("x17"), Expr::Constant(Value::I64(1))),
+            Statement::Assign(Identifier::Named("x18"), Expr::Constant(Value::I64(1))),
+            Statement::Assign(Identifier::Named("x19"), Expr::Constant(Value::I64(1))),
+            Statement::Assign(Identifier::Named("x20"), Expr::Constant(Value::I64(1))),
+            Statement::Assign(Identifier::Named("x21"), Expr::Constant(Value::I64(1))),
+            Statement::Assign(Identifier::Named("x22"), Expr::Constant(Value::I64(1))),
+            Statement::Assign(Identifier::Named("x23"), Expr::Constant(Value::I64(1))),
+            Statement::Expr(Expr::Call(Identifier::Named("print_int"), vec![
+                         Expr::BinaryOp(Box::new(Expr::Id(Identifier::Named("x1"))), BinaryOperator::Add,
+                Box::new(Expr::BinaryOp(Box::new(Expr::Id(Identifier::Named("x2"))), BinaryOperator::Add,
+                Box::new(Expr::BinaryOp(Box::new(Expr::Id(Identifier::Named("x3"))), BinaryOperator::Add,
+                Box::new(Expr::BinaryOp(Box::new(Expr::Id(Identifier::Named("x4"))), BinaryOperator::Add,
+                Box::new(Expr::BinaryOp(Box::new(Expr::Id(Identifier::Named("x5"))), BinaryOperator::Add,
+                Box::new(Expr::BinaryOp(Box::new(Expr::Id(Identifier::Named("x6"))), BinaryOperator::Add,
+                Box::new(Expr::BinaryOp(Box::new(Expr::Id(Identifier::Named("x7"))), BinaryOperator::Add,
+                Box::new(Expr::BinaryOp(Box::new(Expr::Id(Identifier::Named("x8"))), BinaryOperator::Add,
+                Box::new(Expr::BinaryOp(Box::new(Expr::Id(Identifier::Named("x9"))), BinaryOperator::Add,
+                Box::new(Expr::BinaryOp(Box::new(Expr::Id(Identifier::Named("x10"))), BinaryOperator::Add,
+                Box::new(Expr::BinaryOp(Box::new(Expr::Id(Identifier::Named("x11"))), BinaryOperator::Add,
+                Box::new(Expr::BinaryOp(Box::new(Expr::Id(Identifier::Named("x12"))), BinaryOperator::Add,
+                Box::new(Expr::BinaryOp(Box::new(Expr::Id(Identifier::Named("x13"))), BinaryOperator::Add,
+                Box::new(Expr::BinaryOp(Box::new(Expr::Id(Identifier::Named("x14"))), BinaryOperator::Add,
+                Box::new(Expr::BinaryOp(Box::new(Expr::Id(Identifier::Named("x15"))), BinaryOperator::Add,
+                Box::new(Expr::BinaryOp(Box::new(Expr::Id(Identifier::Named("x16"))), BinaryOperator::Add,
+                Box::new(Expr::BinaryOp(Box::new(Expr::Id(Identifier::Named("x17"))), BinaryOperator::Add,
+                Box::new(Expr::BinaryOp(Box::new(Expr::Id(Identifier::Named("x18"))), BinaryOperator::Add,
+                Box::new(Expr::BinaryOp(Box::new(Expr::Id(Identifier::Named("x19"))), BinaryOperator::Add,
+                Box::new(Expr::BinaryOp(Box::new(Expr::Id(Identifier::Named("x20"))), BinaryOperator::Add,
+                Box::new(Expr::BinaryOp(Box::new(Expr::Id(Identifier::Named("x21"))), BinaryOperator::Add,
+                Box::new(Expr::BinaryOp(Box::new(Expr::Id(Identifier::Named("x22"))), BinaryOperator::Add,
+                                        Box::new(Expr::Id(Identifier::Named("x23")
+            )))))))))))))))))))))))))))))))))))))))))))))
+            ]))
+        ]),
+        inputs: VecDeque::new(),
+        expected_outputs: VecDeque::from([23]),
+    });
+}
