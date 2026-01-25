@@ -71,10 +71,7 @@ fn test_register_allocation_input() {
     execute_test_case(TestCase {
         ast: Module::Body(vec![Statement::Expr(Expr::Call(
             Identifier::Named("print_int"),
-            vec![Expr::Call(
-                Identifier::Named("read_int"),
-                vec![],
-            )],
+            vec![Expr::Call(Identifier::Named("read_int"), vec![])],
         ))]),
         inputs: VecDeque::from(vec![42]),
         expected_outputs: VecDeque::from(vec![42]),
@@ -87,15 +84,9 @@ fn test_register_allocation_subinput() {
         ast: Module::Body(vec![Statement::Expr(Expr::Call(
             Identifier::Named("print_int"),
             vec![Expr::BinaryOp(
-                Box::new(Expr::Call(
-                    Identifier::Named("read_int"),
-                    vec![],
-                )),
+                Box::new(Expr::Call(Identifier::Named("read_int"), vec![])),
                 BinaryOperator::Subtract,
-                Box::new(Expr::Call(
-                    Identifier::Named("read_int"),
-                    vec![],
-                )),
+                Box::new(Expr::Call(Identifier::Named("read_int"), vec![])),
             )],
         ))]),
         inputs: VecDeque::from(vec![5, 3]),
@@ -146,10 +137,7 @@ fn test_register_allocation_mixed() {
             Identifier::Named("print_int"),
             vec![Expr::BinaryOp(
                 Box::new(Expr::BinaryOp(
-                    Box::new(Expr::Call(
-                        Identifier::Named("read_int"),
-                        vec![],
-                    )),
+                    Box::new(Expr::Call(Identifier::Named("read_int"), vec![])),
                     BinaryOperator::Add,
                     Box::new(Expr::Constant(Value::I64(2))),
                 )),
@@ -170,10 +158,7 @@ fn test_register_allocation_mixed() {
 fn test_register_allocation_simple_assignment() {
     execute_test_case(TestCase {
         ast: Module::Body(vec![
-            Statement::Assign(
-                Identifier::Named("x"),
-                Expr::Constant(Value::I64(1000)),
-            ),
+            Statement::Assign(Identifier::Named("x"), Expr::Constant(Value::I64(1000))),
             Statement::Expr(Expr::Call(
                 Identifier::Named("print_int"),
                 vec![Expr::Id(Identifier::Named("x"))],
@@ -201,10 +186,7 @@ fn test_register_allocation_complex_assignment() {
                 Identifier::Named("foofoo"),
                 Expr::BinaryOp(
                     Box::new(Expr::BinaryOp(
-                        Box::new(Expr::Call(
-                            Identifier::Named("read_int"),
-                            vec![],
-                        )),
+                        Box::new(Expr::Call(Identifier::Named("read_int"), vec![])),
                         BinaryOperator::Add,
                         Box::new(Expr::Constant(Value::I64(2))),
                     )),
@@ -233,10 +215,7 @@ fn test_register_allocation_complex_args() {
             Identifier::Named("print_int"),
             vec![Expr::BinaryOp(
                 Box::new(Expr::BinaryOp(
-                    Box::new(Expr::Call(
-                        Identifier::Named("read_int"),
-                        vec![],
-                    )),
+                    Box::new(Expr::Call(Identifier::Named("read_int"), vec![])),
                     BinaryOperator::Add,
                     Box::new(Expr::Constant(Value::I64(2))),
                 )),
@@ -283,10 +262,7 @@ fn test_register_allocation_cascading_assigns() {
             Statement::Assign(
                 Identifier::Named("bar"),
                 Expr::BinaryOp(
-                    Box::new(Expr::Call(
-                        Identifier::Named("read_int"),
-                        vec![],
-                    )),
+                    Box::new(Expr::Call(Identifier::Named("read_int"), vec![])),
                     BinaryOperator::Add,
                     Box::new(Expr::Id(Identifier::Named("finger"))),
                 ),
@@ -294,10 +270,7 @@ fn test_register_allocation_cascading_assigns() {
             Statement::Assign(
                 Identifier::Named("baz"),
                 Expr::BinaryOp(
-                    Box::new(Expr::Call(
-                        Identifier::Named("read_int"),
-                        vec![],
-                    )),
+                    Box::new(Expr::Call(Identifier::Named("read_int"), vec![])),
                     BinaryOperator::Add,
                     Box::new(Expr::Id(Identifier::Named("bar"))),
                 ),
@@ -317,10 +290,7 @@ fn test_register_allocation_cascading_assigns() {
             Statement::Expr(Expr::Call(
                 Identifier::Named("print_int"),
                 vec![Expr::BinaryOp(
-                    Box::new(Expr::Call(
-                        Identifier::Named("read_int"),
-                        vec![],
-                    )),
+                    Box::new(Expr::Call(Identifier::Named("read_int"), vec![])),
                     BinaryOperator::Add,
                     Box::new(Expr::Id(Identifier::Named("bop"))),
                 )],
@@ -328,5 +298,40 @@ fn test_register_allocation_cascading_assigns() {
         ]),
         inputs: VecDeque::from(vec![10, 20, 30, 40]),
         expected_outputs: VecDeque::from(vec![10 + (10 + 20) + (10 + 20 + 30) + 40]),
+    });
+}
+
+#[test]
+fn test_register_allocation_force_spills() {
+    execute_test_case(TestCase {
+        ast: Module::Body(vec![
+            Statement::Expr(Expr::Call(Identifier::Named("print_int"), vec![
+                Expr::BinaryOp(Box::new(Expr::Call(Identifier::Named("read_int"), vec![])), BinaryOperator::Add,
+                Box::new(Expr::BinaryOp(Box::new(Expr::Call(Identifier::Named("read_int"), vec![])), BinaryOperator::Add,
+                Box::new(Expr::BinaryOp(Box::new(Expr::Call(Identifier::Named("read_int"), vec![])), BinaryOperator::Add,
+                Box::new(Expr::BinaryOp(Box::new(Expr::Call(Identifier::Named("read_int"), vec![])), BinaryOperator::Add,
+                Box::new(Expr::BinaryOp(Box::new(Expr::Call(Identifier::Named("read_int"), vec![])), BinaryOperator::Add,
+                Box::new(Expr::BinaryOp(Box::new(Expr::Call(Identifier::Named("read_int"), vec![])), BinaryOperator::Add,
+                Box::new(Expr::BinaryOp(Box::new(Expr::Call(Identifier::Named("read_int"), vec![])), BinaryOperator::Add,
+                Box::new(Expr::BinaryOp(Box::new(Expr::Call(Identifier::Named("read_int"), vec![])), BinaryOperator::Add,
+                Box::new(Expr::BinaryOp(Box::new(Expr::Call(Identifier::Named("read_int"), vec![])), BinaryOperator::Add,
+                Box::new(Expr::BinaryOp(Box::new(Expr::Call(Identifier::Named("read_int"), vec![])), BinaryOperator::Add,
+                Box::new(Expr::BinaryOp(Box::new(Expr::Call(Identifier::Named("read_int"), vec![])), BinaryOperator::Add,
+                Box::new(Expr::BinaryOp(Box::new(Expr::Call(Identifier::Named("read_int"), vec![])), BinaryOperator::Add,
+                Box::new(Expr::BinaryOp(Box::new(Expr::Call(Identifier::Named("read_int"), vec![])), BinaryOperator::Add,
+                Box::new(Expr::BinaryOp(Box::new(Expr::Call(Identifier::Named("read_int"), vec![])), BinaryOperator::Add,
+                Box::new(Expr::BinaryOp(Box::new(Expr::Call(Identifier::Named("read_int"), vec![])), BinaryOperator::Add,
+                Box::new(Expr::BinaryOp(Box::new(Expr::Call(Identifier::Named("read_int"), vec![])), BinaryOperator::Add,
+                Box::new(Expr::BinaryOp(Box::new(Expr::Call(Identifier::Named("read_int"), vec![])), BinaryOperator::Add,
+                Box::new(Expr::BinaryOp(Box::new(Expr::Call(Identifier::Named("read_int"), vec![])), BinaryOperator::Add,
+                Box::new(Expr::BinaryOp(Box::new(Expr::Call(Identifier::Named("read_int"), vec![])), BinaryOperator::Add,
+                Box::new(Expr::BinaryOp(Box::new(Expr::Call(Identifier::Named("read_int"), vec![])), BinaryOperator::Add,
+                Box::new(Expr::BinaryOp(Box::new(Expr::Call(Identifier::Named("read_int"), vec![])), BinaryOperator::Add,
+                Box::new(Expr::BinaryOp(Box::new(Expr::Call(Identifier::Named("read_int"), vec![])), BinaryOperator::Add,
+                Box::new(Expr::Call(Identifier::Named("read_int"), vec![])))))))))))))))))))))))))))))))))))))))))))))
+            ]))
+        ]),
+        inputs: (0..23).collect(),
+        expected_outputs: VecDeque::from([(0..23).sum::<i64>()]),
     });
 }

@@ -47,7 +47,6 @@ pub(super) fn reg_to_color(r: &Register) -> i32 {
     }
 }
 
-
 pub fn color_location_graph<'a>(graph: &UnGraph<Location<'a>, ()>) -> HashMap<Location<'a>, i32> {
     // TODO: A more performant register allocator graph coloring system
     //       could avoid using the negative numbers to hide reserved

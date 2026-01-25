@@ -49,21 +49,6 @@ impl<'a> Location<'a> {
         match arg {
             Arg::Deref(reg, _) => Some(Location::Reg(*reg)),
             Arg::Variable(id) => Some(Location::Id(*id)),
-            // We don't want to do register allocation for reserved
-            // registers, since it'll mess up the calling convention and
-            // such. For now, the easiest way to do this is to just not
-            // consider these to be "Locations" in the RegAlloc sense.
-            //
-            // TODO: This will likely cause issues later, when
-            //       implementing functions. A better way to do it would
-            //       be to reimplement a modified version of the DSATUR
-            //       coloring algorithm, which can guarantee that each
-            //       color has a max of 1 reserved reg in it, and that
-            //       the color is assigned to that reserved reg. This
-            //       would also improve the performance of the emitted
-            //       programs by increasing the number of registers
-            //       avaiable to be used in variable allocation.
-            Arg::Reg(reg) if RESERVED_REGISTERS.contains(reg) => None,
             Arg::Reg(reg) => Some(Location::Reg(*reg)),
             Arg::Immediate(_) => None,
         }

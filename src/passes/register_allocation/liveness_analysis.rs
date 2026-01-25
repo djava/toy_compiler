@@ -12,7 +12,8 @@ impl<'a> LivenessMap<'a> {
     pub fn from_instrs(instrs: &'a [Instr<'a>]) -> Self {
         let alive_befores = LivenessMap::make_alive_befores(instrs);
         let all_locations: HashSet<_> = instrs.iter().map(locs_written).flatten().collect();
-        let interference_graph = LivenessMap::make_interference_graph(instrs, &alive_befores, &all_locations);
+        let interference_graph =
+            LivenessMap::make_interference_graph(instrs, &alive_befores, &all_locations);
 
         Self { interference_graph }
     }
@@ -33,7 +34,7 @@ impl<'a> LivenessMap<'a> {
             .scan(HashSet::new(), |alive_after, instr| {
                 let alive_before = {
                     let written = locs_written(instr);
-                    alive_after.extract_if(|l| written.contains(l));
+                    alive_after.retain(|l| !written.contains(l));
                     alive_after.extend(&locs_read(instr));
                     alive_after.clone()
                 };
@@ -43,13 +44,12 @@ impl<'a> LivenessMap<'a> {
 
         alive_befores.reverse();
         alive_befores
-
     }
 
     fn make_interference_graph(
         instrs: &'a [Instr<'a>],
         alive_befores: &[HashSet<Location<'a>>],
-        all_locations: &HashSet<Location<'a>>
+        all_locations: &HashSet<Location<'a>>,
     ) -> UnGraph<Location<'a>, ()> {
         let mut graph = UnGraph::<Location<'a>, ()>::new_undirected();
         let loc_to_node: HashMap<Location<'_>, NodeIndex> = all_locations
