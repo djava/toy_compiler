@@ -5,12 +5,32 @@ use std::sync::Arc;
 pub enum ValueType {
     IntType,
     FunctionType(u16),
+    BoolType,
     None
 }
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum Value {
     I64(i64),
+    Bool(bool),
+}
+
+impl Into<i64> for Value {
+    fn into(self) -> i64 {
+        match self {
+            Value::I64(val) => val,
+            Value::Bool(val) => val as _,
+        }
+    }
+}
+
+impl From<&Value> for i64 {
+    fn from(value: &Value) -> Self {
+        match value {
+            Value::I64(val) => *val,
+            Value::Bool(val) => *val as _,
+        }
+    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq)]

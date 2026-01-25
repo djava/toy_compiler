@@ -22,6 +22,7 @@ fn type_check_expr(e: &Expr, env: &mut TypeEnv) -> ValueType {
             .expect(format!("Unknown Identifier: {id:?}").as_str()),
         Constant(v) => match v {
             Value::I64(_) => ValueType::IntType,
+            Value::Bool(_) => ValueType::BoolType,
         },
         Call(id, _args) => {
             // TODO: Lookup function name to check arg types

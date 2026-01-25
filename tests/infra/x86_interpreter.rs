@@ -48,10 +48,10 @@ impl X86Env {
     fn read_arg(&self, arg: &Arg) -> i64 {
         match arg {
             Arg::Reg(n) => self.regs[*n as usize],
-            Arg::Variable(id) => *self
+            Arg::Variable(id) => self
                 .vars
                 .get(id)
-                .map(|Value::I64(val)| val)
+                .map(|val| i64::from(val))
                 .expect(format!("Unknown x86var identifier: {id:?}").as_str()),
             Arg::Deref(reg, offset) => {
                 let base = self.regs[*reg as usize];

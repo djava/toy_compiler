@@ -26,8 +26,8 @@ fn sel_for_statement(s: Statement) -> Vec<Instr> {
             Expr::BinaryOp(l, BinaryOperator::Subtract, r) => sel_for_sub(dest_id, l, r),
             Expr::UnaryOp(UnaryOperator::Plus, val) => sel_for_unary_plus(dest_id, val),
             Expr::UnaryOp(UnaryOperator::Minus, val) => sel_for_unary_minus(dest_id, val),
-            Expr::Constant(Value::I64(val)) => vec![Instr::movq(
-                Arg::Immediate(val as _),
+            Expr::Constant(val) => vec![Instr::movq(
+                Arg::Immediate(val.into()),
                 Arg::Variable(dest_id),
             )],
             Expr::Id(id) => vec![Instr::movq(Arg::Variable(id), Arg::Variable(dest_id))],
@@ -44,11 +44,7 @@ fn sel_for_statement(s: Statement) -> Vec<Instr> {
     }
 }
 
-fn sel_for_add(
-    dest_id: Identifier,
-    left: Box<Expr>,
-    right: Box<Expr>,
-) -> Vec<Instr> {
+fn sel_for_add(dest_id: Identifier, left: Box<Expr>, right: Box<Expr>) -> Vec<Instr> {
     if let Expr::Id(left_id) = &*left
         && left_id == &dest_id
     {
@@ -71,11 +67,7 @@ fn sel_for_add(
     }
 }
 
-fn sel_for_sub(
-    dest_id: Identifier,
-    left: Box<Expr>,
-    right: Box<Expr>,
-) -> Vec<Instr> {
+fn sel_for_sub(dest_id: Identifier, left: Box<Expr>, right: Box<Expr>) -> Vec<Instr> {
     if let Expr::Id(left_id) = &*left
         && left_id == &dest_id
     {
@@ -119,11 +111,7 @@ fn sel_for_unary_minus(dest_id: Identifier, val: Box<Expr>) -> Vec<Instr> {
     }
 }
 
-fn sel_for_call(
-    dest_id: Option<Identifier>,
-    func_id: Identifier,
-    args: Vec<Expr>,
-) -> Vec<Instr> {
+fn sel_for_call(dest_id: Option<Identifier>, func_id: Identifier, args: Vec<Expr>) -> Vec<Instr> {
     if args.len() > 6 {
         unimplemented!("Only register arg passing is implemented, max of 6 args");
     }
