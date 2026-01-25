@@ -4,7 +4,7 @@ use std::collections::VecDeque;
 
 use cs4999_compiler::{ast::*, passes::*, pipeline::Pipeline, x86_ast};
 
-use crate::infra::{type_check::type_check, x86_interpreter::interpret_x86};
+use crate::infra::{ast_type_check::type_check, x86_interpreter::interpret_x86};
 
 struct TestCase {
     ast: Module,

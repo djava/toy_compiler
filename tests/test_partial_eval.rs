@@ -7,7 +7,7 @@ use cs4999_compiler::{
     passes::{IRPass, partial_eval::PartialEval},
 };
 
-use crate::infra::{interpreter::interpret, type_check::type_check};
+use crate::infra::{ast_interpreter::interpret, ast_type_check::type_check};
 
 struct TestCase {
     ast: Module,
