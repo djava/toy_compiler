@@ -68,7 +68,7 @@ fn type_check_statements(statements: &[Statement], env: &mut TypeEnv) {
                 type_check_statements(&statements[1..], env);
             }
             Conditional(cond, pos, neg) => {
-                let cond_type = type_check_expr(cond, e);
+                let cond_type = type_check_expr(cond, env);
                 assert_eq!(cond_type, ValueType::BoolType);
 
                 type_check_statements(pos, env);
