@@ -1,4 +1,5 @@
 use crate::{ast::*, passes::IRToX86Pass, x86_ast::*};
+use std::sync::Arc;
 
 pub struct SelectInstructions;
 
@@ -12,7 +13,7 @@ impl IRToX86Pass for SelectInstructions {
         }
 
         X86Program {
-            functions: vec![(Directive::Label("main"), program_instrs)],
+            functions: vec![(Directive::Label(Arc::from("main")), program_instrs)],
             stack_size: 0,
         }
     }
@@ -39,11 +40,11 @@ fn sel_for_statement(s: Statement) -> Vec<Instr> {
     }
 }
 
-fn sel_for_add<'a>(
-    dest_id: Identifier<'a>,
-    left: Box<Expr<'a>>,
-    right: Box<Expr<'a>>,
-) -> Vec<Instr<'a>> {
+fn sel_for_add(
+    dest_id: Identifier,
+    left: Box<Expr>,
+    right: Box<Expr>,
+) -> Vec<Instr> {
     if let Expr::Id(left_id) = &*left
         && left_id == &dest_id
     {
@@ -60,17 +61,17 @@ fn sel_for_add<'a>(
         // Expression requires two instructions - load
         // left into dest, then add right into dest
         vec![
-            Instr::movq(atom_to_arg(*left), Arg::Variable(dest_id)),
+            Instr::movq(atom_to_arg(*left), Arg::Variable(dest_id.clone())),
             Instr::addq(atom_to_arg(*right), Arg::Variable(dest_id)),
         ]
     }
 }
 
-fn sel_for_sub<'a>(
-    dest_id: Identifier<'a>,
-    left: Box<Expr<'a>>,
-    right: Box<Expr<'a>>,
-) -> Vec<Instr<'a>> {
+fn sel_for_sub(
+    dest_id: Identifier,
+    left: Box<Expr>,
+    right: Box<Expr>,
+) -> Vec<Instr> {
     if let Expr::Id(left_id) = &*left
         && left_id == &dest_id
     {
@@ -81,13 +82,13 @@ fn sel_for_sub<'a>(
         // Expression requires two instructions - load
         // left into dest, then subtract right from dest
         vec![
-            Instr::movq(atom_to_arg(*left), Arg::Variable(dest_id)),
+            Instr::movq(atom_to_arg(*left), Arg::Variable(dest_id.clone())),
             Instr::subq(atom_to_arg(*right), Arg::Variable(dest_id)),
         ]
     }
 }
 
-fn sel_for_unary_plus<'a>(dest_id: Identifier<'a>, val: Box<Expr<'a>>) -> Vec<Instr<'a>> {
+fn sel_for_unary_plus(dest_id: Identifier, val: Box<Expr>) -> Vec<Instr> {
     if let Expr::Id(val_id) = &*val
         && val_id == &dest_id
     {
@@ -99,7 +100,7 @@ fn sel_for_unary_plus<'a>(dest_id: Identifier<'a>, val: Box<Expr<'a>>) -> Vec<In
     }
 }
 
-fn sel_for_unary_minus<'a>(dest_id: Identifier<'a>, val: Box<Expr<'a>>) -> Vec<Instr<'a>> {
+fn sel_for_unary_minus(dest_id: Identifier, val: Box<Expr>) -> Vec<Instr> {
     if let Expr::Id(val_id) = &*val
         && val_id == &dest_id
     {
@@ -108,22 +109,22 @@ fn sel_for_unary_minus<'a>(dest_id: Identifier<'a>, val: Box<Expr<'a>>) -> Vec<I
     } else {
         // x = -y
         vec![
-            Instr::movq(atom_to_arg(*val), Arg::Variable(dest_id)),
+            Instr::movq(atom_to_arg(*val), Arg::Variable(dest_id.clone())),
             Instr::negq(Arg::Variable(dest_id)),
         ]
     }
 }
 
-fn sel_for_call<'a>(
-    dest_id: Option<Identifier<'a>>,
-    func_id: Identifier<'a>,
-    args: Vec<Expr<'a>>,
-) -> Vec<Instr<'a>> {
+fn sel_for_call(
+    dest_id: Option<Identifier>,
+    func_id: Identifier,
+    args: Vec<Expr>,
+) -> Vec<Instr> {
     if args.len() > 6 {
         unimplemented!("Only register arg passing is implemented, max of 6 args");
     }
-    let func_name = if let Identifier::Named(f) = func_id {
-        f
+    let func_name = if let Identifier::Named(f) = &func_id {
+        f.clone()
     } else {
         unimplemented!("Ephemeral function names are not implmented");
     };

@@ -1,6 +1,7 @@
 use crate::infra::ValueEnv;
 use cs4999_compiler::ast::*;
 use std::collections::VecDeque;
+use std::sync::Arc;
 
 fn interpret_expr(
     e: &Expr,
@@ -31,9 +32,9 @@ fn interpret_expr(
         ),
         Constant(Value::I64(v)) => Some(*v),
         Call(name, args) => {
-            if name == &Identifier::Named("read_int") && args.is_empty() {
+            if name == &Identifier::Named(Arc::from("read_int")) && args.is_empty() {
                 Some(inputs.pop_front().expect("Ran out of inputs"))
-            } else if name == &Identifier::Named("print_int") && args.len() == 1 {
+            } else if name == &Identifier::Named(Arc::from("print_int")) && args.len() == 1 {
                 let val = interpret_expr(&args[0], inputs, outputs, env)
                     .expect(format!("{:?} didn't evaluate to a constant", args[0]).as_str());
                 outputs.push_back(val);
@@ -54,12 +55,12 @@ fn interpret_expr(
     }
 }
 
-fn interpret_statement<'a>(
-    s: &Statement<'a>,
+fn interpret_statement(
+    s: &Statement,
     inputs: &mut VecDeque<i64>,
     outputs: &mut VecDeque<i64>,
-    remaining_stmts: &[Statement<'a>],
-    env: &mut ValueEnv<'a>,
+    remaining_stmts: &[Statement],
+    env: &mut ValueEnv,
 ) {
     match s {
         Statement::Expr(e) => {
@@ -76,7 +77,7 @@ fn interpret_statement<'a>(
         }
         Statement::Assign(id, e) => {
             let result = interpret_expr(e, inputs, outputs, env);
-            env.insert(*id, Value::I64(result.expect(format!("Expr `{e:?} did not return a value").as_str())));
+            env.insert(id.clone(), Value::I64(result.expect(format!("Expr `{e:?} did not return a value").as_str())));
 
             if !remaining_stmts.is_empty() {
                 interpret_statement(

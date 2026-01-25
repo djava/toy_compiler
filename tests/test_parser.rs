@@ -1,4 +1,5 @@
 use cs4999_compiler::{ast, parser::*};
+use std::sync::Arc;
 
 use parse_tree as pt;
 
@@ -6,7 +7,7 @@ pub struct ParserTestCase<'a> {
     pub input_str: &'a str,
     pub expected_tokens: Vec<Token<'a>>,
     pub expected_parse_tree: parse_tree::Module<'a>,
-    pub expected_ast: ast::Module<'a>,
+    pub expected_ast: ast::Module,
 }
 
 impl ParserTestCase<'_> {
@@ -161,7 +162,7 @@ fn test_parser_simple_assign() {
             )]),
         },
         expected_ast: ast::Module::Body(vec![ast::Statement::Assign(
-            ast::Identifier::Named("x"),
+            ast::Identifier::Named(Arc::from("x")),
             ast::Expr::BinaryOp(
                 Box::new(ast::Expr::Constant(ast::Value::I64(1000))),
                 ast::BinaryOperator::Add,
@@ -189,8 +190,8 @@ fn test_parser_call_simple_arg() {
             ))],
         },
         expected_ast: ast::Module::Body(vec![ast::Statement::Expr(ast::Expr::Call(
-            ast::Identifier::Named("print"),
-            vec![ast::Expr::Id(ast::Identifier::Named("x"))],
+            ast::Identifier::Named(Arc::from("print")),
+            vec![ast::Expr::Id(ast::Identifier::Named(Arc::from("x")))],
         ))]),
     };
     tc.run();
@@ -209,7 +210,7 @@ fn test_parser_call_no_arg() {
             statements: vec![pt::Statement::Expr(pt::Expr::Call("oogabooga", vec![]))],
         },
         expected_ast: ast::Module::Body(vec![ast::Statement::Expr(ast::Expr::Call(
-            ast::Identifier::Named("oogabooga"),
+            ast::Identifier::Named(Arc::from("oogabooga")),
             vec![],
         ))]),
     };
@@ -257,7 +258,7 @@ fn test_parser_call_complex_arg() {
             ))],
         },
         expected_ast: ast::Module::Body(vec![ast::Statement::Expr(ast::Expr::Call(
-            ast::Identifier::Named("print"),
+            ast::Identifier::Named(Arc::from("print")),
             vec![ast::Expr::BinaryOp(
                 Box::new(ast::Expr::BinaryOp(
                     Box::new(ast::Expr::Constant(ast::Value::I64(1))),
@@ -269,7 +270,7 @@ fn test_parser_call_complex_arg() {
                     )),
                 )),
                 ast::BinaryOperator::Subtract,
-                Box::new(ast::Expr::Call(ast::Identifier::Named("read_int"), vec![])),
+                Box::new(ast::Expr::Call(ast::Identifier::Named(Arc::from("read_int")), vec![])),
             )],
         ))]),
     };
@@ -307,10 +308,10 @@ fn test_parser_call_multi_arg() {
             ))],
         },
         expected_ast: ast::Module::Body(vec![ast::Statement::Expr(ast::Expr::Call(
-            ast::Identifier::Named("print"),
+            ast::Identifier::Named(Arc::from("print")),
             vec![
-                ast::Expr::Id(ast::Identifier::Named("x")),
-                ast::Expr::Id(ast::Identifier::Named("y")),
+                ast::Expr::Id(ast::Identifier::Named(Arc::from("x"))),
+                ast::Expr::Id(ast::Identifier::Named(Arc::from("y"))),
                 ast::Expr::Constant(ast::Value::I64(1)),
                 ast::Expr::Constant(ast::Value::I64(3)),
                 ast::Expr::Constant(ast::Value::I64(1000)),
@@ -339,9 +340,9 @@ fn test_parser_assign_to_call() {
             )],
         },
         expected_ast: ast::Module::Body(vec![ast::Statement::Assign(
-            ast::Identifier::Named("x"),
+            ast::Identifier::Named(Arc::from("x")),
             ast::Expr::Call(
-                ast::Identifier::Named("Fffoo"),
+                ast::Identifier::Named(Arc::from("Fffoo")),
                 vec![ast::Expr::Constant(ast::Value::I64(1))],
             ),
         )]),
@@ -391,16 +392,16 @@ fn test_parser_multiline() {
         },
         expected_ast: ast::Module::Body(vec![
             ast::Statement::Assign(
-                ast::Identifier::Named("x"),
+                ast::Identifier::Named(Arc::from("x")),
                 ast::Expr::Constant(ast::Value::I64(100)),
             ),
             ast::Statement::Expr(ast::Expr::Call(
-                ast::Identifier::Named("print"),
+                ast::Identifier::Named(Arc::from("print")),
                 vec![ast::Expr::Constant(ast::Value::I64(1000))],
             )),
             ast::Statement::Assign(
-                ast::Identifier::Named("whatevn"),
-                ast::Expr::Id(ast::Identifier::Named("x")),
+                ast::Identifier::Named(Arc::from("whatevn")),
+                ast::Expr::Id(ast::Identifier::Named(Arc::from("x"))),
             ),
             ast::Statement::Expr(ast::Expr::BinaryOp(
                 Box::new(ast::Expr::Constant(ast::Value::I64(101010))),

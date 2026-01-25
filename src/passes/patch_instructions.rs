@@ -1,4 +1,5 @@
 use crate::{passes::X86Pass, x86_ast::*};
+use std::sync::Arc;
 
 pub struct PatchInstructions;
 
@@ -7,7 +8,7 @@ impl X86Pass for PatchInstructions {
         let main_instrs = &mut m
             .functions
             .iter_mut()
-            .find(|(d, _)| d == &Directive::Label("main"))
+            .find(|(d, _)| d == &Directive::Label(Arc::from("main")))
             .expect("Didn't find a main function")
             .1;
 
@@ -22,11 +23,11 @@ impl X86Pass for PatchInstructions {
                 Instr::addq(s, d) | Instr::subq(s, d) | Instr::movq(s, d)
                     if matches!(s, Arg::Deref(_, _)) && matches!(d, Arg::Deref(_, _)) =>
                 {
-                    new_instrs.push(Instr::movq(*s, Arg::Reg(Register::rax)));
+                    new_instrs.push(Instr::movq(s.clone(), Arg::Reg(Register::rax)));
                     new_instrs.push(match &i {
-                        Instr::addq(_, dest) => Instr::addq(Arg::Reg(Register::rax), *dest),
-                        Instr::subq(_, dest) => Instr::subq(Arg::Reg(Register::rax), *dest),
-                        Instr::movq(_, dest) => Instr::movq(Arg::Reg(Register::rax), *dest),
+                        Instr::addq(_, dest) => Instr::addq(Arg::Reg(Register::rax), dest.clone()),
+                        Instr::subq(_, dest) => Instr::subq(Arg::Reg(Register::rax), dest.clone()),
+                        Instr::movq(_, dest) => Instr::movq(Arg::Reg(Register::rax), dest.clone()),
                         _ => unreachable!(),
                     });
                 }
@@ -37,11 +38,11 @@ impl X86Pass for PatchInstructions {
                     if matches!(s, Arg::Immediate(v) if i32::try_from(*v).is_err())
                         && matches!(d, Arg::Deref(_, _)) =>
                 {
-                    new_instrs.push(Instr::movq(*s, Arg::Reg(Register::rax)));
+                    new_instrs.push(Instr::movq(s.clone(), Arg::Reg(Register::rax)));
                     new_instrs.push(match &i {
-                        Instr::addq(_, dest) => Instr::addq(Arg::Reg(Register::rax), *dest),
-                        Instr::subq(_, dest) => Instr::subq(Arg::Reg(Register::rax), *dest),
-                        Instr::movq(_, dest) => Instr::movq(Arg::Reg(Register::rax), *dest),
+                        Instr::addq(_, dest) => Instr::addq(Arg::Reg(Register::rax), dest.clone()),
+                        Instr::subq(_, dest) => Instr::subq(Arg::Reg(Register::rax), dest.clone()),
+                        Instr::movq(_, dest) => Instr::movq(Arg::Reg(Register::rax), dest.clone()),
                         _ => unreachable!(),
                     });
                 }
@@ -50,7 +51,7 @@ impl X86Pass for PatchInstructions {
                     // Trival mov to itself, don't keep this instruction
                 }
 
-                _ => new_instrs.push(*i),
+                _ => new_instrs.push(i.clone()),
             }
         }
 

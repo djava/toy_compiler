@@ -1,15 +1,16 @@
 use std::collections::VecDeque;
+use std::sync::Arc;
 
 use crate::infra::ValueEnv;
 use cs4999_compiler::{ast::Value, x86_ast::*};
 
-struct X86Env<'a> {
-    vars: ValueEnv<'a>,
+struct X86Env {
+    vars: ValueEnv,
     regs: [i64; 16],
     memory: [u8; 2048],
 }
 
-impl<'a> X86Env<'a> {
+impl X86Env {
     fn new() -> Self {
         let mut ret = Self {
             vars: ValueEnv::new(),
@@ -23,13 +24,13 @@ impl<'a> X86Env<'a> {
         ret
     }
 
-    fn write_arg(&mut self, arg: &Arg<'a>, value: i64) {
+    fn write_arg(&mut self, arg: &Arg, value: i64) {
         match arg {
             Arg::Reg(n) => {
                 self.regs[*n as usize] = value;
             }
             Arg::Variable(id) => {
-                self.vars.insert(*id, Value::I64(value));
+                self.vars.insert(id.clone(), Value::I64(value));
             }
             Arg::Deref(reg, offset) => {
                 let base = self.regs[*reg as usize];
@@ -87,11 +88,11 @@ fn execute_runtime_calls(
     }
 }
 
-fn run_instr<'a>(
-    instr: &Instr<'a>,
+fn run_instr(
+    instr: &Instr,
     inputs: &mut VecDeque<i64>,
     outputs: &mut VecDeque<i64>,
-    env: &mut X86Env<'a>,
+    env: &mut X86Env,
 ) {
     match instr {
         Instr::addq(s, d) => {
@@ -121,7 +122,7 @@ fn run_instr<'a>(
             );
         }
         Instr::callq(label, _num_args) => {
-            if !execute_runtime_calls(label, inputs, outputs, env) {
+            if !execute_runtime_calls(label.as_ref(), inputs, outputs, env) {
                 unimplemented!("User-defined function calls not implemented");
             }
         }
@@ -137,7 +138,7 @@ pub fn interpret_x86(m: &X86Program, inputs: &mut VecDeque<i64>, outputs: &mut V
     let main_instrs = &m
         .functions
         .iter()
-        .find(|(d, _)| d == &Directive::Label("main"))
+        .find(|(d, _)| d == &Directive::Label(Arc::from("main")))
         .expect("Didn't find a main function").1;
     // TODO: This is not remotely sufficient for a program with actual
     // control flow - Need to follow %rip instead...

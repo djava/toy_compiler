@@ -2,9 +2,9 @@ use crate::{ast::*, passes::IRPass};
 
 pub struct RemoveComplexOperands;
 
-struct ExprTransformation<'a> {
-    new_expr: Expr<'a>,
-    ephemeral_assigns: Vec<(Identifier<'a>, Expr<'a>)>,
+struct ExprTransformation {
+    new_expr: Expr,
+    ephemeral_assigns: Vec<(Identifier, Expr)>,
 }
 
 impl IRPass for RemoveComplexOperands {
@@ -24,7 +24,7 @@ impl IRPass for RemoveComplexOperands {
                     let ephemeral_assign_stmts = transform
                         .ephemeral_assigns
                         .iter()
-                        .map(|(id, expr)| Statement::Assign(*id, expr.clone()));
+                        .map(|(id, expr)| Statement::Assign(id.clone(), expr.clone()));
                     new_body.extend(ephemeral_assign_stmts);
 
                     // Add the updated version of this statement with
@@ -44,7 +44,7 @@ impl IRPass for RemoveComplexOperands {
                     let ephemeral_assign_stmts = transform
                         .ephemeral_assigns
                         .iter()
-                        .map(|(id, expr)| Statement::Assign(*id, expr.clone()));
+                        .map(|(id, expr)| Statement::Assign(id.clone(), expr.clone()));
                     new_body.extend(ephemeral_assign_stmts);
 
                     // Add the updated version of this statement with
@@ -58,7 +58,7 @@ impl IRPass for RemoveComplexOperands {
     }
 }
 
-fn rco_expr<'a>(e: &Expr<'a>, needs_atomicity: bool) -> ExprTransformation<'a> {
+fn rco_expr(e: &Expr, needs_atomicity: bool) -> ExprTransformation {
     match e {
         Expr::BinaryOp(left, op, right) => {
             // Get the transformed versions of the operands first
@@ -82,7 +82,7 @@ fn rco_expr<'a>(e: &Expr<'a>, needs_atomicity: bool) -> ExprTransformation<'a> {
             // assignment and an id-expr. Otherwise, just use it directly.
             let new_expr = if needs_atomicity {
                 let id = Identifier::new_ephemeral();
-                ephemeral_assigns.push((id, transformed_op));
+                ephemeral_assigns.push((id.clone(), transformed_op));
                 Expr::Id(id)
             } else {
                 transformed_op
@@ -106,7 +106,7 @@ fn rco_expr<'a>(e: &Expr<'a>, needs_atomicity: bool) -> ExprTransformation<'a> {
             // assignment and an id-expr. Otherwise, just use it directly.
             let new_expr = if needs_atomicity {
                 let id = Identifier::new_ephemeral();
-                ephemeral_assigns.push((id, transformed_op));
+                ephemeral_assigns.push((id.clone(), transformed_op));
                 Expr::Id(id)
             } else {
                 transformed_op
@@ -136,11 +136,11 @@ fn rco_expr<'a>(e: &Expr<'a>, needs_atomicity: bool) -> ExprTransformation<'a> {
                 new_args.push(arg_transform.new_expr);
             }
 
-            let transformed_call = Expr::Call(*name, new_args);
+            let transformed_call = Expr::Call(name.clone(), new_args);
 
             let new_expr = if needs_atomicity {
                 let id = Identifier::new_ephemeral();
-                ephemeral_assigns.push((id, transformed_call));
+                ephemeral_assigns.push((id.clone(), transformed_call));
                 Expr::Id(id)
             } else {
                 transformed_call

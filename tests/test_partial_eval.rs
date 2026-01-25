@@ -1,4 +1,5 @@
 mod infra;
+use std::sync::Arc;
 use std::collections::VecDeque;
 
 use cs4999_compiler::{
@@ -8,8 +9,8 @@ use cs4999_compiler::{
 
 use crate::infra::{interpreter::interpret, type_check::type_check};
 
-struct TestCase<'a> {
-    ast: Module<'a>,
+struct TestCase {
+    ast: Module,
     inputs: VecDeque<i64>,
     expected_outputs: VecDeque<i64>,
 }
@@ -37,7 +38,7 @@ fn execute_test_case(mut tc: TestCase) {
 fn test_partial_eval_add() {
     execute_test_case(TestCase {
         ast: Module::Body(vec![Statement::Expr(Expr::Call(
-            Identifier::Named("print_int"),
+            Identifier::Named(Arc::from("print_int")),
             vec![Expr::BinaryOp(
                 Box::new(Expr::Constant(Value::I64(40))),
                 BinaryOperator::Add,
@@ -53,9 +54,9 @@ fn test_partial_eval_add() {
 fn test_partial_eval_input() {
     execute_test_case(TestCase {
         ast: Module::Body(vec![Statement::Expr(Expr::Call(
-            Identifier::Named("print_int"),
+            Identifier::Named(Arc::from("print_int")),
             vec![Expr::Call(
-                Identifier::Named("read_int"),
+                Identifier::Named(Arc::from("read_int")),
                 vec![],
             )],
         ))]),
@@ -68,15 +69,15 @@ fn test_partial_eval_input() {
 fn test_partial_eval_subinput() {
     execute_test_case(TestCase {
         ast: Module::Body(vec![Statement::Expr(Expr::Call(
-            Identifier::Named("print_int"),
+            Identifier::Named(Arc::from("print_int")),
             vec![Expr::BinaryOp(
                 Box::new(Expr::Call(
-                    Identifier::Named("read_int"),
+                    Identifier::Named(Arc::from("read_int")),
                     vec![],
                 )),
                 BinaryOperator::Subtract,
                 Box::new(Expr::Call(
-                    Identifier::Named("read_int"),
+                    Identifier::Named(Arc::from("read_int")),
                     vec![],
                 )),
             )],
@@ -90,7 +91,7 @@ fn test_partial_eval_subinput() {
 fn test_partial_eval_zero() {
     execute_test_case(TestCase {
         ast: Module::Body(vec![Statement::Expr(Expr::Call(
-            Identifier::Named("print_int"),
+            Identifier::Named(Arc::from("print_int")),
             vec![Expr::Constant(Value::I64(0))],
         ))]),
         inputs: VecDeque::from(vec![]),
@@ -102,7 +103,7 @@ fn test_partial_eval_zero() {
 fn test_partial_eval_nested() {
     execute_test_case(TestCase {
         ast: Module::Body(vec![Statement::Expr(Expr::Call(
-            Identifier::Named("print_int"),
+            Identifier::Named(Arc::from("print_int")),
             vec![Expr::BinaryOp(
                 Box::new(Expr::BinaryOp(
                     Box::new(Expr::Constant(Value::I64(40))),
@@ -126,11 +127,11 @@ fn test_partial_eval_nested() {
 fn test_partial_eval_mixed() {
     execute_test_case(TestCase {
         ast: Module::Body(vec![Statement::Expr(Expr::Call(
-            Identifier::Named("print_int"),
+            Identifier::Named(Arc::from("print_int")),
             vec![Expr::BinaryOp(
                 Box::new(Expr::BinaryOp(
                     Box::new(Expr::Call(
-                        Identifier::Named("read_int"),
+                        Identifier::Named(Arc::from("read_int")),
                         vec![],
                     )),
                     BinaryOperator::Add,

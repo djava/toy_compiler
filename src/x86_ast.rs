@@ -1,4 +1,5 @@
 use std::fmt::Display;
+use std::sync::Arc;
 
 use crate::ast::Identifier;
 
@@ -48,37 +49,37 @@ pub const CALLER_SAVED_REGISTERS: [Register; 9] = [
     Register::r11,
 ];
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
-pub enum Arg<'a> {
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub enum Arg {
     Immediate(i64),
     Reg(Register),
     Deref(Register, i32),
-    Variable(Identifier<'a>),
+    Variable(Identifier),
 }
 
 #[allow(non_camel_case_types)]
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub enum Instr<'a> {
-    addq(Arg<'a>, Arg<'a>),
-    subq(Arg<'a>, Arg<'a>),
-    negq(Arg<'a>),
-    movq(Arg<'a>, Arg<'a>),
-    pushq(Arg<'a>),
-    popq(Arg<'a>),
-    callq(&'a str, u16),
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum Instr {
+    addq(Arg, Arg),
+    subq(Arg, Arg),
+    negq(Arg),
+    movq(Arg, Arg),
+    pushq(Arg),
+    popq(Arg),
+    callq(Arc<str>, u16),
     retq,
 }
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub enum Directive<'a> {
-    Label(&'a str),
-    Globl(&'a str),
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum Directive {
+    Label(Arc<str>),
+    Globl(Arc<str>),
     AttSyntax,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct X86Program<'a> {
-    pub functions: Vec<(Directive<'a>, Vec<Instr<'a>>)>,
+pub struct X86Program {
+    pub functions: Vec<(Directive, Vec<Instr>)>,
     pub(crate) stack_size: usize,
 }
 
@@ -105,7 +106,7 @@ impl Display for Register {
     }
 }
 
-impl<'a> Display for Arg<'a> {
+impl Display for Arg {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Arg::Immediate(val) => write!(f, "${}", val),
@@ -120,7 +121,7 @@ impl<'a> Display for Arg<'a> {
     }
 }
 
-impl<'a> Display for Instr<'a> {
+impl Display for Instr {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Instr::addq(arg, arg1) => write!(f, "addq {arg}, {arg1}"),
@@ -135,7 +136,7 @@ impl<'a> Display for Instr<'a> {
     }
 }
 
-impl<'a> Display for Directive<'a> {
+impl Display for Directive {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Self::Label(name) => write!(f, "{name}:"),
@@ -145,7 +146,7 @@ impl<'a> Display for Directive<'a> {
     }
 }
 
-impl<'a> Display for X86Program<'a> {
+impl Display for X86Program {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         for (dir, instrs) in &self.functions {
             writeln!(f, "{dir}")?;

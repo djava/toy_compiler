@@ -1,4 +1,5 @@
 use crate::{passes::X86Pass, x86_ast::*};
+use std::sync::Arc;
 
 pub struct PreludeConclusion;
 
@@ -6,7 +7,7 @@ impl X86Pass for PreludeConclusion {
     fn run_pass(self, mut m: X86Program) -> X86Program {
         let prelude_directives: [Directive; 2] = [
             Directive::AttSyntax,
-            Directive::Globl("main"),
+            Directive::Globl(Arc::from("main")),
         ];
 
         let prelude_instrs: [Instr; 3] = [
@@ -22,13 +23,13 @@ impl X86Pass for PreludeConclusion {
         ];
 
         for (idx, d) in prelude_directives.iter().enumerate() {
-            m.functions.insert(idx, (*d, vec![]));
+            m.functions.insert(idx, (d.clone(), vec![]));
         }
 
         let main_func = m
             .functions
             .iter_mut()
-            .find(|x| x.0 == Directive::Label("main"))
+            .find(|x| x.0 == Directive::Label(Arc::from("main")))
             .expect("No main function found");
 
         let mut wrapped_main_instrs: Vec<Instr> = vec![];

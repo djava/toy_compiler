@@ -1,15 +1,15 @@
-use petgraph::graph::{NodeIndex, UnGraph};
+use petgraph::graph::UnGraph;
 use std::collections::{HashMap, HashSet};
 
 use crate::{passes::register_allocation::Location, x86_ast::*};
 
 #[derive(Debug, Clone)]
-pub struct LivenessMap<'a> {
-    pub interference_graph: UnGraph<Location<'a>, ()>,
+pub struct LivenessMap {
+    pub interference_graph: UnGraph<Location, ()>,
 }
 
-impl<'a> LivenessMap<'a> {
-    pub fn from_instrs(instrs: &'a [Instr<'a>]) -> Self {
+impl LivenessMap {
+    pub fn from_instrs(instrs: &[Instr]) -> Self {
         let alive_befores = LivenessMap::make_alive_befores(instrs);
         let all_locations: HashSet<_> = instrs.iter().map(locs_written).flatten().collect();
         let interference_graph =
@@ -18,7 +18,7 @@ impl<'a> LivenessMap<'a> {
         Self { interference_graph }
     }
 
-    fn make_alive_befores(instrs: &'a [Instr<'a>]) -> Vec<HashSet<Location<'a>>> {
+    fn make_alive_befores(instrs: &[Instr]) -> Vec<HashSet<Location>> {
         // Implements the textbook's equation for liveness analysis:
         //      `L_before(k) = (L_after(k) - W(k)) union R(k)`
         //
@@ -35,7 +35,7 @@ impl<'a> LivenessMap<'a> {
                 let alive_before = {
                     let written = locs_written(instr);
                     alive_after.retain(|l| !written.contains(l));
-                    alive_after.extend(&locs_read(instr));
+                    alive_after.extend(locs_read(instr));
                     alive_after.clone()
                 };
                 Some(alive_before)
@@ -47,14 +47,14 @@ impl<'a> LivenessMap<'a> {
     }
 
     fn make_interference_graph(
-        instrs: &'a [Instr<'a>],
-        alive_befores: &[HashSet<Location<'a>>],
-        all_locations: &HashSet<Location<'a>>,
-    ) -> UnGraph<Location<'a>, ()> {
-        let mut graph = UnGraph::<Location<'a>, ()>::new_undirected();
-        let loc_to_node: HashMap<Location<'_>, NodeIndex> = all_locations
+        instrs: &[Instr],
+        alive_befores: &[HashSet<Location>],
+        all_locations: &HashSet<Location>,
+    ) -> UnGraph<Location, ()> {
+        let mut graph = UnGraph::new_undirected();
+        let loc_to_node: HashMap<_, _> = all_locations
             .into_iter()
-            .map(|loc| (*loc, graph.add_node(*loc)))
+            .map(|loc| (loc, graph.add_node(loc.clone())))
             .collect();
 
         // Extra l_after for the last instruction, since it wouldn't
@@ -71,7 +71,7 @@ impl<'a> LivenessMap<'a> {
                 // If instruction is movq, for each v in L_after, if v
                 // is neither s nor d, add edge (d, v)
                 for v in l_after {
-                    if *v != s && *v != d {
+                    if v != &s && v != &d {
                         graph.add_edge(loc_to_node[&d], loc_to_node[v], ());
                     }
                 }
@@ -80,7 +80,7 @@ impl<'a> LivenessMap<'a> {
                 // in L_after, if v != d, add edge (d,v)
                 for d in locs_written(i) {
                     for v in l_after {
-                        if *v != d {
+                        if v != &d {
                             graph.add_edge(loc_to_node[&d], loc_to_node[v], ());
                         }
                     }
@@ -92,7 +92,7 @@ impl<'a> LivenessMap<'a> {
     }
 }
 
-fn locs_read<'a>(i: &'a Instr) -> Vec<Location<'a>> {
+fn locs_read(i: &Instr) -> Vec<Location> {
     let mut locations = Vec::new();
     match i {
         // These ones read from both s and d
@@ -141,7 +141,7 @@ fn locs_read<'a>(i: &'a Instr) -> Vec<Location<'a>> {
     locations
 }
 
-fn locs_written<'a>(i: &'a Instr) -> Vec<Location<'a>> {
+fn locs_written(i: &Instr) -> Vec<Location> {
     let mut locations = Vec::new();
     match i {
         // These ones each write to one arg

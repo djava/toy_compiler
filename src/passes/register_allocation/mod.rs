@@ -2,6 +2,7 @@ mod graph_coloring;
 mod liveness_analysis;
 
 use std::collections::HashMap;
+use std::mem::size_of;
 
 use crate::{
     ast::Identifier,
@@ -30,17 +31,17 @@ impl X86Pass for RegisterAllocation {
     }
 }
 
-#[derive(Debug, Clone, Copy, Hash, PartialEq, Eq)]
-enum Location<'a> {
-    Id(Identifier<'a>),
+#[derive(Debug, Clone, Hash, PartialEq, Eq)]
+enum Location {
+    Id(Identifier),
     Reg(Register),
 }
 
-impl<'a> Location<'a> {
-    fn try_from_arg(arg: &'a Arg) -> Option<Self> {
+impl Location {
+    fn try_from_arg(arg: &Arg) -> Option<Self> {
         match arg {
             Arg::Deref(reg, _) => Some(Location::Reg(*reg)),
-            Arg::Variable(id) => Some(Location::Id(*id)),
+            Arg::Variable(id) => Some(Location::Id(id.clone())),
             Arg::Reg(reg) => Some(Location::Reg(*reg)),
             Arg::Immediate(_) => None,
         }
@@ -53,8 +54,8 @@ enum Storage {
     Reg(Register),
 }
 
-impl<'a> Storage {
-    pub fn to_arg(self) -> Arg<'a> {
+impl Storage {
+    pub fn to_arg(self) -> Arg {
         match self {
             Storage::Stack(offset) => Arg::Deref(Register::rbp, offset),
             Storage::Reg(reg) => Arg::Reg(reg),
@@ -78,7 +79,7 @@ fn run_for_function(instrs: &mut Vec<Instr>) -> i32 {
     let clone_instrs = instrs.clone();
     let liveness = LivenessMap::from_instrs(&clone_instrs);
 
-    let (location_to_storage, stack_var_size) = allocate_storage(liveness);
+    let (location_to_storage, stack_var_size) = allocate_storage(&liveness);
 
     let callee_saved_used: Vec<_> = location_to_storage
         .values()
@@ -136,7 +137,7 @@ fn run_for_function(instrs: &mut Vec<Instr>) -> i32 {
     aligned_stack_size
 }
 
-fn allocate_storage(liveness: LivenessMap) -> (HashMap<Location, Storage>, i32) {
+fn allocate_storage<'a>(liveness: &'a LivenessMap) -> (HashMap<&'a Location, Storage>, i32) {
     let mut curr_stack_offset = 0i32;
 
     let graph_colors = color_location_graph(&liveness.interference_graph);

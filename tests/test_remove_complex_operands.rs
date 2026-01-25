@@ -1,4 +1,5 @@
 mod infra;
+use std::sync::Arc;
 use std::collections::VecDeque;
 
 use cs4999_compiler::{
@@ -8,8 +9,8 @@ use cs4999_compiler::{
 
 use crate::infra::{interpreter::interpret, type_check::type_check};
 
-struct TestCase<'a> {
-    ast: Module<'a>,
+struct TestCase {
+    ast: Module,
     inputs: VecDeque<i64>,
     expected_outputs: VecDeque<i64>,
 }
@@ -37,7 +38,7 @@ fn execute_test_case(mut tc: TestCase) {
 fn test_remove_complex_operands_add() {
     execute_test_case(TestCase {
         ast: Module::Body(vec![Statement::Expr(Expr::Call(
-            Identifier::Named("print_int"),
+            Identifier::Named(Arc::from("print_int")),
             vec![Expr::BinaryOp(
                 Box::new(Expr::Constant(Value::I64(40))),
                 BinaryOperator::Add,
@@ -53,9 +54,9 @@ fn test_remove_complex_operands_add() {
 fn test_remove_complex_operands_input() {
     execute_test_case(TestCase {
         ast: Module::Body(vec![Statement::Expr(Expr::Call(
-            Identifier::Named("print_int"),
+            Identifier::Named(Arc::from("print_int")),
             vec![Expr::Call(
-                Identifier::Named("read_int"),
+                Identifier::Named(Arc::from("read_int")),
                 vec![],
             )],
         ))]),
@@ -68,15 +69,15 @@ fn test_remove_complex_operands_input() {
 fn test_remove_complex_operands_subinput() {
     execute_test_case(TestCase {
         ast: Module::Body(vec![Statement::Expr(Expr::Call(
-            Identifier::Named("print_int"),
+            Identifier::Named(Arc::from("print_int")),
             vec![Expr::BinaryOp(
                 Box::new(Expr::Call(
-                    Identifier::Named("read_int"),
+                    Identifier::Named(Arc::from("read_int")),
                     vec![],
                 )),
                 BinaryOperator::Subtract,
                 Box::new(Expr::Call(
-                    Identifier::Named("read_int"),
+                    Identifier::Named(Arc::from("read_int")),
                     vec![],
                 )),
             )],
@@ -90,7 +91,7 @@ fn test_remove_complex_operands_subinput() {
 fn test_remove_complex_operands_zero() {
     execute_test_case(TestCase {
         ast: Module::Body(vec![Statement::Expr(Expr::Call(
-            Identifier::Named("print_int"),
+            Identifier::Named(Arc::from("print_int")),
             vec![Expr::Constant(Value::I64(0))],
         ))]),
         inputs: VecDeque::from(vec![]),
@@ -102,7 +103,7 @@ fn test_remove_complex_operands_zero() {
 fn test_remove_complex_operands_nested() {
     execute_test_case(TestCase {
         ast: Module::Body(vec![Statement::Expr(Expr::Call(
-            Identifier::Named("print_int"),
+            Identifier::Named(Arc::from("print_int")),
             vec![Expr::BinaryOp(
                 Box::new(Expr::BinaryOp(
                     Box::new(Expr::Constant(Value::I64(40))),
@@ -126,11 +127,11 @@ fn test_remove_complex_operands_nested() {
 fn test_remove_complex_operands_mixed() {
     execute_test_case(TestCase {
         ast: Module::Body(vec![Statement::Expr(Expr::Call(
-            Identifier::Named("print_int"),
+            Identifier::Named(Arc::from("print_int")),
             vec![Expr::BinaryOp(
                 Box::new(Expr::BinaryOp(
                     Box::new(Expr::Call(
-                        Identifier::Named("read_int"),
+                        Identifier::Named(Arc::from("read_int")),
                         vec![],
                     )),
                     BinaryOperator::Add,
@@ -154,12 +155,12 @@ fn test_remove_complex_operands_simple_assignment() {
     execute_test_case(TestCase {
         ast: Module::Body(vec![
             Statement::Assign(
-                Identifier::Named("x"),
+                Identifier::Named(Arc::from("x")),
                 Expr::Constant(Value::I64(1000)),
             ),
             Statement::Expr(Expr::Call(
-                Identifier::Named("print_int"),
-                vec![Expr::Id(Identifier::Named("x"))],
+                Identifier::Named(Arc::from("print_int")),
+                vec![Expr::Id(Identifier::Named(Arc::from("x")))],
             )),
         ]),
         inputs: VecDeque::from(vec![]),
@@ -181,11 +182,11 @@ fn test_remove_complex_operands_complex_assignment() {
     execute_test_case(TestCase {
         ast: Module::Body(vec![
             Statement::Assign(
-                Identifier::Named("foofoo"),
+                Identifier::Named(Arc::from("foofoo")),
                 Expr::BinaryOp(
                     Box::new(Expr::BinaryOp(
                         Box::new(Expr::Call(
-                            Identifier::Named("read_int"),
+                            Identifier::Named(Arc::from("read_int")),
                             vec![],
                         )),
                         BinaryOperator::Add,
@@ -200,8 +201,8 @@ fn test_remove_complex_operands_complex_assignment() {
                 ),
             ),
             Statement::Expr(Expr::Call(
-                Identifier::Named("print_int"),
-                vec![Expr::Id(Identifier::Named("foofoo"))],
+                Identifier::Named(Arc::from("print_int")),
+                vec![Expr::Id(Identifier::Named(Arc::from("foofoo")))],
             )),
         ]),
         inputs: VecDeque::from(vec![10]),
@@ -213,11 +214,11 @@ fn test_remove_complex_operands_complex_assignment() {
 fn test_remove_complex_operands_complex_args() {
     execute_test_case(TestCase {
         ast: Module::Body(vec![Statement::Expr(Expr::Call(
-            Identifier::Named("print_int"),
+            Identifier::Named(Arc::from("print_int")),
             vec![Expr::BinaryOp(
                 Box::new(Expr::BinaryOp(
                     Box::new(Expr::Call(
-                        Identifier::Named("read_int"),
+                        Identifier::Named(Arc::from("read_int")),
                         vec![],
                     )),
                     BinaryOperator::Add,
@@ -260,52 +261,52 @@ fn test_remove_complex_operands_cascading_assigns() {
     execute_test_case(TestCase {
         ast: Module::Body(vec![
             Statement::Assign(
-                Identifier::Named("foo"),
-                Expr::Call(Identifier::Named("read_int"), vec![]),
+                Identifier::Named(Arc::from("foo")),
+                Expr::Call(Identifier::Named(Arc::from("read_int")), vec![]),
             ),
             Statement::Assign(
-                Identifier::Named("bar"),
+                Identifier::Named(Arc::from("bar")),
                 Expr::BinaryOp(
                     Box::new(Expr::Call(
-                        Identifier::Named("read_int"),
+                        Identifier::Named(Arc::from("read_int")),
                         vec![],
                     )),
                     BinaryOperator::Add,
-                    Box::new(Expr::Id(Identifier::Named("foo"))),
+                    Box::new(Expr::Id(Identifier::Named(Arc::from("foo")))),
                 ),
             ),
             Statement::Assign(
-                Identifier::Named("baz"),
+                Identifier::Named(Arc::from("baz")),
                 Expr::BinaryOp(
                     Box::new(Expr::Call(
-                        Identifier::Named("read_int"),
+                        Identifier::Named(Arc::from("read_int")),
                         vec![],
                     )),
                     BinaryOperator::Add,
-                    Box::new(Expr::Id(Identifier::Named("bar"))),
+                    Box::new(Expr::Id(Identifier::Named(Arc::from("bar")))),
                 ),
             ),
             Statement::Assign(
-                Identifier::Named("bop"),
+                Identifier::Named(Arc::from("bop")),
                 Expr::BinaryOp(
                     Box::new(Expr::BinaryOp(
-                        Box::new(Expr::Id(Identifier::Named("foo"))),
+                        Box::new(Expr::Id(Identifier::Named(Arc::from("foo")))),
                         BinaryOperator::Add,
-                        Box::new(Expr::Id(Identifier::Named("bar"))),
+                        Box::new(Expr::Id(Identifier::Named(Arc::from("bar")))),
                     )),
                     BinaryOperator::Add,
-                    Box::new(Expr::Id(Identifier::Named("baz"))),
+                    Box::new(Expr::Id(Identifier::Named(Arc::from("baz")))),
                 ),
             ),
             Statement::Expr(Expr::Call(
-                Identifier::Named("print_int"),
+                Identifier::Named(Arc::from("print_int")),
                 vec![Expr::BinaryOp(
                     Box::new(Expr::Call(
-                        Identifier::Named("read_int"),
+                        Identifier::Named(Arc::from("read_int")),
                         vec![],
                     )),
                     BinaryOperator::Add,
-                    Box::new(Expr::Id(Identifier::Named("bop"))),
+                    Box::new(Expr::Id(Identifier::Named(Arc::from("bop")))),
                 )],
             )),
         ]),

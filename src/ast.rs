@@ -1,4 +1,5 @@
 use std::sync::atomic::{AtomicU64, Ordering};
+use std::sync::Arc;
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum ValueType {
@@ -24,16 +25,16 @@ pub enum UnaryOperator {
     Minus,
 }
 
-#[derive(Debug, Clone, Copy,PartialEq, Eq, Hash)]
-pub enum Identifier<'a> {
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub enum Identifier {
     Ephemeral(u64),
-    Named(&'a str)
+    Named(Arc<str>)
 }
 
-impl<'a> Identifier<'a> {
-    pub fn new_ephemeral() -> Identifier<'a> {
+impl Identifier {
+    pub fn new_ephemeral() -> Identifier {
         static COUNTER: AtomicU64 = AtomicU64::new(0);
-        
+
         let current_counter = COUNTER.load(Ordering::Relaxed);
         COUNTER.store(current_counter + 1, Ordering::Relaxed);
         Identifier::Ephemeral(current_counter)
@@ -41,21 +42,21 @@ impl<'a> Identifier<'a> {
 }
 
 #[derive(Debug, Clone, PartialEq)]
-pub enum Expr<'a> {
+pub enum Expr {
     Constant(Value),
-    BinaryOp(Box<Expr<'a>>, BinaryOperator, Box<Expr<'a>>),
-    UnaryOp(UnaryOperator, Box<Expr<'a>>),
-    Call(Identifier<'a>, Vec<Expr<'a>>),
-    Id(Identifier<'a>),
+    BinaryOp(Box<Expr>, BinaryOperator, Box<Expr>),
+    UnaryOp(UnaryOperator, Box<Expr>),
+    Call(Identifier, Vec<Expr>),
+    Id(Identifier),
 }
 
 #[derive(Debug, Clone, PartialEq)]
-pub enum Statement<'a> {
-    Assign(Identifier<'a>, Expr<'a>),
-    Expr(Expr<'a>)
+pub enum Statement {
+    Assign(Identifier, Expr),
+    Expr(Expr)
 }
 
 #[derive(Debug, Clone, PartialEq)]
-pub enum Module<'a> {
-    Body(Vec<Statement<'a>>)
+pub enum Module {
+    Body(Vec<Statement>)
 }

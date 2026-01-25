@@ -14,7 +14,7 @@ pub enum ParserError<'a> {
     ParseTree(ParseError<usize>, Token<'a>),
 }
 
-pub fn parse<'a>(input: &'a str) -> Result<ast::Module<'a>, ParserError<'a>> {
+pub fn parse<'a>(input: &'a str) -> Result<ast::Module, ParserError<'a>> {
     let tokens = tokenizer::tokenize(input)?;
     let parse_tree = parse_tree::parse_tokens(&tokens)?;
     let ast = to_ast::to_ast(parse_tree);
