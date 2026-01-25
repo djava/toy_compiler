@@ -24,16 +24,17 @@ fn sel_for_statement(s: Statement) -> Vec<Instr> {
         Statement::Assign(dest_id, e) => match e {
             Expr::BinaryOp(l, BinaryOperator::Add, r) => sel_for_add(dest_id, l, r),
             Expr::BinaryOp(l, BinaryOperator::Subtract, r) => sel_for_sub(dest_id, l, r),
-            Expr::BinaryOp(_, _, _) => unimplemented!("InstrSel for some binary operators isn't implemented yet"),
+            Expr::BinaryOp(_, _, _) => todo!(),
             Expr::UnaryOp(UnaryOperator::Plus, val) => sel_for_unary_plus(dest_id, val),
             Expr::UnaryOp(UnaryOperator::Minus, val) => sel_for_unary_minus(dest_id, val),
-            Expr::UnaryOp(_, _) => unimplemented!("InstrSel for some unary operators isn't implemented yet"),
+            Expr::UnaryOp(_, _) => todo!(),
             Expr::Constant(val) => vec![Instr::movq(
                 Arg::Immediate(val.into()),
                 Arg::Variable(dest_id),
             )],
             Expr::Id(id) => vec![Instr::movq(Arg::Variable(id), Arg::Variable(dest_id))],
             Expr::Call(func_id, args) => sel_for_call(Some(dest_id), func_id, args),
+            Expr::Ternary(_cond, _pos, _neg) => todo!(),
         },
         Statement::Expr(e) => match e {
             Expr::Call(func_id, args) => sel_for_call(None, func_id, args),
@@ -43,6 +44,7 @@ fn sel_for_statement(s: Statement) -> Vec<Instr> {
             // isn't true, atom_to_arg() will panic.
             _ => vec![],
         },
+        Statement::Conditional(_, statements, statements1) => todo!(),
     }
 }
 

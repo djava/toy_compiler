@@ -10,10 +10,53 @@ impl IRPass for PartialEval {
             match s {
                 Statement::Assign(_dest, e) => partial_eval_expr(e),
                 Statement::Expr(e) => partial_eval_expr(e),
+                Statement::Conditional(_cond, _pos, _neg) => todo!(),
             }
         }
 
         Module::Body(statements)
+    }
+}
+
+fn partial_eval_expr(e: &mut Expr) {
+    use Expr::*;
+
+    match e {
+        BinaryOp(left, op, right) => {
+            // Try and evaluate both operands recursively, then if
+            // they're both constants we can evaluate the whole
+            // expression
+            partial_eval_expr(&mut *left);
+            partial_eval_expr(&mut *right);
+
+            if let Constant(l_val) = **left
+                && let Constant(r_val) = **right
+            {
+                *e = Constant(op.eval(&l_val, &r_val))
+            }
+        }
+        UnaryOp(op, expr) => {
+            // Try and evaluate the operand recursively, then if its
+            // constant we can evaluate the whole expression
+            partial_eval_expr(&mut *expr);
+            if let Constant(val) = **expr {
+                *e = Constant(op.eval(&val));
+            }
+        }
+        Call(_name, args) => {
+            // Can't evaluate through function calls right now, but try
+            // to evaluate the arguments regardless
+            for i in args {
+                partial_eval_expr(i);
+            }
+        }
+        Constant(_val) => {
+            // Already a constant, nothing to evaluate
+        }
+        Id(_name) => {
+            // Can't do anything
+        }
+        Ternary(_cond, _pos, _neg) => todo!(),
     }
 }
 
@@ -106,47 +149,6 @@ impl UnaryOperatorExt for UnaryOperator {
                 "Unsupported operand type ({:?}) to UnaryOperator {self:?}",
                 ValueType::from(v)
             ),
-        }
-    }
-}
-
-fn partial_eval_expr(e: &mut Expr) {
-    use Expr::*;
-
-    match e {
-        BinaryOp(left, op, right) => {
-            // Try and evaluate both operands recursively, then if
-            // they're both constants we can evaluate the whole
-            // expression
-            partial_eval_expr(&mut *left);
-            partial_eval_expr(&mut *right);
-
-            if let Constant(l_val) = **left
-                && let Constant(r_val) = **right
-            {
-                *e = Constant(op.eval(&l_val, &r_val))
-            }
-        }
-        UnaryOp(op, expr) => {
-            // Try and evaluate the operand recursively, then if its
-            // constant we can evaluate the whole expression
-            partial_eval_expr(&mut *expr);
-            if let Constant(val) = **expr {
-                *e = Constant(op.eval(&val));
-            }
-        }
-        Call(_name, args) => {
-            // Can't evaluate through function calls right now, but try
-            // to evaluate the arguments regardless
-            for i in args {
-                partial_eval_expr(i);
-            }
-        }
-        Constant(_val) => {
-            // Already a constant, nothing to evaluate
-        }
-        Id(_name) => {
-            // Can't do anything
         }
     }
 }

@@ -5,6 +5,7 @@ use std::sync::Arc;
 
 trait OptionValueExt {
     fn expect_int(self) -> i64;
+    fn expect_bool(self) -> bool;
 }
 
 impl OptionValueExt for Option<Value> {
@@ -13,6 +14,14 @@ impl OptionValueExt for Option<Value> {
             v
         } else {
             panic!("{:?} didn't evaluate to a constant int", self);
+        }
+    }
+
+    fn expect_bool(self) -> bool {
+        if let Some(Value::Bool(v)) = self {
+            v
+        } else {
+            panic!("{:?} didn't evaluate to a constant bool", self);
         }
     }
 }
@@ -117,7 +126,6 @@ fn interpret_expr(
                 None
             }
         }
-
         UnaryOp(op, expr) => {
             if let Some(v) = interpret_expr(&*expr, inputs, outputs, env) {
                 op.try_eval(&v)
@@ -125,7 +133,6 @@ fn interpret_expr(
                 None
             }
         }
-
         Constant(v) => Some((*v).into()),
         Call(name, args) => {
             if name == &Identifier::Named(Arc::from("read_int")) && args.is_empty() {
@@ -144,6 +151,17 @@ fn interpret_expr(
                 .get(id)
                 .expect(format!("Unknown variable name: {id:?}").as_str());
             Some(val.into())
+        }
+        Ternary(cond, pos, neg) => {
+            if let Some(Value::Bool(cond_val)) = interpret_expr(&*cond, inputs, outputs, env) {
+                if cond_val {
+                    interpret_expr(pos, inputs, outputs, env)
+                } else {
+                    interpret_expr(neg, inputs, outputs, env)
+                }
+            } else {
+                None
+            }
         }
     }
 }
@@ -180,6 +198,14 @@ fn interpret_statement(
                     &remaining_stmts[1..],
                     env,
                 )
+            }
+        },
+        Statement::Conditional(cond, pos, neg) => {
+            let result = interpret_expr(cond, inputs, outputs, env).expect_bool();
+            
+            let exec_next = if result { pos } else { neg };
+            for i in exec_next {
+                interpret_statement(i, inputs, outputs, remaining_stmts, env);
             }
         }
     };

@@ -147,12 +147,14 @@ pub enum Expr {
     UnaryOp(UnaryOperator, Box<Expr>),
     Call(Identifier, Vec<Expr>),
     Id(Identifier),
+    Ternary(Box<Expr>, Box<Expr>, Box<Expr>)
 }
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum Statement {
     Assign(Identifier, Expr),
-    Expr(Expr)
+    Expr(Expr),
+    Conditional(Expr, Vec<Statement>, Vec<Statement>)
 }
 
 #[derive(Debug, Clone, PartialEq)]

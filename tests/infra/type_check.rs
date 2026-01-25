@@ -36,6 +36,16 @@ fn type_check_expr(e: &Expr, env: &mut TypeEnv) -> ValueType {
                 _ => unimplemented!("Unknown function name"),
             }
         }
+        Ternary(cond, pos, neg) => {
+            let cond_type = type_check_expr(&*cond, env);
+            assert_eq!(cond_type, ValueType::BoolType);
+
+            let pos_type = type_check_expr(&*pos, env);
+            let neg_type = type_check_expr(&*neg, env);
+            assert_eq!(pos_type, neg_type, "Both branches of a ternary must be the same type");
+
+            pos_type
+        }
     }
 }
 
@@ -56,6 +66,13 @@ fn type_check_statements(statements: &[Statement], env: &mut TypeEnv) {
             Expr(e) => {
                 type_check_expr(e, env);
                 type_check_statements(&statements[1..], env);
+            }
+            Conditional(cond, pos, neg) => {
+                let cond_type = type_check_expr(cond, e);
+                assert_eq!(cond_type, ValueType::BoolType);
+
+                type_check_statements(pos, env);
+                type_check_statements(neg, env);
             }
         }
     }

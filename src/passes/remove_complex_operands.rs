@@ -51,6 +51,7 @@ impl IRPass for RemoveComplexOperands {
                     // the new expression to the body
                     new_body.push(Statement::Expr(transform.new_expr));
                 }
+                Statement::Conditional(_cond, _pos, _neg) => todo!(),
             }
         }
 
@@ -151,5 +152,6 @@ fn rco_expr(e: &Expr, needs_atomicity: bool) -> ExprTransformation {
                 ephemeral_assigns,
             }
         }
+        Expr::Ternary(_cond, _pos, _neg) => todo!(),
     }
 }
