@@ -270,7 +270,10 @@ fn test_parser_call_complex_arg() {
                     )),
                 )),
                 ast::BinaryOperator::Subtract,
-                Box::new(ast::Expr::Call(ast::Identifier::Named(Arc::from("read_int")), vec![])),
+                Box::new(ast::Expr::Call(
+                    ast::Identifier::Named(Arc::from("read_int")),
+                    vec![],
+                )),
             )],
         ))]),
     };
@@ -430,13 +433,122 @@ fn test_parser_space_delimited_unary() {
             ))],
         },
         expected_ast: ast::Module::Body(vec![ast::Statement::Expr(ast::Expr::BinaryOp(
-                Box::new(ast::Expr::Constant(ast::Value::I64(2))),
-                ast::BinaryOperator::Add,
-                Box::new(ast::Expr::UnaryOp(
-                    ast::UnaryOperator::Minus,
-                    Box::new(ast::Expr::Constant(ast::Value::I64(5))),
+            Box::new(ast::Expr::Constant(ast::Value::I64(2))),
+            ast::BinaryOperator::Add,
+            Box::new(ast::Expr::UnaryOp(
+                ast::UnaryOperator::Minus,
+                Box::new(ast::Expr::Constant(ast::Value::I64(5))),
+            )),
+        ))]),
+    };
+    tc.run();
+}
+
+#[test]
+fn test_parser_bool_op_simple() {
+    let tc = ParserTestCase {
+        input_str: r"false && true",
+        expected_tokens: vec![Token::Bool(false), Token::And, Token::Bool(true)],
+        expected_parse_tree: pt::Module {
+            statements: vec![pt::Statement::Expr(pt::Expr::Binary(
+                Box::new(pt::Expr::Bool(false)),
+                pt::Operator::And,
+                Box::new(pt::Expr::Bool(true)),
+            ))],
+        },
+        expected_ast: ast::Module::Body(vec![ast::Statement::Expr(ast::Expr::BinaryOp(
+            Box::new(ast::Expr::Constant(ast::Value::Bool(false))),
+            ast::BinaryOperator::And,
+            Box::new(ast::Expr::Constant(ast::Value::Bool(true))),
+        ))]),
+    };
+    tc.run();
+}
+
+#[test]
+fn test_parser_bool_op_complex() {
+    let tc = ParserTestCase {
+        input_str: r"truefoofalse(!(false && true) || (false == true) >= (1 - false))",
+        expected_tokens: vec![
+            Token::Identifier("truefoofalse"),
+            Token::OpenParen,
+            Token::Not,
+            Token::OpenParen,
+            Token::Bool(false),
+            Token::And,
+            Token::Bool(true),
+            Token::CloseParen,
+            Token::Or,
+            Token::OpenParen,
+            Token::Bool(false),
+            Token::DoubleEquals,
+            Token::Bool(true),
+            Token::CloseParen,
+            Token::GreaterEquals,
+            Token::OpenParen,
+            Token::Int(1),
+            Token::Minus,
+            Token::Bool(false),
+            Token::CloseParen,
+            Token::CloseParen,
+        ],
+        expected_parse_tree: pt::Module {
+            statements: vec![pt::Statement::Expr(pt::Expr::Call(
+                "truefoofalse",
+                vec![pt::Expr::Binary(
+                    Box::new(pt::Expr::Binary(
+                        Box::new(pt::Expr::Unary(
+                            pt::Operator::Not,
+                            Box::new(pt::Expr::Parens(Box::new(pt::Expr::Binary(
+                                Box::new(pt::Expr::Bool(false)),
+                                pt::Operator::And,
+                                Box::new(pt::Expr::Bool(true)),
+                            )))),
+                        )),
+                        pt::Operator::Or,
+                        Box::new(pt::Expr::Parens(Box::new(pt::Expr::Binary(
+                            Box::new(pt::Expr::Bool(false)),
+                            pt::Operator::Equals,
+                            Box::new(pt::Expr::Bool(true)),
+                        )))),
+                    )),
+                    pt::Operator::GreaterEquals,
+                    Box::new(pt::Expr::Parens(Box::new(pt::Expr::Binary(
+                        Box::new(pt::Expr::Int(1)),
+                        pt::Operator::Minus,
+                        Box::new(pt::Expr::Bool(false)),
+                    )))),
+                )],
+            ))],
+        },
+        expected_ast: ast::Module::Body(vec![
+            ast::Statement::Expr(ast::Expr::Call(
+            ast::Identifier::Named(Arc::from("truefoofalse")),
+            vec![ast::Expr::BinaryOp(
+                Box::new(ast::Expr::BinaryOp(
+                    Box::new(ast::Expr::UnaryOp(
+                        ast::UnaryOperator::Not,
+                        Box::new(ast::Expr::BinaryOp(
+                            Box::new(ast::Expr::Constant(ast::Value::Bool(false))),
+                            ast::BinaryOperator::And,
+                            Box::new(ast::Expr::Constant(ast::Value::Bool(true))),
+                        )),
+                    )),
+                    ast::BinaryOperator::Or,
+                    Box::new(ast::Expr::BinaryOp(
+                        Box::new(ast::Expr::Constant(ast::Value::Bool(false))),
+                        ast::BinaryOperator::Equals,
+                        Box::new(ast::Expr::Constant(ast::Value::Bool(true))),
+                    )),
                 )),
-            ))],),
+                ast::BinaryOperator::GreaterEquals,
+                Box::new(ast::Expr::BinaryOp(
+                    Box::new(ast::Expr::Constant(ast::Value::I64(1))),
+                    ast::BinaryOperator::Subtract,
+                    Box::new(ast::Expr::Constant(ast::Value::Bool(false))),
+                )),
+            )],
+        ))]),
     };
     tc.run();
 }

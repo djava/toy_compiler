@@ -56,8 +56,8 @@ pub enum BinaryOperator {
     NotEquals,
     Greater,
     GreaterEquals,
-    LessThan,
-    LessThanEquals
+    Less,
+    LessEquals
 }
 
 impl BinaryOperator {
@@ -74,8 +74,8 @@ impl BinaryOperator {
                     NotEquals => Some(BoolType),
                     Greater => Some(BoolType),
                     GreaterEquals => Some(BoolType),
-                    LessThan => Some(BoolType),
-                    LessThanEquals => Some(BoolType),
+                    Less => Some(BoolType),
+                    LessEquals => Some(BoolType),
                     _ => None
                 }
             },

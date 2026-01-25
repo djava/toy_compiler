@@ -37,8 +37,8 @@ impl BinaryOperatorExt for BinaryOperator {
                         BinaryOperator::NotEquals => Some(Value::Bool(l_val != r_val)),
                         BinaryOperator::Greater => Some(Value::Bool(l_val > r_val)),
                         BinaryOperator::GreaterEquals => Some(Value::Bool(l_val >= r_val)),
-                        BinaryOperator::LessThan => Some(Value::Bool(l_val < r_val)),
-                        BinaryOperator::LessThanEquals => Some(Value::Bool(l_val <= r_val)),
+                        BinaryOperator::Less => Some(Value::Bool(l_val < r_val)),
+                        BinaryOperator::LessEquals => Some(Value::Bool(l_val <= r_val)),
                         _ => None,
                     }
                 } else {

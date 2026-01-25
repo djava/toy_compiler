@@ -37,8 +37,8 @@ impl BinaryOperatorExt for BinaryOperator {
                         BinaryOperator::NotEquals => Value::Bool(l_val != r_val),
                         BinaryOperator::Greater => Value::Bool(l_val > r_val),
                         BinaryOperator::GreaterEquals => Value::Bool(l_val >= r_val),
-                        BinaryOperator::LessThan => Value::Bool(l_val < r_val),
-                        BinaryOperator::LessThanEquals => Value::Bool(l_val <= r_val),
+                        BinaryOperator::Less => Value::Bool(l_val < r_val),
+                        BinaryOperator::LessEquals => Value::Bool(l_val <= r_val),
                         _ => panic!(
                             "Unsupported operand types (int, int) to BinaryOperator {self:?}"
                         ),

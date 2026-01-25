@@ -5,11 +5,21 @@ use peg::*;
 pub enum Operator {
     Plus,
     Minus,
+    And,
+    Or,
+    Equals,
+    NotEquals,
+    Greater,
+    GreaterEquals,
+    Less,
+    LessEquals,
+    Not,
 }
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum Expr<'a> {
     Int(i64),
+    Bool(bool),
     Id(&'a str),
     Unary(Operator, Box<Expr<'a>>),
     Parens(Box<Expr<'a>>),
@@ -38,10 +48,21 @@ parser! {
         rule eof() = [Token::Newline]* ![_]
 
         rule operator() -> Operator =
-            op:[Token::Minus | Token::Plus] {
+            op:[Token::Minus | Token::Plus | Token::And | Token::Or | Token::Not |
+                Token::DoubleEquals | Token::NotEquals | Token::Greater |
+                Token::GreaterEquals | Token::Less | Token::LessEquals] {
                 match op {
-                    Token::Minus => Operator::Minus,
-                    Token::Plus  => Operator::Plus,
+                    Token::Minus         => Operator::Minus,
+                    Token::Plus          => Operator::Plus,
+                    Token::And           => Operator::And,
+                    Token::Or            => Operator::Or,
+                    Token::DoubleEquals  => Operator::Equals,
+                    Token::NotEquals     => Operator::NotEquals,
+                    Token::Greater       => Operator::Greater,
+                    Token::GreaterEquals => Operator::GreaterEquals,
+                    Token::Less          => Operator::Less,
+                    Token::LessEquals    => Operator::LessEquals,
+                    Token::Not           => Operator::Not,
                     _ => unreachable!()
                 }
             }
@@ -57,6 +78,7 @@ parser! {
             [Token::Identifier(id)][Token::OpenParen] args:(expr() ** [Token::Comma]) [Token::CloseParen] { Expr::Call(id, args) }
             [Token::Identifier(id)] { Expr::Id(id) }
             [Token::Int(val)] { Expr::Int(val) }
+            [Token::Bool(val)] { Expr::Bool(val) }
             [Token::OpenParen] e:expr() [Token::CloseParen] { Expr::Parens(Box::new(e)) }
         }
 
@@ -72,7 +94,10 @@ parser! {
 
 pub fn parse_tokens<'t>(tokens: &[Token<'t>]) -> Result<Module<'t>, ParserError<'t>> {
     parse_tree::module(tokens).map_err(|e| {
-        let got = (tokens.get(e.location).unwrap_or(&Token::Identifier("===EOF==="))).clone();
+        let got = (tokens
+            .get(e.location)
+            .unwrap_or(&Token::Identifier("===EOF===")))
+        .clone();
         ParserError::ParseTree(e, got)
     })
 }

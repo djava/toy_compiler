@@ -5,12 +5,15 @@ use std::sync::Arc;
 fn to_ast_expr(pte: pt::Expr) -> ast::Expr {
     match pte {
         pt::Expr::Int(val) => ast::Expr::Constant(ast::Value::I64(val)),
+        pt::Expr::Bool(val) => ast::Expr::Constant(ast::Value::Bool(val)),
         pt::Expr::Id(name) => ast::Expr::Id(ast::Identifier::Named(Arc::from(name))),
         pt::Expr::Unary(op, val) => {
             let ast_val = Box::new(to_ast_expr(*val));
             let ast_op = match op {
                 pt::Operator::Minus => ast::UnaryOperator::Minus,
                 pt::Operator::Plus => ast::UnaryOperator::Plus,
+                pt::Operator::Not => ast::UnaryOperator::Not,
+                _ => panic!("{op:?} should never be in a unary expression")
             };
 
             ast::Expr::UnaryOp(ast_op, ast_val)
@@ -22,6 +25,15 @@ fn to_ast_expr(pte: pt::Expr) -> ast::Expr {
             let ast_op = match op {
                 pt::Operator::Minus => ast::BinaryOperator::Subtract,
                 pt::Operator::Plus => ast::BinaryOperator::Add,
+                pt::Operator::And => ast::BinaryOperator::And,
+                pt::Operator::Or => ast::BinaryOperator::Or,
+                pt::Operator::Equals => ast::BinaryOperator::Equals,
+                pt::Operator::NotEquals => ast::BinaryOperator::NotEquals,
+                pt::Operator::Greater => ast::BinaryOperator::Greater,
+                pt::Operator::GreaterEquals => ast::BinaryOperator::GreaterEquals,
+                pt::Operator::Less => ast::BinaryOperator::Less,
+                pt::Operator::LessEquals => ast::BinaryOperator::LessEquals,
+                pt::Operator::Not => panic!("pt::Operator::Not should never be in a Binary expression"),
             };
 
             ast::Expr::BinaryOp(ast_left, ast_op, ast_right)
