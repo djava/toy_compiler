@@ -21,7 +21,7 @@ pub trait IRPass {
 }
 
 #[enum_dispatch(IRPass)]
-pub enum IRtoIR {
+pub enum ASTtoAST {
     PartialEval,
     RemoveComplexOperands,
 }
@@ -32,7 +32,7 @@ pub trait IRToX86Pass {
 }
 
 #[enum_dispatch(IRToX86Pass)]
-pub enum IRtoX86 {
+pub enum ASTtoX86 {
     SelectInstructions,
 }
 

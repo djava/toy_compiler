@@ -19,8 +19,8 @@ fn execute_test_case(mut tc: TestCase) {
     println!("Type-check passed on source");
 
     let pipeline = Pipeline {
-        ir_passes: vec![IRtoIR::from(RemoveComplexOperands)],
-        ir_to_x86_pass: IRtoX86::from(SelectInstructions),
+        ast_passes: vec![ASTtoAST::from(RemoveComplexOperands)],
+        ast_to_x86_pass: ASTtoX86::from(SelectInstructions),
         x86_passes: vec![X86toX86::from(PatchInstructions)],
     };
 
