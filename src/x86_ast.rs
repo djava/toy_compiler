@@ -49,12 +49,47 @@ pub const CALLER_SAVED_REGISTERS: [Register; 9] = [
     Register::r11,
 ];
 
+#[allow(non_camel_case_types)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum ByteReg {
+    ah,
+    al,
+    bh,
+    bl,
+    ch,
+    cl,
+    dh,
+    dl
+}
+
+impl ByteReg {
+    pub fn to_underlying(&self) -> Register {
+        match self {
+            ByteReg::ah | ByteReg::al => Register::rax,
+            ByteReg::bh | ByteReg::bl => Register::rbx,
+            ByteReg::ch | ByteReg::cl => Register::rcx,
+            ByteReg::dh | ByteReg::dl => Register::rdx,
+        }
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum Arg {
     Immediate(i64),
     Reg(Register),
+    ByteReg(ByteReg),
     Deref(Register, i32),
     Variable(Identifier),
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Comparison {
+    Equals,
+    NotEquals,
+    Less,
+    LessEquals,
+    Greater,
+    GreaterEquals
 }
 
 #[allow(non_camel_case_types)]
@@ -66,8 +101,14 @@ pub enum Instr {
     movq(Arg, Arg),
     pushq(Arg),
     popq(Arg),
-    callq(Arc<str>, u16),
+    callq(Identifier, u16),
     retq,
+    xorq(Arg, Arg),
+    cmpq(Arg, Arg),
+    set(Comparison, Arg),
+    movzbq(Arg, Arg),
+    jmp(Identifier),
+    jmpcc(Comparison, Identifier)
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -106,18 +147,53 @@ impl Display for Register {
     }
 }
 
+impl Display for ByteReg {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            ByteReg::ah => write!(f, "%ah"),
+            ByteReg::al => write!(f, "%al"),
+            ByteReg::bh => write!(f, "%bh"),
+            ByteReg::bl => write!(f, "%bl"),
+            ByteReg::ch => write!(f, "%ch"),
+            ByteReg::cl => write!(f, "%cl"),
+            ByteReg::dh => write!(f, "%dh"),
+            ByteReg::dl => write!(f, "%dl"),
+        }
+    }
+}
+
 impl Display for Arg {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Arg::Immediate(val) => write!(f, "${}", val),
-            Arg::Reg(reg) => write!(f, "{reg}"),
+            Arg::Reg(reg) => reg.fmt(f),
+            Arg::ByteReg(reg) => reg.fmt(f),
             Arg::Deref(reg, offset) => write!(f, "{offset}({reg})"),
             Arg::Variable(id) => match id {
-                // write!(f, "@{id}"),
                 Identifier::Named(name) => write!(f, "@{name}"),
                 Identifier::Ephemeral(id) => write!(f, "@EE#{id}"),
             },
         }
+    }
+}
+
+impl Display for Comparison {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Comparison::Equals => write!(f, "e"),
+            Comparison::NotEquals => write!(f, "ne"),
+            Comparison::Less => write!(f, "l"),
+            Comparison::LessEquals => write!(f, "le"),
+            Comparison::Greater => write!(f, "g"),
+            Comparison::GreaterEquals => write!(f, "ge"),
+        }
+    }
+}
+
+fn fmt_label(label: &Identifier) -> String {
+    match label {
+        Identifier::Named(name) => name.to_string(),
+        Identifier::Ephemeral(id) => format!(".EE_{id}"),
     }
 }
 
@@ -130,8 +206,14 @@ impl Display for Instr {
             Instr::movq(arg, arg1) => write!(f, "movq {arg}, {arg1}"),
             Instr::pushq(arg) => write!(f, "pushq {arg}"),
             Instr::popq(arg) => write!(f, "popq {arg}"),
-            Instr::callq(arg, _) => write!(f, "callq {arg}"),
+            Instr::callq(label, _) => write!(f, "callq {}", fmt_label(label)),
             Instr::retq => write!(f, "retq"),
+            Instr::xorq(arg, arg1) => write!(f, "xorq {arg}, {arg1}"),
+            Instr::cmpq(arg, arg1) => write!(f, "cmpq {arg}, {arg1}"),
+            Instr::set(cmp, arg) => write!(f, "set{cmp} {arg}"),
+            Instr::movzbq(arg, arg1) => write!(f, "movzbq {arg}, {arg1}"),
+            Instr::jmp(label) => write!(f, "jmp {}", fmt_label(label)),
+            Instr::jmpcc(cmp, label) => write!(f, "j{cmp} {}", fmt_label(label)),
         }
     }
 }

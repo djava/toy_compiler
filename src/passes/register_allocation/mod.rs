@@ -43,6 +43,7 @@ impl Location {
             Arg::Deref(reg, _) => Some(Location::Reg(*reg)),
             Arg::Variable(id) => Some(Location::Id(id.clone())),
             Arg::Reg(reg) => Some(Location::Reg(*reg)),
+            Arg::ByteReg(bytereg) => Some(Location::Reg(bytereg.to_underlying())),
             Arg::Immediate(_) => None,
         }
     }
