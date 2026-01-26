@@ -17,8 +17,6 @@ enum Continuation {
 
 fn interpret_atom(
     atom: &Atom,
-    inputs: &mut VecDeque<i64>,
-    outputs: &mut VecDeque<i64>,
     env: &mut ValueEnv,
 ) -> Value {
     match atom {
@@ -34,14 +32,14 @@ fn interpret_expr(
     env: &mut ValueEnv,
 ) -> Value {
     match expr {
-        Expr::Atom(atom) => interpret_atom(atom, inputs, outputs, env),
+        Expr::Atom(atom) => interpret_atom(atom, env),
         Expr::UnaryOp(op, atom) => {
-            let val = interpret_atom(&atom, inputs, outputs, env);
+            let val = interpret_atom(&atom, env);
             op.try_eval(&val).unwrap()
         }
         Expr::BinaryOp(l_atom, op, r_atom) => {
-            let l_val = interpret_atom(&l_atom, inputs, outputs, env);
-            let r_val = interpret_atom(&r_atom, inputs, outputs, env);
+            let l_val = interpret_atom(&l_atom, env);
+            let r_val = interpret_atom(&r_atom, env);
 
             op.try_eval(&l_val, &r_val).unwrap()
         },
@@ -51,7 +49,7 @@ fn interpret_expr(
                     panic!("Wrong number of arguments to print_int()");
                 }
 
-                if let Value::I64(val) = interpret_atom(&args[0], inputs, outputs, env) {
+                if let Value::I64(val) = interpret_atom(&args[0], env) {
                     outputs.push_back(val);
                 } else {
                     panic!("Wrong argument type to print_int()");

@@ -27,7 +27,7 @@ impl LivenessMap {
         // the previous iteration's state into the next one, so we
         // always start with the L_before(k) and do the set operations
         // to get the L_after based on locs_written(i) and locs_read(i)
-        
+
         let mut alive_befores: Vec<_> = instrs
             .iter()
             .rev()
@@ -95,23 +95,17 @@ impl LivenessMap {
 fn locs_read(i: &Instr) -> Vec<Location> {
     let mut locations = Vec::new();
     match i {
-        // These ones read from both s and d
-        Instr::addq(s, d) | Instr::subq(s, d) => {
+        Instr::addq(s, d) | Instr::subq(s, d) | Instr::xorq(s, d) | Instr::cmpq(s, d) => {
             locations = [s, d]
                 .into_iter()
                 .filter_map(Location::try_from_arg)
                 .collect();
         }
-
-        // These ones each read from one arg
-        Instr::negq(r) | Instr::movq(r, _) | Instr::pushq(r) => {
+        Instr::negq(r) | Instr::movq(r, _) | Instr::pushq(r) | Instr::movzbq(r, _) => {
             if let Some(loc) = Location::try_from_arg(r) {
                 locations.push(loc);
             }
         }
-
-        // A function call reads from as many variables as are being
-        // passed
         Instr::callq(_, num_args) => {
             const NUM_ARG_REGISTERS: u16 = 6;
             const ARG_REGISTERS: [Register; NUM_ARG_REGISTERS as _] = [
@@ -135,28 +129,26 @@ fn locs_read(i: &Instr) -> Vec<Location> {
             );
         }
 
-        Instr::popq(_) | Instr::retq => {} // These ones never read variables
+        Instr::popq(_) | Instr::retq | Instr::set(_, _) | Instr::jmp(_) | Instr::jmpcc(_, _) => {}
     };
-
     locations
 }
 
 fn locs_written(i: &Instr) -> Vec<Location> {
     let mut locations = Vec::new();
     match i {
-        // These ones each write to one arg
         Instr::addq(_, r)
         | Instr::subq(_, r)
         | Instr::negq(r)
         | Instr::movq(_, r)
-        | Instr::popq(r) => {
+        | Instr::movzbq(_, r)
+        | Instr::popq(r)
+        | Instr::xorq(_, r)
+        | Instr::set(_, r) => {
             if let Some(loc) = Location::try_from_arg(r) {
                 locations.push(loc);
             }
         }
-
-        // Any caller-saved register should be presumed written during a
-        // function call
         Instr::callq(_, _) => {
             const CALLER_SAVED_REGISTERS: [Register; 9] = [
                 Register::rax,
@@ -172,8 +164,11 @@ fn locs_written(i: &Instr) -> Vec<Location> {
 
             locations.extend(CALLER_SAVED_REGISTERS.iter().map(|r| Location::Reg(*r)));
         }
-
-        Instr::pushq(_) | Instr::retq => {} // These ones never read variables
+        Instr::pushq(_)
+        | Instr::retq
+        | Instr::cmpq(_, _)
+        | Instr::jmp(_)
+        | Instr::jmpcc(_, _) => {}
     };
 
     locations
