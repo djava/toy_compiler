@@ -2,18 +2,27 @@ use crate::{ast, passes::*, x86_ast};
 
 pub struct Pipeline {
     pub ast_passes: Vec<ASTtoAST>,
-    pub ast_to_x86_pass: ASTtoX86,
+    pub ast_to_ir_pass: ASTtoIR,
+    pub ir_passes: Vec<IRtoIR>,
+    pub ir_to_x86_pass: IRtoX86,
     pub x86_passes: Vec<X86toX86>,
 }
 
 impl Pipeline {
     pub fn run(self, program: ast::Module) -> x86_ast::X86Program {
-        let final_ir = self
+        let final_ast = self
             .ast_passes
             .into_iter()
             .fold(program, |p, pass| pass.run_pass(p));
 
-        let initial_x86 = self.ast_to_x86_pass.run_pass(final_ir);
+        let initial_ir = self.ast_to_ir_pass.run_pass(final_ast);
+
+        let final_ir = self
+            .ir_passes
+            .into_iter()
+            .fold(initial_ir, |p, pass| pass.run_pass(p));
+
+        let initial_x86 = self.ir_to_x86_pass.run_pass(final_ir);
 
         let final_x86 = self
             .x86_passes
@@ -38,10 +47,13 @@ impl Pipeline {
     pub fn make_full() -> Self {
         Self {
             ast_passes: vec![
+                ASTtoAST::from(ShortCircuiting),
                 ASTtoAST::from(PartialEval),
                 ASTtoAST::from(RemoveComplexOperands),
             ],
-            ast_to_x86_pass: ASTtoX86::from(SelectInstructions),
+            ast_to_ir_pass: todo!(),
+            ir_passes: vec![],
+            ir_to_x86_pass: IRtoX86::from(SelectInstructions),
             x86_passes: vec![
                 X86toX86::from(RegisterAllocation),
                 X86toX86::from(PatchInstructions),
@@ -51,9 +63,14 @@ impl Pipeline {
     }
 
     pub fn make_no_opt() -> Self {
-        Self {
-            ast_passes: vec![ASTtoAST::from(RemoveComplexOperands)],
-            ast_to_x86_pass: ASTtoX86::from(SelectInstructions),
+Self {
+            ast_passes: vec![
+                ASTtoAST::from(ShortCircuiting),
+                ASTtoAST::from(RemoveComplexOperands),
+            ],
+            ast_to_ir_pass: todo!(),
+            ir_passes: vec![],
+            ir_to_x86_pass: IRtoX86::from(SelectInstructions),
             x86_passes: vec![
                 X86toX86::from(RegisterAllocation),
                 X86toX86::from(PatchInstructions),

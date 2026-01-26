@@ -1,4 +1,4 @@
-use crate::ast::{BinaryOperator, Identifier, UnaryOperator, Value};
+pub use crate::ast::{BinaryOperator, Identifier, UnaryOperator, Value};
 use indexmap::IndexMap;
 
 pub enum Atom {

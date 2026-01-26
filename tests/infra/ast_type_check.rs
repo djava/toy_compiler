@@ -5,12 +5,12 @@ fn type_check_expr(e: &Expr, env: &mut TypeEnv) -> ValueType {
     use Expr::*;
 
     match e {
-        BinaryOp(left, _op, right) => {
+        BinaryOp(left, op, right) => {
             let l_type = type_check_expr(&*left, env);
-            assert_eq!(l_type, ValueType::IntType);
             let r_type = type_check_expr(&*right, env);
-            assert_eq!(r_type, ValueType::IntType);
-            ValueType::IntType
+            
+            let result_type = op.type_of(&l_type, &r_type).unwrap();
+            result_type
         }
         UnaryOp(_op, exp) => {
             let exp_type = type_check_expr(&*exp, env);

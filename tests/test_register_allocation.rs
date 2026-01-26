@@ -20,7 +20,9 @@ fn execute_test_case(mut tc: TestCase) {
 
     let pipeline = Pipeline {
         ast_passes: vec![ASTtoAST::from(RemoveComplexOperands)],
-        ast_to_x86_pass: ASTtoX86::from(SelectInstructions),
+        ast_to_ir_pass: todo!(),
+        ir_passes: todo!(),
+        ir_to_x86_pass: IRtoX86::from(SelectInstructions),
         x86_passes: vec![],
     };
 

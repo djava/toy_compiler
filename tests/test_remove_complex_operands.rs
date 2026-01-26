@@ -4,7 +4,7 @@ use std::collections::VecDeque;
 
 use cs4999_compiler::{
     ast::*,
-    passes::{IRPass, remove_complex_operands::RemoveComplexOperands},
+    passes::{ASTPass, remove_complex_operands::RemoveComplexOperands},
 };
 
 use crate::infra::{ast_interpreter::interpret, ast_type_check::type_check};

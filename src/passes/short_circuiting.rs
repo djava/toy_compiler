@@ -1,0 +1,55 @@
+use crate::{ast::*, passes::ASTPass};
+
+pub struct ShortCircuiting;
+
+impl ASTPass for ShortCircuiting {
+    fn run_pass(self, m: Module) -> Module {
+        let Module::Body(mut statements) = m;
+
+        for i in &mut statements {
+            match i {
+                Statement::Assign(_, expr)
+                | Statement::Expr(expr)
+                | Statement::Conditional(expr, _, _) => shortcircuit_expr(expr),
+            }
+        }
+
+        Module::Body(statements)
+    }
+}
+
+fn shortcircuit_expr(e: &mut Expr) {
+    // Recurse sub-exprs
+    match e {
+        Expr::BinaryOp(e1, _, e2) => {
+            shortcircuit_expr(&mut *e1);
+            shortcircuit_expr(&mut *e2);
+        }
+        Expr::UnaryOp(_, e) => {
+            shortcircuit_expr(&mut *e);
+        }
+        Expr::Call(_, es) => {
+            es.into_iter().for_each(shortcircuit_expr);
+        }
+        Expr::Ternary(e1, e2, e3) => {
+            shortcircuit_expr(&mut *e1);
+            shortcircuit_expr(&mut *e2);
+            shortcircuit_expr(&mut *e3);
+        }
+        Expr::Constant(_) | Expr::Id(_) => {}
+    }
+
+    // Apply transformation, only applies to expressions with And/Or
+    // BinaryOperator
+    if let Expr::BinaryOp(left, BinaryOperator::And, right) = e {
+        // (A && B) is equivalent to (A ? B : false)
+        *e = Expr::Ternary(
+            left.clone(), right.clone(), Box::new(Expr::Constant(Value::Bool(false)))
+        );
+    } else if let Expr::BinaryOp(left, BinaryOperator::Or, right) = e {
+        // (A || B) is equivalent to (A ? true : B)
+        *e = Expr::Ternary(
+            left.clone(), Box::new(Expr::Constant(Value::Bool(false))), right.clone()
+        );
+    }
+}
