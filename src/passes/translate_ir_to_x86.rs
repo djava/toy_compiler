@@ -1,9 +1,9 @@
 use crate::{ir::*, passes::IRtoX86Pass, x86_ast::*};
 use std::sync::Arc;
 
-pub struct SelectInstructions;
+pub struct TranslateIRtoX86;
 
-impl IRtoX86Pass for SelectInstructions {
+impl IRtoX86Pass for TranslateIRtoX86 {
     fn run_pass(self, m: IRProgram) -> X86Program {
         todo!();
         // let Module::Body(statements) = m;

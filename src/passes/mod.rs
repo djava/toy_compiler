@@ -14,8 +14,10 @@ pub mod register_allocation;
 pub use register_allocation::RegisterAllocation;
 pub mod remove_complex_operands;
 pub use remove_complex_operands::RemoveComplexOperands;
-pub mod select_instructions;
-pub use select_instructions::SelectInstructions;
+pub mod translate_ir_to_x86;
+pub use translate_ir_to_x86::TranslateIRtoX86;
+pub mod translate_ast_to_ir;
+pub use translate_ast_to_ir::TranslateASTtoIR;
 pub mod short_circuiting;
 pub use short_circuiting::ShortCircuiting;
 
@@ -38,7 +40,7 @@ pub trait ASTtoIRPass {
 
 #[enum_dispatch(ASTtoIRPass)]
 pub enum ASTtoIR {
-    
+    TranslateASTtoIR
 }
 
 #[enum_dispatch]
@@ -58,7 +60,7 @@ pub trait IRtoX86Pass {
 
 #[enum_dispatch(IRtoX86Pass)]
 pub enum IRtoX86 {
-    SelectInstructions,
+    TranslateIRtoX86,
 }
 
 #[enum_dispatch]

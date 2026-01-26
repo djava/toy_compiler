@@ -1,36 +1,37 @@
 pub use crate::ast::{BinaryOperator, Identifier, UnaryOperator, Value};
 use indexmap::IndexMap;
 
+#[derive(Debug, Clone)]
 pub enum Atom {
     Constant(Value),
     Variable(Identifier),
-    Call(Identifier, Vec<Atom>),
 }
 
+#[derive(Debug, Clone)]
 pub enum Expr {
     Atom(Atom),
     UnaryOp(UnaryOperator, Atom),
     BinaryOp(Atom, BinaryOperator, Atom),
+    Call(Identifier, Vec<Atom>),
 }
 
+#[derive(Debug, Clone)]
 pub enum Statement {
     Expr(Expr),
-    Assign(Identifier, Expr)
-}
-
-pub enum Tail {
+    Assign(Identifier, Expr),
     Return(Expr),
     Goto(Identifier),
     If(Expr, Identifier, Option<Identifier>),
-    None
 }
 
+#[derive(Debug, Clone)]
 pub struct Block {
-    pub label: Identifier,
     pub statements: Vec<Statement>,
-    pub tail: Tail
 }
 
+pub type BlockMap = IndexMap<Identifier, Block>;
+
+#[derive(Debug, Clone)]
 pub struct IRProgram {
-    pub blocks: IndexMap<Identifier, Block>
+    pub blocks: BlockMap
 }

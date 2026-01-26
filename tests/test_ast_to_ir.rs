@@ -1,16 +1,18 @@
 mod infra;
-use std::sync::Arc;
 use std::collections::VecDeque;
+use std::sync::Arc;
 
 use cs4999_compiler::{
     ast::*,
     passes::{
-        ASTPass, IRtoX86Pass, remove_complex_operands::RemoveComplexOperands,
-        select_instructions::SelectInstructions,
+        ASTPass, ASTtoIRPass, ShortCircuiting, TranslateASTtoIR, remove_complex_operands::RemoveComplexOperands
     },
 };
 
-use crate::infra::{ast_type_check::type_check, x86_interpreter::interpret_x86};
+use crate::infra::{
+    ast_const_int, ast_print_int, ast_read_int, ast_type_check::type_check,
+    ir_interpreter::interpret_irprogram,
+};
 
 struct TestCase {
     ast: Module,
@@ -24,21 +26,21 @@ fn execute_test_case(mut tc: TestCase) {
     type_check(&tc.ast);
     println!("Type-check passed on source");
 
-    let post_rco_ast = RemoveComplexOperands.run_pass(tc.ast);
+    let post_short_circuiting = ShortCircuiting.run_pass(tc.ast);
+    let post_rco_ast = RemoveComplexOperands.run_pass(post_short_circuiting);
 
-    println!("-- AST before SelInstr:\n{post_rco_ast:?}");
-    todo!();
-    // let post_instr_sel_x86ast = SelectInstructions.run_pass(post_rco_ast);
-    // println!("-- AST after SelInstr:\n{post_instr_sel_x86ast}");
+    println!("-- AST before ASTtoIR:\n{post_rco_ast:?}");
+    let post_translation = TranslateASTtoIR.run_pass(post_rco_ast);
+    println!("-- AST after ASTtoIR:\n{post_translation:?}");
 
-    // let mut outputs = VecDeque::<i64>::new();
-    // interpret_x86(&post_instr_sel_x86ast, &mut tc.inputs, &mut outputs);
+    let mut outputs = VecDeque::<i64>::new();
+    interpret_irprogram(&post_translation, &mut tc.inputs, &mut outputs);
 
-    // assert_eq!(outputs, tc.expected_outputs);
+    assert_eq!(outputs, tc.expected_outputs);
 }
 
 #[test]
-fn test_select_instructions_add() {
+fn test_ast_to_ir_add() {
     execute_test_case(TestCase {
         ast: Module::Body(vec![Statement::Expr(Expr::Call(
             Identifier::Named(Arc::from("print_int")),
@@ -54,14 +56,11 @@ fn test_select_instructions_add() {
 }
 
 #[test]
-fn test_select_instructions_input() {
+fn test_ast_to_ir_input() {
     execute_test_case(TestCase {
         ast: Module::Body(vec![Statement::Expr(Expr::Call(
             Identifier::Named(Arc::from("print_int")),
-            vec![Expr::Call(
-                Identifier::Named(Arc::from("read_int")),
-                vec![],
-            )],
+            vec![Expr::Call(Identifier::Named(Arc::from("read_int")), vec![])],
         ))]),
         inputs: VecDeque::from(vec![42]),
         expected_outputs: VecDeque::from(vec![42]),
@@ -69,20 +68,14 @@ fn test_select_instructions_input() {
 }
 
 #[test]
-fn test_select_instructions_subinput() {
+fn test_ast_to_ir_subinput() {
     execute_test_case(TestCase {
         ast: Module::Body(vec![Statement::Expr(Expr::Call(
             Identifier::Named(Arc::from("print_int")),
             vec![Expr::BinaryOp(
-                Box::new(Expr::Call(
-                    Identifier::Named(Arc::from("read_int")),
-                    vec![],
-                )),
+                Box::new(Expr::Call(Identifier::Named(Arc::from("read_int")), vec![])),
                 BinaryOperator::Subtract,
-                Box::new(Expr::Call(
-                    Identifier::Named(Arc::from("read_int")),
-                    vec![],
-                )),
+                Box::new(Expr::Call(Identifier::Named(Arc::from("read_int")), vec![])),
             )],
         ))]),
         inputs: VecDeque::from(vec![5, 3]),
@@ -91,7 +84,7 @@ fn test_select_instructions_subinput() {
 }
 
 #[test]
-fn test_select_instructions_zero() {
+fn test_ast_to_ir_zero() {
     execute_test_case(TestCase {
         ast: Module::Body(vec![Statement::Expr(Expr::Call(
             Identifier::Named(Arc::from("print_int")),
@@ -103,7 +96,7 @@ fn test_select_instructions_zero() {
 }
 
 #[test]
-fn test_select_instructions_nested() {
+fn test_ast_to_ir_nested() {
     execute_test_case(TestCase {
         ast: Module::Body(vec![Statement::Expr(Expr::Call(
             Identifier::Named(Arc::from("print_int")),
@@ -127,16 +120,13 @@ fn test_select_instructions_nested() {
 }
 
 #[test]
-fn test_select_instructions_mixed() {
+fn test_ast_to_ir_mixed() {
     execute_test_case(TestCase {
         ast: Module::Body(vec![Statement::Expr(Expr::Call(
             Identifier::Named(Arc::from("print_int")),
             vec![Expr::BinaryOp(
                 Box::new(Expr::BinaryOp(
-                    Box::new(Expr::Call(
-                        Identifier::Named(Arc::from("read_int")),
-                        vec![],
-                    )),
+                    Box::new(Expr::Call(Identifier::Named(Arc::from("read_int")), vec![])),
                     BinaryOperator::Add,
                     Box::new(Expr::Constant(Value::I64(2))),
                 )),
@@ -154,7 +144,7 @@ fn test_select_instructions_mixed() {
 }
 
 #[test]
-fn test_select_instructions_simple_assignment() {
+fn test_ast_to_ir_simple_assignment() {
     execute_test_case(TestCase {
         ast: Module::Body(vec![
             Statement::Assign(
@@ -172,7 +162,7 @@ fn test_select_instructions_simple_assignment() {
 }
 
 #[test]
-fn test_select_instructions_complex_assignment() {
+fn test_ast_to_ir_complex_assignment() {
     // -- Original
     // print((input_int() + 2) + (40 - 2))
 
@@ -188,10 +178,7 @@ fn test_select_instructions_complex_assignment() {
                 Identifier::Named(Arc::from("foofoo")),
                 Expr::BinaryOp(
                     Box::new(Expr::BinaryOp(
-                        Box::new(Expr::Call(
-                            Identifier::Named(Arc::from("read_int")),
-                            vec![],
-                        )),
+                        Box::new(Expr::Call(Identifier::Named(Arc::from("read_int")), vec![])),
                         BinaryOperator::Add,
                         Box::new(Expr::Constant(Value::I64(2))),
                     )),
@@ -214,16 +201,13 @@ fn test_select_instructions_complex_assignment() {
 }
 
 #[test]
-fn test_select_instructions_complex_args() {
+fn test_ast_to_ir_complex_args() {
     execute_test_case(TestCase {
         ast: Module::Body(vec![Statement::Expr(Expr::Call(
             Identifier::Named(Arc::from("print_int")),
             vec![Expr::BinaryOp(
                 Box::new(Expr::BinaryOp(
-                    Box::new(Expr::Call(
-                        Identifier::Named(Arc::from("read_int")),
-                        vec![],
-                    )),
+                    Box::new(Expr::Call(Identifier::Named(Arc::from("read_int")), vec![])),
                     BinaryOperator::Add,
                     Box::new(Expr::Constant(Value::I64(2))),
                 )),
@@ -241,7 +225,7 @@ fn test_select_instructions_complex_args() {
 }
 
 #[test]
-fn test_select_instructions_cascading_assigns() {
+fn test_ast_to_ir_cascading_assigns() {
     // -- Original
     // foo = input_int(10)        # 10
     // bar = input_int(20) + foo  # 20 + 10 = 30
@@ -270,10 +254,7 @@ fn test_select_instructions_cascading_assigns() {
             Statement::Assign(
                 Identifier::Named(Arc::from("bar")),
                 Expr::BinaryOp(
-                    Box::new(Expr::Call(
-                        Identifier::Named(Arc::from("read_int")),
-                        vec![],
-                    )),
+                    Box::new(Expr::Call(Identifier::Named(Arc::from("read_int")), vec![])),
                     BinaryOperator::Add,
                     Box::new(Expr::Id(Identifier::Named(Arc::from("foo")))),
                 ),
@@ -281,10 +262,7 @@ fn test_select_instructions_cascading_assigns() {
             Statement::Assign(
                 Identifier::Named(Arc::from("baz")),
                 Expr::BinaryOp(
-                    Box::new(Expr::Call(
-                        Identifier::Named(Arc::from("read_int")),
-                        vec![],
-                    )),
+                    Box::new(Expr::Call(Identifier::Named(Arc::from("read_int")), vec![])),
                     BinaryOperator::Add,
                     Box::new(Expr::Id(Identifier::Named(Arc::from("bar")))),
                 ),
@@ -304,10 +282,7 @@ fn test_select_instructions_cascading_assigns() {
             Statement::Expr(Expr::Call(
                 Identifier::Named(Arc::from("print_int")),
                 vec![Expr::BinaryOp(
-                    Box::new(Expr::Call(
-                        Identifier::Named(Arc::from("read_int")),
-                        vec![],
-                    )),
+                    Box::new(Expr::Call(Identifier::Named(Arc::from("read_int")), vec![])),
                     BinaryOperator::Add,
                     Box::new(Expr::Id(Identifier::Named(Arc::from("bop")))),
                 )],
@@ -315,5 +290,83 @@ fn test_select_instructions_cascading_assigns() {
         ]),
         inputs: VecDeque::from(vec![10, 20, 30, 40]),
         expected_outputs: VecDeque::from(vec![10 + (10 + 20) + (10 + 20 + 30) + 40]),
+    });
+}
+
+#[test]
+fn test_ast_to_ir_condition_statement() {
+    execute_test_case(TestCase {
+        ast: Module::Body(vec![Statement::Conditional(
+            Expr::BinaryOp(
+                Box::new(ast_read_int()),
+                BinaryOperator::Equals,
+                Box::new(ast_const_int(1)),
+            ),
+            vec![Statement::Expr(ast_print_int(ast_const_int(10)))],
+            vec![Statement::Expr(ast_print_int(ast_const_int(20)))],
+        ),
+        Statement::Conditional(
+            Expr::BinaryOp(
+                Box::new(ast_read_int()),
+                BinaryOperator::Equals,
+                Box::new(ast_const_int(1)),
+            ),
+            vec![Statement::Expr(ast_print_int(ast_const_int(10)))],
+            vec![Statement::Expr(ast_print_int(ast_const_int(20)))],
+        )]),
+        inputs: VecDeque::from([1, 2]),
+        expected_outputs: VecDeque::from([10, 20]),
+    });
+}
+
+#[test]
+fn test_ast_to_ir_ternary() {
+    execute_test_case(TestCase {
+        ast: Module::Body(vec![Statement::Expr(Expr::Ternary(
+            Box::new(Expr::BinaryOp(
+                Box::new(ast_read_int()),
+                BinaryOperator::Equals,
+                Box::new(ast_const_int(1)),
+            )),
+            Box::new(ast_print_int(ast_const_int(10))),
+            Box::new(ast_print_int(ast_const_int(20))),
+        )),
+        Statement::Expr(Expr::Ternary(
+            Box::new(Expr::BinaryOp(
+                Box::new(ast_read_int()),
+                BinaryOperator::Equals,
+                Box::new(ast_const_int(1)),
+            )),
+            Box::new(ast_print_int(ast_const_int(10))),
+            Box::new(ast_print_int(ast_const_int(20))),
+        )),]),
+        inputs: VecDeque::from([1, 2]),
+        expected_outputs: VecDeque::from([10, 20]),
+    });
+}
+
+#[test]
+fn test_ast_to_ir_ternary_complex() {
+    execute_test_case(TestCase {
+        ast: Module::Body(vec![Statement::Expr(Expr::Ternary(
+            Box::new(Expr::BinaryOp(
+                Box::new(Expr::BinaryOp(Box::new(ast_read_int()), BinaryOperator::Equals, Box::new(ast_const_int(1)))),
+                BinaryOperator::And,
+                Box::new(Expr::BinaryOp(Box::new(ast_read_int()), BinaryOperator::Equals, Box::new(ast_const_int(2)))),
+            )),
+            Box::new(ast_print_int(Expr::BinaryOp(Box::new(ast_read_int()), BinaryOperator::Add, Box::new(ast_const_int(10))))),
+            Box::new(ast_print_int(Expr::BinaryOp(Box::new(ast_read_int()), BinaryOperator::Add, Box::new(ast_read_int())))),
+        )),
+        Statement::Expr(Expr::Ternary(
+            Box::new(Expr::BinaryOp(
+                Box::new(Expr::BinaryOp(Box::new(ast_read_int()), BinaryOperator::Equals, Box::new(ast_const_int(1)))),
+                BinaryOperator::And,
+                Box::new(Expr::BinaryOp(Box::new(ast_read_int()), BinaryOperator::Equals, Box::new(ast_const_int(2)))),
+            )),
+            Box::new(ast_print_int(Expr::BinaryOp(Box::new(ast_read_int()), BinaryOperator::Add, Box::new(ast_const_int(10))))),
+            Box::new(ast_print_int(Expr::BinaryOp(Box::new(ast_read_int()), BinaryOperator::Add, Box::new(ast_read_int())))),
+        )),]),
+        inputs: VecDeque::from([1, 2, 2, 8, 10, 15]),
+        expected_outputs: VecDeque::from([12, 25]),
     });
 }

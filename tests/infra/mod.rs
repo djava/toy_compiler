@@ -1,14 +1,26 @@
 #![allow(dead_code)]
 
-use cs4999_compiler::ast::{Identifier, Value, ValueType};
-use std::collections::HashMap;
+use cs4999_compiler::ast::{self, Identifier, Value, ValueType};
+use std::{collections::HashMap, sync::Arc};
 
 pub mod ast_interpreter;
-pub mod ir_interpreter;
 pub mod ast_type_check;
+pub mod ir_interpreter;
 pub mod x86_interpreter;
 
 mod interpreter_utils;
 
 type ValueEnv = HashMap<Identifier, Value>;
 type TypeEnv = HashMap<Identifier, ValueType>;
+
+pub fn ast_read_int() -> ast::Expr {
+    ast::Expr::Call(Identifier::Named(Arc::from("read_int")), vec![])
+}
+
+pub fn ast_print_int(e: ast::Expr) -> ast::Expr {
+    ast::Expr::Call(Identifier::Named(Arc::from("print_int")), vec![e])
+}
+
+pub fn ast_const_int(i: i64) -> ast::Expr {
+    ast::Expr::Constant(ast::Value::I64(i))
+}

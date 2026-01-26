@@ -2,14 +2,19 @@ use crate::{ast::*, passes::ASTPass};
 
 pub struct RemoveComplexOperands;
 
+struct ExprTransformation {
+    new_expr: Expr,
+    ephemeral_assigns: Vec<(Identifier, Expr)>,
+}
+
 impl ASTPass for RemoveComplexOperands {
     fn run_pass(self, m: Module) -> Module {
         let Module::Body(old_body) = m;
 
         let mut new_body: Vec<Statement> = vec![];
 
-        for i in old_body {
-            rco_statement(&i, &mut new_body);
+        for s in old_body {
+            rco_statement(&s, &mut new_body);
         }
 
         Module::Body(new_body)
@@ -21,9 +26,18 @@ fn rco_statement(s: &Statement, new_body: &mut Vec<Statement>) {
         Statement::Assign(id, expr) => {
             let transform = rco_expr(&expr, false);
 
+            // Take all the ephemeral transforms that happen
+            // inside the expression and add them before this
+            // statement
+            let ephemeral_assign_stmts = transform
+                .ephemeral_assigns
+                .iter()
+                .map(|(id, expr)| Statement::Assign(id.clone(), expr.clone()));
+            new_body.extend(ephemeral_assign_stmts);
+
             // Add the updated version of this statement with
             // the new expression to the body
-            new_body.push(Statement::Assign(id.clone(), transform));
+            new_body.push(Statement::Assign(id.clone(), transform.new_expr));
         }
         Statement::Expr(expr) => {
             // The expression statement itself doesn't need to
@@ -32,13 +46,28 @@ fn rco_statement(s: &Statement, new_body: &mut Vec<Statement>) {
             // happens with the output
             let transform = rco_expr(&expr, false);
 
+            // Take all the ephemeral transforms that happen
+            // inside the expression and add them before this
+            // statement
+            let ephemeral_assign_stmts = transform
+                .ephemeral_assigns
+                .iter()
+                .map(|(id, expr)| Statement::Assign(id.clone(), expr.clone()));
+            new_body.extend(ephemeral_assign_stmts);
+
             // Add the updated version of this statement with
             // the new expression to the body
-            new_body.push(Statement::Expr(transform));
+            new_body.push(Statement::Expr(transform.new_expr));
         }
         Statement::Conditional(cond, pos, neg) => {
             // Condition must be non-atomic to enable good codegen
             let cond_transform = rco_expr(cond, false);
+
+            let ephemeral_assign_stmts = cond_transform
+                .ephemeral_assigns
+                .iter()
+                .map(|(id, expr)| Statement::Assign(id.clone(), expr.clone()));
+            new_body.extend(ephemeral_assign_stmts);
 
             let mut pos_new_body = Vec::new();
             pos.iter().for_each(|s| rco_statement(s, &mut pos_new_body));
@@ -46,69 +75,160 @@ fn rco_statement(s: &Statement, new_body: &mut Vec<Statement>) {
             let mut neg_new_body = Vec::new();
             neg.iter().for_each(|s| rco_statement(s, &mut neg_new_body));
 
-            new_body.push(Statement::Conditional(cond_transform, pos_new_body, neg_new_body));
-        },
+            new_body.push(Statement::Conditional(
+                cond_transform.new_expr,
+                pos_new_body,
+                neg_new_body,
+            ));
+        }
     }
 }
 
-fn rco_expr(e: &Expr, needs_atomicity: bool) -> Expr {
+fn rco_expr(e: &Expr, needs_atomicity: bool) -> ExprTransformation {
     match e {
         Expr::BinaryOp(left, op, right) => {
             // Get the transformed versions of the operands first
             let left_transform = rco_expr(&*left, true);
             let right_transform = rco_expr(&*right, true);
 
+            // The ephermal assigns first need to include the ones for
+            // the left and right operands, in that order
+            let mut ephemeral_assigns = vec![];
+            ephemeral_assigns.extend(left_transform.ephemeral_assigns);
+            ephemeral_assigns.extend(right_transform.ephemeral_assigns);
+
             // This same operation, but with the transformed operands
-            let transformed_op =
-                Expr::BinaryOp(Box::new(left_transform), *op, Box::new(right_transform));
-
-            // If *this* expression needs to be atomic, extract it into
-            // a statement-block and an id-expr. Otherwise, just use it
-            // directly.
-            let new_expr = if needs_atomicity {
-                let id = Identifier::new_ephemeral();
-                let ephemeral_assign = Statement::Assign(id.clone(), transformed_op);
-                Expr::StatementBlock(vec![ephemeral_assign], Box::new(Expr::Id(id)))
-            } else {
-                transformed_op
-            };
-
-            new_expr
-        }
-        Expr::UnaryOp(op, val) => {
-            let val_transform = rco_expr(&*val, true);
-
-            let transformed_op = Expr::UnaryOp(*op, Box::new(val_transform));
+            let transformed_op = Expr::BinaryOp(
+                Box::new(left_transform.new_expr),
+                *op,
+                Box::new(right_transform.new_expr),
+            );
 
             // If *this* expression needs to be atomic, extract it into an
             // assignment and an id-expr. Otherwise, just use it directly.
             let new_expr = if needs_atomicity {
                 let id = Identifier::new_ephemeral();
-                let ephemeral_assign = Statement::Assign(id.clone(), transformed_op);
-                Expr::StatementBlock(vec![ephemeral_assign], Box::new(Expr::Id(id)))
+                ephemeral_assigns.push((id.clone(), transformed_op));
+                Expr::Id(id)
             } else {
                 transformed_op
             };
 
-            new_expr
+            ExprTransformation {
+                new_expr,
+                ephemeral_assigns,
+            }
         }
-        Expr::Constant(_) => e.clone(),
-        Expr::Id(_) => e.clone(),
+        Expr::UnaryOp(op, val) => {
+            let val_transform = rco_expr(&*val, true);
+
+            // The ephermal assigns first need to include the ones for
+            // the operand
+            let mut ephemeral_assigns = val_transform.ephemeral_assigns;
+
+            let transformed_op = Expr::UnaryOp(*op, Box::new(val_transform.new_expr));
+
+            // If *this* expression needs to be atomic, extract it into an
+            // assignment and an id-expr. Otherwise, just use it directly.
+            let new_expr = if needs_atomicity {
+                let id = Identifier::new_ephemeral();
+                ephemeral_assigns.push((id.clone(), transformed_op));
+                Expr::Id(id)
+            } else {
+                transformed_op
+            };
+
+            ExprTransformation {
+                new_expr,
+                ephemeral_assigns,
+            }
+        }
+        Expr::Constant(_) => ExprTransformation {
+            new_expr: e.clone(),
+            ephemeral_assigns: vec![],
+        },
+        Expr::Id(_) => ExprTransformation {
+            new_expr: e.clone(),
+            ephemeral_assigns: vec![],
+        },
         Expr::Call(name, args) => {
-            let new_args = args.iter().map(|a| rco_expr(a, true)).collect();
+            let mut ephemeral_assigns = vec![];
+            let mut new_args = vec![];
+            // Each arg must be transformed, and all the ephermal
+            // assignments must be inserted before this call happens
+            for arg in args {
+                let arg_transform = rco_expr(&*arg, true);
+                ephemeral_assigns.extend(arg_transform.ephemeral_assigns);
+                new_args.push(arg_transform.new_expr);
+            }
 
             let transformed_call = Expr::Call(name.clone(), new_args);
 
             let new_expr = if needs_atomicity {
                 let id = Identifier::new_ephemeral();
-                let ephemeral_assign = Statement::Assign(id.clone(), transformed_call);
-
-                Expr::StatementBlock(vec![ephemeral_assign], Box::new(Expr::Id(id)))
+                ephemeral_assigns.push((id.clone(), transformed_call));
+                Expr::Id(id)
             } else {
                 transformed_call
             };
 
-            new_expr
+            ExprTransformation {
+                new_expr,
+                ephemeral_assigns,
+            }
+        }
+        Expr::Ternary(cond, pos, neg) => {
+            let mut ephemeral_assigns = vec![];
+
+            // Condition must be non-atomic to enable good codegen
+            let transformed_cond = rco_expr(cond, false);
+            let transformed_pos = rco_expr(pos, true);
+            let transformed_neg = rco_expr(neg, true);
+
+            ephemeral_assigns.extend(transformed_cond.ephemeral_assigns);
+            let new_pos = if transformed_pos.ephemeral_assigns.is_empty() {
+                transformed_pos.new_expr
+            } else {
+                Expr::StatementBlock(
+                    transformed_pos
+                        .ephemeral_assigns
+                        .into_iter()
+                        .map(|(dest_id, e)| Statement::Assign(dest_id, e))
+                        .collect(),
+                    Box::new(transformed_pos.new_expr),
+                )
+            };
+            let new_neg = if transformed_neg.ephemeral_assigns.is_empty() {
+                transformed_neg.new_expr
+            } else {
+                Expr::StatementBlock(
+                    transformed_neg
+                        .ephemeral_assigns
+                        .into_iter()
+                        .map(|(dest_id, e)| Statement::Assign(dest_id, e))
+                        .collect(),
+                    Box::new(transformed_neg.new_expr),
+                )
+            };
+
+            let transformed_ternary = Expr::Ternary(
+                Box::new(transformed_cond.new_expr),
+                Box::new(new_pos),
+                Box::new(new_neg),
+            );
+
+            let new_expr = if needs_atomicity {
+                let id = Identifier::new_ephemeral();
+                ephemeral_assigns.push((id.clone(), transformed_ternary));
+                Expr::Id(id)
+            } else {
+                transformed_ternary
+            };
+
+            ExprTransformation {
+                new_expr,
+                ephemeral_assigns,
+            }
         }
         Expr::StatementBlock(statements, expr) => {
             let mut new_body = vec![];
@@ -118,7 +238,9 @@ fn rco_expr(e: &Expr, needs_atomicity: bool) -> Expr {
 
             let transformed_expr = rco_expr(expr, true);
 
-            let transformed_block = Expr::StatementBlock(new_body, Box::new(transformed_expr));
+            let ephemeral_assigns = transformed_expr.ephemeral_assigns;
+            let transformed_block =
+                Expr::StatementBlock(new_body, Box::new(transformed_expr.new_expr));
 
             let new_expr = if needs_atomicity {
                 let id = Identifier::new_ephemeral();
@@ -129,30 +251,10 @@ fn rco_expr(e: &Expr, needs_atomicity: bool) -> Expr {
                 transformed_block
             };
 
-            new_expr
-        }
-        Expr::Ternary(cond, pos, neg) => {
-            // Condition must be non-atomic to enable good codegen
-            let transformed_cond = rco_expr(cond, false);
-            let transformed_pos = rco_expr(pos, true);
-            let transformed_neg = rco_expr(neg, true);
-
-            let transformed_ternary = Expr::Ternary(
-                Box::new(transformed_cond),
-                Box::new(transformed_pos),
-                Box::new(transformed_neg),
-            );
-
-            let new_expr = if needs_atomicity {
-                let id = Identifier::new_ephemeral();
-                let ephemeral_assign = Statement::Assign(id.clone(), transformed_ternary);
-
-                Expr::StatementBlock(vec![ephemeral_assign], Box::new(Expr::Id(id)))
-            } else {
-                transformed_ternary
-            };
-
-            new_expr
+            ExprTransformation {
+                new_expr,
+                ephemeral_assigns,
+            }
         }
     }
 }

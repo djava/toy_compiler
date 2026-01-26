@@ -22,7 +22,7 @@ fn execute_test_case(mut tc: TestCase) {
         ast_passes: vec![ASTtoAST::from(RemoveComplexOperands)],
         ast_to_ir_pass: todo!(),
         ir_passes: todo!(),
-        ir_to_x86_pass: IRtoX86::from(SelectInstructions),
+        ir_to_x86_pass: IRtoX86::from(TranslateIRtoX86),
         x86_passes: vec![],
     };
 

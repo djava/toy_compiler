@@ -51,9 +51,9 @@ impl Pipeline {
                 ASTtoAST::from(PartialEval),
                 ASTtoAST::from(RemoveComplexOperands),
             ],
-            ast_to_ir_pass: todo!(),
+            ast_to_ir_pass: ASTtoIR::from(TranslateASTtoIR),
             ir_passes: vec![],
-            ir_to_x86_pass: IRtoX86::from(SelectInstructions),
+            ir_to_x86_pass: IRtoX86::from(TranslateIRtoX86),
             x86_passes: vec![
                 X86toX86::from(RegisterAllocation),
                 X86toX86::from(PatchInstructions),
@@ -68,9 +68,9 @@ Self {
                 ASTtoAST::from(ShortCircuiting),
                 ASTtoAST::from(RemoveComplexOperands),
             ],
-            ast_to_ir_pass: todo!(),
+            ast_to_ir_pass: ASTtoIR::from(TranslateASTtoIR),
             ir_passes: vec![],
-            ir_to_x86_pass: IRtoX86::from(SelectInstructions),
+            ir_to_x86_pass: IRtoX86::from(TranslateIRtoX86),
             x86_passes: vec![
                 X86toX86::from(RegisterAllocation),
                 X86toX86::from(PatchInstructions),

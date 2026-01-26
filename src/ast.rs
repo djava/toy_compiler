@@ -36,6 +36,16 @@ impl Into<i64> for Value {
     }
 }
 
+impl Into<bool> for Value {
+    fn into(self) -> bool {
+        match self {
+            Value::I64(val) => val != 0,
+            Value::Bool(val) => val,
+            Value::None => panic!("Cannot convert Value::None into i64")
+        }
+    }
+}
+
 impl From<&Value> for i64 {
     fn from(value: &Value) -> Self {
         match value {
