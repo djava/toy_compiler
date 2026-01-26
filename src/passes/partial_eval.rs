@@ -6,15 +6,17 @@ impl ASTPass for PartialEval {
     fn run_pass(self, m: Module) -> Module {
         let Module::Body(mut statements) = m;
 
-        for s in statements.iter_mut() {
-            match s {
-                Statement::Assign(_dest, e) => partial_eval_expr(e),
-                Statement::Expr(e) => partial_eval_expr(e),
-                Statement::Conditional(_cond, _pos, _neg) => todo!(),
-            }
-        }
+        statements.iter_mut().for_each(partial_eval_statement);
 
         Module::Body(statements)
+    }
+}
+
+fn partial_eval_statement(s: &mut Statement) {
+    match s {
+        Statement::Assign(_dest, e) => partial_eval_expr(e),
+        Statement::Expr(e) => partial_eval_expr(e),
+        Statement::Conditional(_cond, _pos, _neg) => todo!(),
     }
 }
 
@@ -50,6 +52,10 @@ fn partial_eval_expr(e: &mut Expr) {
                 partial_eval_expr(i);
             }
         }
+        StatementBlock(statements, expr) => {
+            statements.iter_mut().for_each(partial_eval_statement);
+            partial_eval_expr(expr);
+        },
         Constant(_val) => {
             // Already a constant, nothing to evaluate
         }

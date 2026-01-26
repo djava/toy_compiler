@@ -58,6 +58,13 @@ fn interpret_expr(
                 None
             }
         }
+        StatementBlock(statements, expr) => {
+            if !statements.is_empty() {
+                interpret_statement(statements.first().unwrap(), inputs, outputs, &statements[1..], env);
+            }
+
+            interpret_expr(expr, inputs, outputs, env)
+        },
     }
 }
 

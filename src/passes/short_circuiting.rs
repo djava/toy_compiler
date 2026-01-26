@@ -6,15 +6,17 @@ impl ASTPass for ShortCircuiting {
     fn run_pass(self, m: Module) -> Module {
         let Module::Body(mut statements) = m;
 
-        for i in &mut statements {
-            match i {
-                Statement::Assign(_, expr)
-                | Statement::Expr(expr)
-                | Statement::Conditional(expr, _, _) => shortcircuit_expr(expr),
-            }
-        }
+        statements.iter_mut().for_each(shortcircuit_statement);
 
         Module::Body(statements)
+    }
+}
+
+fn shortcircuit_statement(s: &mut Statement) {
+    match s {
+        Statement::Assign(_, expr)
+        | Statement::Expr(expr)
+        | Statement::Conditional(expr, _, _) => shortcircuit_expr(expr),
     }
 }
 
@@ -35,6 +37,10 @@ fn shortcircuit_expr(e: &mut Expr) {
             shortcircuit_expr(&mut *e1);
             shortcircuit_expr(&mut *e2);
             shortcircuit_expr(&mut *e3);
+        }
+        Expr::StatementBlock(ss, e) => {
+            ss.iter_mut().for_each(shortcircuit_statement);
+            shortcircuit_expr(&mut *e);
         }
         Expr::Constant(_) | Expr::Id(_) => {}
     }

@@ -147,7 +147,8 @@ pub enum Expr {
     UnaryOp(UnaryOperator, Box<Expr>),
     Call(Identifier, Vec<Expr>),
     Id(Identifier),
-    Ternary(Box<Expr>, Box<Expr>, Box<Expr>)
+    Ternary(Box<Expr>, Box<Expr>, Box<Expr>),
+    StatementBlock(Vec<Statement>, Box<Expr>),
 }
 
 #[derive(Debug, Clone, PartialEq)]

@@ -8,7 +8,7 @@ fn type_check_expr(e: &Expr, env: &mut TypeEnv) -> ValueType {
         BinaryOp(left, op, right) => {
             let l_type = type_check_expr(&*left, env);
             let r_type = type_check_expr(&*right, env);
-            
+
             let result_type = op.type_of(&l_type, &r_type).unwrap();
             result_type
         }
@@ -42,10 +42,18 @@ fn type_check_expr(e: &Expr, env: &mut TypeEnv) -> ValueType {
 
             let pos_type = type_check_expr(&*pos, env);
             let neg_type = type_check_expr(&*neg, env);
-            assert_eq!(pos_type, neg_type, "Both branches of a ternary must be the same type");
+            assert_eq!(
+                pos_type, neg_type,
+                "Both branches of a ternary must be the same type"
+            );
 
             pos_type
         }
+        StatementBlock(statements, expr) => {
+            type_check_statements(statements, env);
+
+            type_check_expr(expr, env)
+        },
     }
 }
 
