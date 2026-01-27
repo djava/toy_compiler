@@ -19,9 +19,9 @@ pub enum Expr {
 pub enum Statement {
     Expr(Expr),
     Assign(Identifier, Expr),
-    Return(Expr),
+    Return(Atom),
     Goto(Identifier),
-    If(Expr, Identifier, Option<Identifier>),
+    If(Expr, Identifier, Identifier),
 }
 
 #[derive(Debug, Clone)]

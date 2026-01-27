@@ -1,7 +1,6 @@
 use std::fmt::Display;
-use std::sync::Arc;
 
-use crate::ast::Identifier;
+pub use crate::ast::Identifier;
 
 #[allow(non_camel_case_types)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -105,7 +104,7 @@ pub enum Instr {
     retq,
     xorq(Arg, Arg),
     cmpq(Arg, Arg),
-    set(Comparison, Arg),
+    set(Comparison, ByteReg),
     movzbq(Arg, Arg),
     jmp(Identifier),
     jmpcc(Comparison, Identifier)
@@ -113,14 +112,21 @@ pub enum Instr {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Directive {
-    Label(Arc<str>),
-    Globl(Arc<str>),
+    Label(Identifier),
+    Globl(Identifier),
     AttSyntax,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Block {
+    pub label: Directive,
+    pub instrs: Vec<Instr>
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct X86Program {
-    pub blocks: Vec<(Directive, Vec<Instr>)>,
+    pub header: Vec<Directive>,
+    pub blocks: Vec<Block>,
     pub(crate) stack_size: usize,
 }
 
@@ -221,8 +227,8 @@ impl Display for Instr {
 impl Display for Directive {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Self::Label(name) => write!(f, "{name}:"),
-            Self::Globl(name) => write!(f, "\t.globl {name}"),
+            Self::Label(label) => write!(f, "{}:", fmt_label(label)),
+            Self::Globl(label) => write!(f, "\t.globl {}", fmt_label(label)),
             Self::AttSyntax => write!(f, "\t.att_syntax"),
         }
     }
@@ -230,9 +236,9 @@ impl Display for Directive {
 
 impl Display for X86Program {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        for (dir, instrs) in &self.blocks {
-            writeln!(f, "{dir}")?;
-            for i in instrs {
+        for block in &self.blocks {
+            writeln!(f, "{}", block.label)?;
+            for i in block.instrs.iter() {
                 writeln!(f, "\t{i}")?;
             }
         }

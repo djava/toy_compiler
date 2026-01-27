@@ -23,7 +23,7 @@ impl X86Pass for RegisterAllocation {
             // though that's pretty silly..
             // TODO: Change how stack_size is calculated, once we
             // support functions.
-            stack_size += run_for_function(&mut func.1);
+            stack_size += run_for_function(&mut func.instrs);
         }
 
         m.stack_size = stack_size as _;

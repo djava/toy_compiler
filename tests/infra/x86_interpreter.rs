@@ -189,6 +189,7 @@ fn execute_runtime_calls(
 enum Continuation {
     Next,
     Jump(Identifier),
+    Exit,
 }
 
 fn run_instr(
@@ -236,9 +237,7 @@ fn run_instr(
             }
             Continuation::Next
         }
-        Instr::retq => {
-            unimplemented!("User-defined function calls not implemented");
-        }
+        Instr::retq => Continuation::Exit,
         Instr::xorq(s, d) => {
             env.write_arg(d, env.read_arg(s) ^ env.read_arg(d));
             Continuation::Next
@@ -248,8 +247,7 @@ fn run_instr(
             Continuation::Next
         }
         Instr::set(cc, d) => {
-            assert!(matches!(d, Arg::ByteReg(_)));
-            env.write_arg(d, env.get_comparison(cc) as i64);
+            env.write_arg(&Arg::ByteReg(*d), env.get_comparison(cc) as i64);
             Continuation::Next
         }
         Instr::movzbq(s, d) => {
@@ -275,11 +273,26 @@ pub fn interpret_x86(m: &X86Program, inputs: &mut VecDeque<i64>, outputs: &mut V
     let main_instrs = &m
         .blocks
         .iter()
-        .find(|(d, _)| d == &Directive::Label(Arc::from("main")))
-        .expect("Didn't find a main function")
-        .1;
+        .find(|block| block.label == Directive::Label(Identifier::Named(Arc::from("main"))))
+        .unwrap();
 
-    for i in main_instrs {
-        run_instr(i, inputs, outputs, &mut env);
+    let mut curr_instr_iter = main_instrs.instrs.iter();
+    loop {
+        let curr_instr = curr_instr_iter
+            .next()
+            .unwrap_or_else(|| panic!("Ran out of instrs without a non-Next continuation"));
+
+        match run_instr(curr_instr, inputs, outputs, &mut env) {
+            Continuation::Next => {}
+            Continuation::Jump(label) => {
+                let new_block = &m
+                    .blocks
+                    .iter()
+                    .find(|b| b.label == Directive::Label(label.clone()))
+                    .unwrap_or_else(|| panic!("Couldn't find label: {label:?}"));
+                curr_instr_iter = new_block.instrs.iter();
+            }
+            Continuation::Exit => { break; }
+        }
     }
 }

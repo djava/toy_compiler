@@ -13,9 +13,9 @@ impl ASTtoIRPass for TranslateASTtoIR {
         let mut blocks = BlockMap::new();
 
         let mut main_body = ir::Block {
-            statements: vec![ir::Statement::Return(ir::Expr::Atom(ir::Atom::Constant(
+            statements: vec![ir::Statement::Return(ir::Atom::Constant(
                 Value::I64(0),
-            )))],
+            ))],
         };
 
         let ast::Module::Body(ast_statements) = m;
@@ -23,7 +23,7 @@ impl ASTtoIRPass for TranslateASTtoIR {
             main_body.statements = generate_for_statement(s, main_body.statements, &mut blocks);
         }
 
-        blocks.insert(Identifier::Named(Arc::from("main")), main_body);
+        blocks.insert(Identifier::Named(Arc::from("entry")), main_body);
 
         ir::IRProgram { blocks }
     }
@@ -195,7 +195,7 @@ fn generate_for_predicate(
             vec![ir::Statement::If(
                 ir::Expr::BinaryOp(l_atom, *op, r_atom),
                 pos_label,
-                Some(neg_label),
+                neg_label,
             )]
         }
         ast::Expr::Constant(val) => {
@@ -210,7 +210,7 @@ fn generate_for_predicate(
             vec![ir::Statement::If(
                 ir::Expr::UnaryOp(UnaryOperator::Not, expr_to_atom(&*val)),
                 neg_label,
-                Some(pos_label),
+                pos_label,
             )]
         }
         ast::Expr::Ternary(sub_cond, sub_pos, sub_neg) => {
@@ -226,7 +226,7 @@ fn generate_for_predicate(
             let mut ret = vec![ir::Statement::If(
                 ir::Expr::Atom(expr_to_atom(expr)),
                 pos_label,
-                Some(neg_label),
+                neg_label,
             )];
 
             for s in statements.iter().rev() {

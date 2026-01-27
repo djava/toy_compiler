@@ -90,18 +90,14 @@ fn interpret_statement(
             env.insert(dest_id.clone(), value);
             Continuation::Next
         }
-        Statement::Return(expr) => Continuation::Return(interpret_expr(expr, inputs, outputs, env)),
+        Statement::Return(expr) => Continuation::Return(interpret_atom(expr, env)),
         Statement::Goto(label) => Continuation::Jump(label.clone()),
         Statement::If(cond, pos_label, neg_label) => {
             let result = interpret_expr(cond, inputs, outputs, env).expect_bool();
             if result {
                 Continuation::Jump(pos_label.clone())
             } else {
-                if let Some(label) = neg_label {
-                    Continuation::Jump(label.clone())
-                } else {
-                    Continuation::Next
-                }
+                Continuation::Jump(neg_label.clone())
             }
         }
     }
@@ -129,7 +125,7 @@ pub fn interpret_irprogram(p: &IRProgram, inputs: &mut VecDeque<i64>, outputs: &
     let mut env = ValueEnv::new();
     dbg!(p);
 
-    let mut block_idx = p.blocks.get_index_of(&Identifier::Named(Arc::from("main"))).unwrap();
+    let mut block_idx = p.blocks.get_index_of(&Identifier::Named(Arc::from("entry"))).unwrap();
     loop {
         println!("===Executing: {:?}", p.blocks.get_index(block_idx));
         match p

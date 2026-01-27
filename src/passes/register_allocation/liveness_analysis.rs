@@ -143,9 +143,13 @@ fn locs_written(i: &Instr) -> Vec<Location> {
         | Instr::movq(_, r)
         | Instr::movzbq(_, r)
         | Instr::popq(r)
-        | Instr::xorq(_, r)
-        | Instr::set(_, r) => {
+        | Instr::xorq(_, r) => {
             if let Some(loc) = Location::try_from_arg(r) {
+                locations.push(loc);
+            }
+        }
+        Instr::set(_, r) => {
+            if let Some(loc) = Location::try_from_arg(&Arg::Reg(r.to_underlying())) {
                 locations.push(loc);
             }
         }

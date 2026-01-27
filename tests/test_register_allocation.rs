@@ -32,7 +32,7 @@ fn execute_test_case(mut tc: TestCase) {
     println!("-- AST after RegAlloc:\n{after_ast}");
 
     // Ensure that all the variable arguments have been removed
-    for i in after_ast.blocks.iter().map(|x| &x.1).flatten() {
+    for i in after_ast.blocks.iter().map(|x| &x.instrs).flatten() {
         use x86_ast::{Arg, Instr};
         match i {
             Instr::addq(s, d) | Instr::subq(s, d) | Instr::movq(s, d) => {
@@ -47,8 +47,9 @@ fn execute_test_case(mut tc: TestCase) {
         }
     }
 
+    let with_prelude = PreludeConclusion.run_pass(after_ast);
     let mut outputs = VecDeque::<i64>::new();
-    interpret_x86(&after_ast, &mut tc.inputs, &mut outputs);
+    interpret_x86(&with_prelude, &mut tc.inputs, &mut outputs);
 
     assert_eq!(outputs, tc.expected_outputs);
 }

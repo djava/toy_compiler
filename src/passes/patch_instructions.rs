@@ -8,9 +8,9 @@ impl X86Pass for PatchInstructions {
         let main_instrs = &mut m
             .blocks
             .iter_mut()
-            .find(|(d, _)| d == &Directive::Label(Arc::from("main")))
-            .expect("Didn't find a main function")
-            .1;
+            .find(|block| block.label == Directive::Label(Identifier::Named(Arc::from("entry"))))
+            .expect("Didn't find an entry function")
+            .instrs;
 
         let mut new_instrs = vec![];
         // Reserve for worst case because why not
