@@ -4,19 +4,54 @@ pub struct PartialEval;
 
 impl ASTPass for PartialEval {
     fn run_pass(self, m: Module) -> Module {
-        let Module::Body(mut statements) = m;
+        let Module::Body(statements) = m;
 
-        statements.iter_mut().for_each(partial_eval_statement);
+        let mut new_statements = Vec::new();
+        for s in statements {
+            partial_eval_statement(s, &mut new_statements);
+        }
 
-        Module::Body(statements)
+        Module::Body(new_statements)
     }
 }
 
-fn partial_eval_statement(s: &mut Statement) {
+fn partial_eval_statement(s: Statement, new_statements: &mut Vec<Statement>) {
     match s {
-        Statement::Assign(_dest, e) => partial_eval_expr(e),
-        Statement::Expr(e) => partial_eval_expr(e),
-        Statement::Conditional(_cond, _pos, _neg) => todo!(),
+        Statement::Assign(dest, mut e) => {
+            partial_eval_expr(&mut e);
+            new_statements.push(Statement::Assign(dest, e));
+        }
+        Statement::Expr(mut e) => {
+            partial_eval_expr(&mut e);
+            new_statements.push(Statement::Expr(e));
+        }
+        Statement::Conditional(mut cond, pos, neg) => {
+            partial_eval_expr(&mut cond);
+
+            if let Expr::Constant(val) = cond {
+                if val.into() {
+                    let mut pos_statements = Vec::new();
+                    pos.into_iter()
+                        .for_each(|s| partial_eval_statement(s, &mut pos_statements));
+                    new_statements.extend(pos_statements);
+                } else {
+                    let mut neg_statements = Vec::new();
+                    neg.into_iter()
+                        .for_each(|s| partial_eval_statement(s, &mut neg_statements));
+                    new_statements.extend(neg_statements);
+                }
+            } else {
+                let mut pos_pe = Vec::new();
+                pos.into_iter()
+                    .for_each(|s| partial_eval_statement(s, &mut pos_pe));
+
+                let mut neg_pe = Vec::new();
+                neg.into_iter()
+                    .for_each(|s| partial_eval_statement(s, &mut neg_pe));
+
+                new_statements.push(Statement::Conditional(cond, pos_pe, neg_pe));
+            }
+        }
     }
 }
 
@@ -53,16 +88,30 @@ fn partial_eval_expr(e: &mut Expr) {
             }
         }
         StatementBlock(statements, expr) => {
-            statements.iter_mut().for_each(partial_eval_statement);
+            let mut new_statements = Vec::new();
+            statements.iter().for_each(|s| partial_eval_statement(s.clone(), &mut new_statements));
+            *statements = new_statements;
             partial_eval_expr(expr);
-        },
+        }
         Constant(_val) => {
             // Already a constant, nothing to evaluate
         }
         Id(_name) => {
             // Can't do anything
         }
-        Ternary(_cond, _pos, _neg) => todo!(),
+        Ternary(cond, pos, neg) => {
+            partial_eval_expr(&mut *cond);
+            partial_eval_expr(&mut *pos);
+            partial_eval_expr(&mut *neg);
+
+            if let Constant(val) = **cond {
+                if val.into() {
+                    *e = (**pos).clone();
+                } else {
+                    *e = (**neg).clone();
+                }
+            }
+        }
     }
 }
 
