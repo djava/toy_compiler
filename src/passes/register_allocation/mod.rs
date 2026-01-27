@@ -1,5 +1,6 @@
 mod graph_coloring;
 mod liveness_analysis;
+mod topological_sort;
 
 use std::collections::HashMap;
 use std::mem::size_of;
@@ -16,18 +17,60 @@ use x86_ast::*;
 pub struct RegisterAllocation;
 
 impl X86Pass for RegisterAllocation {
-    fn run_pass(self, mut m: X86Program) -> X86Program {
-        let mut stack_size: i32 = 0;
-        for func in m.blocks.iter_mut() {
-            // Stack size can be the sum of all the function's stack sizes, even
-            // though that's pretty silly..
-            // TODO: Change how stack_size is calculated, once we
-            // support functions.
-            stack_size += run_for_function(&mut func.instrs);
+    fn run_pass(self, m: X86Program) -> X86Program {
+        let mut ordered_blocks = topological_sort::block_topological_sort(m.blocks);
+        
+        let ordered_instrs: Vec<_> = ordered_blocks.iter().map(|b| b.instrs.clone()).flatten().collect();
+        let liveness = LivenessMap::from_instrs(&ordered_instrs);
+
+        let (location_to_storage, stack_var_size) = allocate_storage(&liveness);
+        
+        let callee_saved_used: Vec<_> = location_to_storage
+        .values()
+            .filter(|stg| matches!(stg, Storage::Reg(reg) if CALLEE_SAVED_REGISTERS.contains(reg)))
+            .collect();
+        let callee_offset = -((callee_saved_used.len() * size_of::<i64>()) as i32);
+        
+        for b in ordered_blocks.iter_mut() {
+            run_for_block(&mut b.instrs, &location_to_storage, callee_offset);
         }
 
-        m.stack_size = stack_size as _;
-        m
+        if let Some(entry) = ordered_blocks.first_mut() {
+            let callee_pushqs = callee_saved_used.iter().filter_map(|loc| {
+                if let Storage::Reg(reg) = loc {
+                    Some(Instr::pushq(Arg::Reg(*reg)))
+                } else {
+                    None
+                }
+            });
+
+            entry.instrs.splice(0..0, callee_pushqs);
+        }
+
+        if let Some(exit) = ordered_blocks.last_mut() {
+            let callee_popqs = callee_saved_used.iter().rev().filter_map(|loc| {
+                if let Storage::Reg(reg) = loc {
+                    Some(Instr::popq(Arg::Reg(*reg)))
+                } else {
+                    None
+                }
+            });
+
+            exit.instrs.extend(callee_popqs);
+        }
+
+        let used_stack = callee_offset + stack_var_size;
+        let aligned_stack_size = if used_stack % STACK_ALIGNMENT == 0 {
+            used_stack
+        } else {
+            used_stack + (STACK_ALIGNMENT - (used_stack % STACK_ALIGNMENT))
+        };
+
+        X86Program {
+            header: vec![],
+            blocks: ordered_blocks,
+            stack_size: aligned_stack_size as _,
+        }
     }
 }
 
@@ -72,70 +115,45 @@ impl Storage {
     }
 }
 
-fn run_for_function(instrs: &mut Vec<Instr>) -> i32 {
-    // TODO: Change instr storage types to kill this .clone(). It exists
-    //       because the Locations reference back to the Identifiers in
-    //       the Instrs' all the way back up the chain, so instrs is
-    //       borrowed as long as any of the Locations live.
-    let clone_instrs = instrs.clone();
-    let liveness = LivenessMap::from_instrs(&clone_instrs);
-
-    let (location_to_storage, stack_var_size) = allocate_storage(&liveness);
-
-    let callee_saved_used: Vec<_> = location_to_storage
-        .values()
-        .filter(|stg| matches!(stg, Storage::Reg(reg) if CALLEE_SAVED_REGISTERS.contains(reg)))
-        .collect();
-    let callee_offset = -((callee_saved_used.len() * size_of::<i64>()) as i32);
-
+fn run_for_block(instrs: &mut Vec<Instr>, location_to_storage: &HashMap<&Location, Storage>, stack_offset: i32) {
     for i in instrs.iter_mut() {
         match i {
-            Instr::addq(s, d) | Instr::subq(s, d) | Instr::movq(s, d) => {
+            Instr::addq(s, d) | Instr::subq(s, d) | Instr::movq(s, d) | Instr::xorq(s, d) => {
                 for arg in [s, d] {
                     if let Some(loc) = Location::try_from_arg(arg)
                         && let Some(storage) = location_to_storage.get(&loc)
                     {
-                        *arg = storage.with_stack_offset(callee_offset).to_arg();
+                        *arg = storage.with_stack_offset(stack_offset).to_arg();
                     }
                 }
             }
-            Instr::negq(a) | Instr::pushq(a) | Instr::popq(a) => {
+            Instr::cmpq(s, d) => {
+                for arg in [s, d] {
+                    if let Some(loc) = Location::try_from_arg(arg)
+                        && let Some(storage) = location_to_storage.get(&loc)
+                    {
+                        *arg = storage.with_stack_offset(stack_offset).to_arg();
+                    } else {
+                        println!("COULDN'T GET LOCATION/STORAGE: {arg}")
+                    }
+                }
+            }
+            Instr::negq(a) | Instr::pushq(a) | Instr::popq(a) | Instr::movzbq(_, a) => {
                 if let Some(loc) = Location::try_from_arg(a)
                     && let Some(storage) = location_to_storage.get(&loc)
                 {
-                    *a = storage.to_arg();
+                    *a = storage.with_stack_offset(stack_offset).to_arg();
                 }
             }
-            _ => {}
+            Instr::callq(_, _)
+            | Instr::retq
+            | Instr::jmpcc(_, _)
+            | Instr::jmp(_)
+            | Instr::set(_, _) => {
+                // No real args to replace
+            }
         }
     }
-
-    let callee_pushqs = callee_saved_used.iter().filter_map(|loc| {
-        if let Storage::Reg(reg) = loc {
-            Some(Instr::pushq(Arg::Reg(*reg)))
-        } else {
-            None
-        }
-    });
-    instrs.splice(0..0, callee_pushqs);
-
-    let callee_popqs = callee_saved_used.iter().rev().filter_map(|loc| {
-        if let Storage::Reg(reg) = loc {
-            Some(Instr::popq(Arg::Reg(*reg)))
-        } else {
-            None
-        }
-    });
-    instrs.extend(callee_popqs);
-
-    let used_stack = callee_offset + stack_var_size;
-    let aligned_stack_size = if used_stack % STACK_ALIGNMENT == 0 {
-        used_stack
-    } else {
-        used_stack + (STACK_ALIGNMENT - (used_stack % STACK_ALIGNMENT))
-    };
-
-    aligned_stack_size
 }
 
 fn allocate_storage<'a>(liveness: &'a LivenessMap) -> (HashMap<&'a Location, Storage>, i32) {
