@@ -1006,3 +1006,84 @@ else { 5 }",
     };
     tc.run();
 }
+
+#[test]
+fn test_parser_if_else_single_line() {
+    // No newline required between } and else
+    let tc = ParserTestCase {
+        input_str: r"if true { 1 } else { 2 }",
+        expected_tokens: vec![
+            Token::If,
+            Token::Bool(true),
+            Token::OpenBracket,
+            Token::Int(1),
+            Token::CloseBracket,
+            Token::Else,
+            Token::OpenBracket,
+            Token::Int(2),
+            Token::CloseBracket,
+        ],
+        expected_parse_tree: pt::Module {
+            statements: vec![
+                pt::Statement::If(
+                    pt::Expr::Bool(true),
+                    vec![pt::Statement::Expr(pt::Expr::Int(1))],
+                ),
+                pt::Statement::Else(vec![pt::Statement::Expr(pt::Expr::Int(2))]),
+            ],
+        },
+        expected_ast: ast::Module::Body(vec![ast::Statement::Conditional(
+            ast::Expr::Constant(ast::Value::Bool(true)),
+            vec![ast::Statement::Expr(ast::Expr::Constant(ast::Value::I64(1)))],
+            vec![ast::Statement::Expr(ast::Expr::Constant(ast::Value::I64(2)))],
+        )]),
+    };
+    tc.run();
+}
+
+#[test]
+fn test_parser_if_else_if_else_single_line() {
+    let tc = ParserTestCase {
+        input_str: r"if true { 1 } else if false { 2 } else { 3 }",
+        expected_tokens: vec![
+            Token::If,
+            Token::Bool(true),
+            Token::OpenBracket,
+            Token::Int(1),
+            Token::CloseBracket,
+            Token::Else,
+            Token::If,
+            Token::Bool(false),
+            Token::OpenBracket,
+            Token::Int(2),
+            Token::CloseBracket,
+            Token::Else,
+            Token::OpenBracket,
+            Token::Int(3),
+            Token::CloseBracket,
+        ],
+        expected_parse_tree: pt::Module {
+            statements: vec![
+                pt::Statement::If(
+                    pt::Expr::Bool(true),
+                    vec![pt::Statement::Expr(pt::Expr::Int(1))],
+                ),
+                pt::Statement::ElseIf(
+                    pt::Expr::Bool(false),
+                    vec![pt::Statement::Expr(pt::Expr::Int(2))],
+                ),
+                pt::Statement::Else(vec![pt::Statement::Expr(pt::Expr::Int(3))]),
+            ],
+        },
+        expected_ast: ast::Module::Body(vec![ast::Statement::Conditional(
+            ast::Expr::Constant(ast::Value::Bool(true)),
+            vec![ast::Statement::Expr(ast::Expr::Constant(ast::Value::I64(1)))],
+            vec![ast::Statement::Conditional(
+                ast::Expr::Constant(ast::Value::Bool(false)),
+                vec![ast::Statement::Expr(ast::Expr::Constant(ast::Value::I64(2)))],
+                vec![ast::Statement::Expr(ast::Expr::Constant(ast::Value::I64(3)))],
+            )],
+        )]),
+    };
+    tc.run();
+}

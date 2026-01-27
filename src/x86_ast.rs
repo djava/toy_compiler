@@ -236,6 +236,9 @@ impl Display for Directive {
 
 impl Display for X86Program {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        for dir in &self.header {
+            writeln!(f, "{dir}")?;
+        }
         for block in &self.blocks {
             writeln!(f, "{}", block.label)?;
             for i in block.instrs.iter() {

@@ -97,14 +97,17 @@ parser! {
             [Token::Identifier(id)] [Token::Equals] e:expr() { Statement::Assign(id, e) }
 
         pub rule statement_body() -> Vec<Statement<'t>> =
-            [Token::OpenBracket] [Token::Newline]* ss:(statement() ** ([Token::Newline]+)) [Token::Newline]* [Token::CloseBracket] { ss }
-
+            [Token::OpenBracket] [Token::Newline]*
+            ss:(if_chain() / (s:simple_statement() { vec![s] })) ** ([Token::Newline]+)
+            [Token::Newline]* [Token::CloseBracket] {
+                ss.into_iter().flatten().collect()
+            }
 
         pub rule if_statement() -> Statement<'t> =
             [Token::If] cond:expr() body:statement_body() {
                 Statement::If(cond, body)
             }
-        
+
         pub rule else_if_statement() -> Statement<'t> =
             [Token::Else] [Token::If] cond:expr() body:statement_body() {
                 Statement::ElseIf(cond, body)
@@ -115,10 +118,27 @@ parser! {
                 Statement::Else(body)
             }
 
-        pub rule statement() -> Statement<'t> =
-            if_statement() / else_if_statement() / else_statement() / assign() / (e:expr() { Statement::Expr(e) })
+        /// An if-chain: if { } [else if { }]* [else { }]?
+        /// No newlines required between parts
+        pub rule if_chain() -> Vec<Statement<'t>> =
+            head:if_statement() rest:([Token::Newline]* s:(else_if_statement() / else_statement()) { s })* {
+                let mut v = vec![head];
+                v.extend(rest);
+                v
+            }
 
-        pub rule module() -> Module<'t> = s:(statement() ++ [Token::Newline]) eof() { Module { statements: s } }
+        /// Simple statements (not if-chains)
+        pub rule simple_statement() -> Statement<'t> =
+            assign() / (e:expr() { Statement::Expr(e) })
+
+        /// For use inside statement bodies
+        pub rule statement() -> Statement<'t> =
+            if_statement() / else_if_statement() / else_statement() / simple_statement()
+
+        pub rule module() -> Module<'t> =
+            ss:(if_chain() / (s:simple_statement() { vec![s] })) ** ([Token::Newline]+) eof() {
+                Module { statements: ss.into_iter().flatten().collect() }
+            }
     }
 }
 
