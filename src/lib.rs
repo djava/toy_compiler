@@ -4,3 +4,4 @@ pub mod parser;
 pub mod passes;
 pub mod pipeline;
 pub mod x86_ast;
+mod utils;

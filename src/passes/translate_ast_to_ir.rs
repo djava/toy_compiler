@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use crate::{
     ast,
-    ir::{self, BlockMap, Identifier, UnaryOperator, Value},
+    ir::{self, BlockMap, Identifier, Value},
     passes::ASTtoIRPass,
 };
 
@@ -13,9 +13,7 @@ impl ASTtoIRPass for TranslateASTtoIR {
         let mut blocks = BlockMap::new();
 
         let mut main_body = ir::Block {
-            statements: vec![ir::Statement::Return(ir::Atom::Constant(
-                Value::I64(0),
-            ))],
+            statements: vec![ir::Statement::Return(ir::Atom::Constant(Value::I64(0)))],
         };
 
         let ast::Module::Body(ast_statements) = m;
@@ -160,8 +158,12 @@ fn generate_for_assign(
         ast::Expr::Ternary(cond, pos, neg) => {
             let cont_label = new_block(cont, blocks);
 
-            let pos_ir =
-                generate_for_assign(pos, dest_id.clone(), vec![ir::Statement::Goto(cont_label.clone())], blocks);
+            let pos_ir = generate_for_assign(
+                pos,
+                dest_id.clone(),
+                vec![ir::Statement::Goto(cont_label.clone())],
+                blocks,
+            );
             let neg_ir =
                 generate_for_assign(neg, dest_id, vec![ir::Statement::Goto(cont_label)], blocks);
 
@@ -205,10 +207,10 @@ fn generate_for_predicate(
                 blocks[&neg_label].statements.clone()
             }
         }
-        ast::Expr::UnaryOp(UnaryOperator::Not, val) => {
+        ast::Expr::UnaryOp(op, val) => {
             // TODO: This should be type-checked?
             vec![ir::Statement::If(
-                ir::Expr::UnaryOp(UnaryOperator::Not, expr_to_atom(&*val)),
+                ir::Expr::UnaryOp(*op, expr_to_atom(&*val)),
                 neg_label,
                 pos_label,
             )]
@@ -235,7 +237,20 @@ fn generate_for_predicate(
 
             ret
         }
-        _ => unimplemented!(),
+        ast::Expr::Call(func_name, args) => {
+            vec![ir::Statement::If(
+                ir::Expr::Call(func_name.clone(), args.iter().map(expr_to_atom).collect()),
+                pos_label,
+                neg_label,
+            )]
+        }
+        ast::Expr::Id(identifier) => {
+            vec![ir::Statement::If(
+                ir::Expr::Atom(ir::Atom::Variable(identifier.clone())),
+                pos_label,
+                neg_label,
+            )]
+        }
     }
 }
 

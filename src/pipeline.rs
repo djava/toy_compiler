@@ -56,6 +56,7 @@ impl Pipeline {
             ir_to_x86_pass: IRtoX86::from(TranslateIRtoX86),
             x86_passes: vec![
                 X86toX86::from(RegisterAllocation),
+                X86toX86::from(RemoveJumps),
                 X86toX86::from(PatchInstructions),
                 X86toX86::from(PreludeConclusion),
             ],

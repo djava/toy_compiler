@@ -81,7 +81,7 @@ pub enum Arg {
     Variable(Identifier),
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum Comparison {
     Equals,
     NotEquals,
@@ -92,7 +92,7 @@ pub enum Comparison {
 }
 
 #[allow(non_camel_case_types)]
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum Instr {
     addq(Arg, Arg),
     subq(Arg, Arg),
@@ -110,14 +110,14 @@ pub enum Instr {
     jmpcc(Comparison, Identifier)
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum Directive {
     Label(Identifier),
     Globl(Identifier),
     AttSyntax,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct Block {
     pub label: Directive,
     pub instrs: Vec<Instr>

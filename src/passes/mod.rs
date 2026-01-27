@@ -20,6 +20,8 @@ pub mod translate_ast_to_ir;
 pub use translate_ast_to_ir::TranslateASTtoIR;
 pub mod short_circuiting;
 pub use short_circuiting::ShortCircuiting;
+pub mod remove_jumps;
+pub use remove_jumps::RemoveJumps;
 
 #[enum_dispatch]
 pub trait ASTPass {
@@ -71,6 +73,7 @@ pub trait X86Pass {
 #[enum_dispatch(X86Pass)]
 pub enum X86toX86 {
     RegisterAllocation,
+    RemoveJumps,
     PatchInstructions,
     PreludeConclusion,
 }
