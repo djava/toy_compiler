@@ -83,18 +83,18 @@ fn translate_conditional(
         | ir::Expr::UnaryOp(UnaryOperator::Plus, atom)
         | ir::Expr::UnaryOp(UnaryOperator::Minus, atom) => {
             vec![
-                Instr::cmpq(atom_to_arg(atom), x86::Arg::Immediate(0)),
+                Instr::cmpq(x86::Arg::Immediate(0), atom_to_arg(atom)),
                 Instr::jmpcc(x86::Comparison::NotEquals, pos_label),
             ]
         }
         ir::Expr::UnaryOp(UnaryOperator::Not, atom) => vec![
-            Instr::cmpq(atom_to_arg(atom), x86::Arg::Immediate(0)),
+            Instr::cmpq(x86::Arg::Immediate(0), atom_to_arg(atom)),
             Instr::jmpcc(x86::Comparison::Equals, pos_label),
         ],
         ir::Expr::BinaryOp(left, op, right) => {
             if let Some(cc) = try_binop_to_cc(op) {
                 vec![
-                    Instr::cmpq(atom_to_arg(left), atom_to_arg(right)),
+                    Instr::cmpq(atom_to_arg(right), atom_to_arg(left)),
                     Instr::jmpcc(cc, pos_label),
                 ]
             } else {
@@ -102,7 +102,7 @@ fn translate_conditional(
                 let cond = ir::Expr::BinaryOp(left, op, right);
                 let mut asgn_instrs = translate_assign(temp_id.clone(), cond);
                 asgn_instrs.extend([
-                    Instr::cmpq(x86::Arg::Variable(temp_id), x86::Arg::Immediate(0)),
+                    Instr::cmpq(x86::Arg::Immediate(0), x86::Arg::Variable(temp_id)),
                     Instr::jmpcc(x86::Comparison::NotEquals, pos_label),
                 ]);
                 asgn_instrs
@@ -111,7 +111,7 @@ fn translate_conditional(
         ir::Expr::Call(func_id, args) => {
             let mut call_instrs = translate_call(None, func_id, args);
             call_instrs.extend([
-                Instr::cmpq(x86::Arg::Reg(x86::Register::rax), x86::Arg::Immediate(0)),
+                Instr::cmpq(x86::Arg::Immediate(0), x86::Arg::Reg(x86::Register::rax)),
                 Instr::jmpcc(x86::Comparison::NotEquals, pos_label)
             ]);
             call_instrs
@@ -137,7 +137,7 @@ fn translate_comparison(
     };
 
     vec![
-        Instr::cmpq(atom_to_arg(l), atom_to_arg(r)),
+        Instr::cmpq(atom_to_arg(r), atom_to_arg(l)),
         Instr::set(cc, x86::ByteReg::al),
         Instr::movzbq(
             x86::ByteReg::al,
