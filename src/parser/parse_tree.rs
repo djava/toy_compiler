@@ -25,12 +25,16 @@ pub enum Expr<'a> {
     Parens(Box<Expr<'a>>),
     Binary(Box<Expr<'a>>, Operator, Box<Expr<'a>>),
     Call(&'a str, Vec<Expr<'a>>),
+    Ternary(Box<Expr<'a>>, Box<Expr<'a>>, Box<Expr<'a>>)
 }
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum Statement<'a> {
     Expr(Expr<'a>),
     Assign(&'a str, Expr<'a>),
+    If(Expr<'a>, Vec<Statement<'a>>),
+    ElseIf(Expr<'a>, Vec<Statement<'a>>),
+    Else(Vec<Statement<'a>>),
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -67,7 +71,14 @@ parser! {
                 }
             }
 
-        rule expr() -> Expr<'t> = precedence!{
+        rule expr() -> Expr<'t> =
+            // Lowest-precendence, right-associative ternary expression
+            cond:precedence_expr() [Token::QuestionMark] pos:expr() [Token::Colon] neg:expr() {
+                Expr::Ternary(Box::new(cond), Box::new(pos), Box::new(neg))
+            }
+            / precedence_expr()
+
+        rule precedence_expr() -> Expr<'t> = precedence!{
             // Lowest Precendence: Binary Operators, left-associative
             l:(@) op:operator() r:@ { Expr::Binary(Box::new(l), op, Box::new(r)) }
             --
@@ -85,8 +96,27 @@ parser! {
         pub rule assign() -> Statement<'t> =
             [Token::Identifier(id)] [Token::Equals] e:expr() { Statement::Assign(id, e) }
 
+        pub rule statement_body() -> Vec<Statement<'t>> =
+            [Token::OpenBracket] [Token::Newline]* ss:(statement() ** ([Token::Newline]+)) [Token::Newline]* [Token::CloseBracket] { ss }
+
+
+        pub rule if_statement() -> Statement<'t> =
+            [Token::If] cond:expr() body:statement_body() {
+                Statement::If(cond, body)
+            }
+        
+        pub rule else_if_statement() -> Statement<'t> =
+            [Token::Else] [Token::If] cond:expr() body:statement_body() {
+                Statement::ElseIf(cond, body)
+            }
+
+        pub rule else_statement() -> Statement<'t> =
+            [Token::Else] body:statement_body() {
+                Statement::Else(body)
+            }
+
         pub rule statement() -> Statement<'t> =
-            assign() / (e:expr() { Statement::Expr(e) })
+            if_statement() / else_if_statement() / else_statement() / assign() / (e:expr() { Statement::Expr(e) })
 
         pub rule module() -> Module<'t> = s:(statement() ++ [Token::Newline]) eof() { Module { statements: s } }
     }

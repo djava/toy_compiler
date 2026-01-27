@@ -1,6 +1,8 @@
 use crate::ast;
 use crate::parser::parse_tree as pt;
+use std::iter::Peekable;
 use std::sync::Arc;
+use std::vec::IntoIter;
 
 fn to_ast_expr(pte: pt::Expr) -> ast::Expr {
     match pte {
@@ -13,7 +15,7 @@ fn to_ast_expr(pte: pt::Expr) -> ast::Expr {
                 pt::Operator::Minus => ast::UnaryOperator::Minus,
                 pt::Operator::Plus => ast::UnaryOperator::Plus,
                 pt::Operator::Not => ast::UnaryOperator::Not,
-                _ => panic!("{op:?} should never be in a unary expression")
+                _ => panic!("{op:?} should never be in a unary expression"),
             };
 
             ast::Expr::UnaryOp(ast_op, ast_val)
@@ -33,7 +35,9 @@ fn to_ast_expr(pte: pt::Expr) -> ast::Expr {
                 pt::Operator::GreaterEquals => ast::BinaryOperator::GreaterEquals,
                 pt::Operator::Less => ast::BinaryOperator::Less,
                 pt::Operator::LessEquals => ast::BinaryOperator::LessEquals,
-                pt::Operator::Not => panic!("pt::Operator::Not should never be in a Binary expression"),
+                pt::Operator::Not => {
+                    panic!("pt::Operator::Not should never be in a Binary expression")
+                }
             };
 
             ast::Expr::BinaryOp(ast_left, ast_op, ast_right)
@@ -43,18 +47,98 @@ fn to_ast_expr(pte: pt::Expr) -> ast::Expr {
 
             ast::Expr::Call(ast::Identifier::Named(Arc::from(id)), ast_args)
         }
-    }
-}
+        pt::Expr::Ternary(cond, pos, neg) => {
+            let ast_cond = to_ast_expr(*cond);
+            let ast_pos = to_ast_expr(*pos);
+            let ast_neg = to_ast_expr(*neg);
 
-fn to_ast_statement(pts: pt::Statement) -> ast::Statement {
-    match pts {
-        pt::Statement::Expr(pte) => ast::Statement::Expr(to_ast_expr(pte)),
-        pt::Statement::Assign(name, pte) => {
-            ast::Statement::Assign(ast::Identifier::Named(Arc::from(name)), to_ast_expr(pte))
+            ast::Expr::Ternary(Box::new(ast_cond), Box::new(ast_pos), Box::new(ast_neg))
         }
     }
 }
 
+pub fn to_ast_statement<'a>(
+    iter: &mut Peekable<IntoIter<pt::Statement<'a>>>,
+) -> Option<ast::Statement> {
+    match iter.next() {
+        Some(pt::Statement::Expr(pte)) => Some(ast::Statement::Expr(to_ast_expr(pte))),
+        Some(pt::Statement::Assign(name, pte)) => Some(ast::Statement::Assign(
+            ast::Identifier::Named(Arc::from(name)),
+            to_ast_expr(pte),
+        )),
+        Some(pt::Statement::If(cond, body)) => {
+            // There could be many stacked else-if statements that we
+            // need to consume all of here to combine them into one big
+            // nested statement.
+            let mut stacked_ast_neg_bodies = Vec::new();
+
+            // For each successive else[-if] statement after this one,
+            // add its condition and body to stacked_ast_neg_bodies, so
+            // that we can nest them all
+            loop {
+                if let Some(pt::Statement::ElseIf(sub_cond, sub_body)) =
+                    iter.next_if(|v| matches!(v, pt::Statement::ElseIf(_, _)))
+                {
+                    stacked_ast_neg_bodies
+                        .push((Some(to_ast_expr(sub_cond)), to_ast_statements(sub_body)));
+                } else if let Some(pt::Statement::Else(sub_body)) =
+                    iter.next_if(|v| matches!(v, pt::Statement::Else(_)))
+                {
+                    stacked_ast_neg_bodies.push((None, to_ast_statements(sub_body)));
+                    // The `else` must be the end of the chain, so let's
+                    // just break here
+                    break;
+                } else {
+                    break;
+                }
+            }
+
+            if !matches!(stacked_ast_neg_bodies.last(), Some((None, _))) {
+                // If there's no trailing unconditional-`else` clause, add an empty one
+                stacked_ast_neg_bodies.push((None, vec![]));
+            }
+
+            // Nest the negative-case bodies recursively
+            let mut ast_neg_body = stacked_ast_neg_bodies.pop().unwrap().1; // We know the cond is None
+            for (opt_cond, sub_body) in stacked_ast_neg_bodies.into_iter().rev() {
+                if let Some(cond) = opt_cond {
+                    ast_neg_body = vec![ast::Statement::Conditional(cond, sub_body, ast_neg_body)];
+                } else {
+                    ast_neg_body = sub_body;
+                }
+            }
+
+            let ast_cond = to_ast_expr(cond);
+            let ast_body = to_ast_statements(body);
+
+            Some(ast::Statement::Conditional(
+                ast_cond,
+                ast_body,
+                ast_neg_body,
+            ))
+        }
+        Some(pt::Statement::ElseIf(_, _)) | Some(pt::Statement::Else(_)) => {
+            // Any else/if or else pt::Statements should've been
+            // consumed in the if branch, assuming the input is valid.
+            panic!(
+                "Unexpected Else statement - either in wrong place or bug in to_ast's If branch"
+            );
+        }
+        None => None,
+    }
+}
+
+fn to_ast_statements(body: Vec<pt::Statement>) -> Vec<ast::Statement> {
+    let mut pt_iter = body.into_iter().peekable();
+
+    let mut statements = vec![];
+    while let Some(s) = to_ast_statement(&mut pt_iter) {
+        statements.push(s);
+    }
+
+    statements
+}
+
 pub fn to_ast(ptm: pt::Module) -> ast::Module {
-    ast::Module::Body(ptm.statements.into_iter().map(to_ast_statement).collect())
+    ast::Module::Body(to_ast_statements(ptm.statements))
 }
