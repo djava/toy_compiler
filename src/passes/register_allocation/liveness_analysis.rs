@@ -75,7 +75,18 @@ impl LivenessMap {
                         graph.add_edge(loc_to_node[&d], loc_to_node[v], ());
                     }
                 }
-            } else {
+            } else if let Instr::movzbq(s_reg, d_arg) = i
+                && let Some(s) = Location::try_from_arg(&Arg::ByteReg(*s_reg))
+                && let Some(d) = Location::try_from_arg(d_arg)
+            {
+                // If instruction is movzbq, for each v in L_after, if v
+                // is neither s nor d, add edge (d, v)
+                for v in l_after {
+                    if v != &s && v != &d {
+                        graph.add_edge(loc_to_node[&d], loc_to_node[v], ());
+                    }
+                }
+            } else{
                 // If instruction is not movq, for each d in W(k) and v
                 // in L_after, if v != d, add edge (d,v)
                 for d in locs_written(i) {
@@ -101,8 +112,13 @@ fn locs_read(i: &Instr) -> Vec<Location> {
                 .filter_map(Location::try_from_arg)
                 .collect();
         }
-        Instr::negq(r) | Instr::movq(r, _) | Instr::pushq(r) | Instr::movzbq(r, _) => {
+        Instr::negq(r) | Instr::movq(r, _) | Instr::pushq(r) => {
             if let Some(loc) = Location::try_from_arg(r) {
+                locations.push(loc);
+            }
+        }
+        Instr::movzbq(r, _) => {
+            if let Some(loc) = Location::try_from_arg(&Arg::Reg(r.to_underlying())) {
                 locations.push(loc);
             }
         }

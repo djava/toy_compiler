@@ -105,7 +105,7 @@ pub enum Instr {
     xorq(Arg, Arg),
     cmpq(Arg, Arg),
     set(Comparison, ByteReg),
-    movzbq(Arg, Arg),
+    movzbq(ByteReg, Arg),
     jmp(Identifier),
     jmpcc(Comparison, Identifier)
 }

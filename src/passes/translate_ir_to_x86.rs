@@ -140,7 +140,7 @@ fn translate_comparison(
         Instr::cmpq(atom_to_arg(l), atom_to_arg(r)),
         Instr::set(cc, x86::ByteReg::al),
         Instr::movzbq(
-            x86::Arg::ByteReg(x86::ByteReg::al),
+            x86::ByteReg::al,
             x86::Arg::Variable(dest_id),
         ),
     ]

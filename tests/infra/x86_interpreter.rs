@@ -251,9 +251,8 @@ fn run_instr(
             Continuation::Next
         }
         Instr::movzbq(s, d) => {
-            assert!(matches!(s, Arg::ByteReg(_)));
             assert!(matches!(d, Arg::Reg(_)));
-            env.write_arg(d, env.read_arg(s));
+            env.write_arg(d, env.read_arg(&Arg::ByteReg(*s)));
             Continuation::Next
         }
         Instr::jmp(label) => Continuation::Jump(label.clone()),
