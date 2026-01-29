@@ -125,7 +125,7 @@ pub fn interpret_irprogram(p: &IRProgram, inputs: &mut VecDeque<i64>, outputs: &
     let mut env = ValueEnv::new();
     dbg!(p);
 
-    let mut block_idx = p.blocks.get_index_of(&Identifier::Named(Arc::from("entry"))).unwrap();
+    let mut block_idx = p.blocks.get_index_of(&Identifier::Named(Arc::from("user_entry"))).unwrap();
     loop {
         println!("===Executing: {:?}", p.blocks.get_index(block_idx));
         match p

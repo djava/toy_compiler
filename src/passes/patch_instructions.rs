@@ -8,7 +8,7 @@ impl X86Pass for PatchInstructions {
         let main_instrs = &mut m
             .blocks
             .iter_mut()
-            .find(|block| block.label == Directive::Label(Identifier::Named(Arc::from("entry"))))
+            .find(|block| block.label == Directive::Label(Identifier::Named(Arc::from("user_entry"))))
             .expect("Didn't find an entry function")
             .instrs;
 

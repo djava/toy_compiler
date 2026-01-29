@@ -13,16 +13,22 @@ impl ASTtoIRPass for TranslateASTtoIR {
         let mut blocks = BlockMap::new();
 
         let mut main_body = ir::Block {
-            statements: vec![ir::Statement::Return(ir::Atom::Constant(Value::I64(0)))],
+            statements: vec![ir::Statement::Goto(Identifier::Named(Arc::from("user_exit")))]
         };
-
+        
         let ast::Module::Body(ast_statements) = m;
         for s in ast_statements.iter().rev() {
             main_body.statements = generate_for_statement(s, main_body.statements, &mut blocks);
         }
 
-        blocks.insert(Identifier::Named(Arc::from("entry")), main_body);
+        blocks.insert(Identifier::Named(Arc::from("user_entry")), main_body);
+        
+        let user_exit = ir::Block {
+            statements: vec![ir::Statement::Return(ir::Atom::Constant(Value::I64(0)))],
+        };
+        blocks.insert(Identifier::Named(Arc::from("user_exit")), user_exit);
 
+        blocks.reverse();
         ir::IRProgram { blocks }
     }
 }
