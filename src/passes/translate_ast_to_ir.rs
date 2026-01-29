@@ -54,6 +54,24 @@ fn generate_for_statement(
             let neg_label = new_block(neg_ir, blocks);
             generate_for_predicate(cond, pos_label, neg_label, blocks)
         }
+        ast::Statement::WhileLoop(cond, body) => {
+            let cont_label = new_block(cont, blocks);
+
+            let cond_label = new_block(vec![], blocks);
+
+            let mut body_ir = vec![ir::Statement::Goto(cond_label.clone())];
+            for i in body.iter().rev() {
+                body_ir = generate_for_statement(i, body_ir, blocks);
+            }
+
+            let body_label = new_block(body_ir, blocks);
+
+            let cond_ir = generate_for_predicate(cond, body_label.clone(), cont_label, blocks);
+            let cond_block = blocks.get_mut(&cond_label).unwrap();
+            cond_block.statements = cond_ir;
+
+            vec![ir::Statement::Goto(cond_label)]
+        }
     }
 }
 
@@ -225,15 +243,12 @@ fn generate_for_predicate(
             generate_for_predicate(sub_cond, sub_pos_label, sub_neg_label, blocks)
         }
         ast::Expr::StatementBlock(statements, expr) => {
-            let mut ret = vec![ir::Statement::If(
-                ir::Expr::Atom(expr_to_atom(expr)),
-                pos_label,
-                neg_label,
-            )];
-
+            let mut ret = vec![];
             for s in statements.iter().rev() {
                 ret = generate_for_statement(s, ret, blocks);
             }
+
+            ret.extend(generate_for_predicate(expr, pos_label, neg_label, blocks));
 
             ret
         }

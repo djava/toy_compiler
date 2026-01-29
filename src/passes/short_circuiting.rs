@@ -16,7 +16,8 @@ fn shortcircuit_statement(s: &mut Statement) {
     match s {
         Statement::Assign(_, expr)
         | Statement::Expr(expr)
-        | Statement::Conditional(expr, _, _) => shortcircuit_expr(expr),
+        | Statement::Conditional(expr, _, _)
+        | Statement::WhileLoop(expr, _) => shortcircuit_expr(expr),
     }
 }
 

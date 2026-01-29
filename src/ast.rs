@@ -165,7 +165,8 @@ pub enum Expr {
 pub enum Statement {
     Assign(Identifier, Expr),
     Expr(Expr),
-    Conditional(Expr, Vec<Statement>, Vec<Statement>)
+    Conditional(Expr, Vec<Statement>, Vec<Statement>),
+    WhileLoop(Expr, Vec<Statement>)
 }
 
 #[derive(Debug, Clone, PartialEq)]

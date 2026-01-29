@@ -3,6 +3,8 @@ use cs4999_compiler::ast::*;
 pub trait ValueExt {
     fn expect_int(self) -> i64;
     fn expect_bool(self) -> bool;
+    fn coerce_int(self) -> i64;
+    fn coerce_bool(self) -> bool;
 }
 
 impl ValueExt for Value {
@@ -21,6 +23,14 @@ impl ValueExt for Value {
             panic!("{:?} didn't evaluate to a constant bool", self);
         }
     }
+
+    fn coerce_int(self) -> i64 {
+        self.into()
+    }
+
+    fn coerce_bool(self) -> bool {
+        self.into()
+    }
 }
 
 impl ValueExt for Option<Value> {
@@ -37,6 +47,22 @@ impl ValueExt for Option<Value> {
             v
         } else {
             panic!("{:?} didn't evaluate to a constant bool", self);
+        }
+    }
+
+    fn coerce_int(self) -> i64 {
+        if let Some(v) = self {
+            v.into()
+        } else {
+            panic!("No value to coerce to bool");
+        }
+    }
+
+    fn coerce_bool(self) -> bool {
+        if let Some(v) = self {
+            v.into()
+        } else {
+            panic!("No value to coerce to bool");
         }
     }
 }

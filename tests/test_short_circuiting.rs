@@ -46,6 +46,10 @@ fn assert_statement_no_and_or(s: &Statement) {
             assert_expr_no_and_or(&expr);
             pos.iter().for_each(assert_statement_no_and_or);
             neg.iter().for_each(assert_statement_no_and_or);
+        },
+        Statement::WhileLoop(expr, body) => {
+            assert_expr_no_and_or(&expr);
+            body.iter().for_each(assert_statement_no_and_or);
         }
     }
 }

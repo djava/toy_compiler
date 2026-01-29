@@ -25,7 +25,7 @@ pub enum Expr<'a> {
     Parens(Box<Expr<'a>>),
     Binary(Box<Expr<'a>>, Operator, Box<Expr<'a>>),
     Call(&'a str, Vec<Expr<'a>>),
-    Ternary(Box<Expr<'a>>, Box<Expr<'a>>, Box<Expr<'a>>)
+    Ternary(Box<Expr<'a>>, Box<Expr<'a>>, Box<Expr<'a>>),
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -35,6 +35,7 @@ pub enum Statement<'a> {
     If(Expr<'a>, Vec<Statement<'a>>),
     ElseIf(Expr<'a>, Vec<Statement<'a>>),
     Else(Vec<Statement<'a>>),
+    While(Expr<'a>, Vec<Statement<'a>>),
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -121,10 +122,15 @@ parser! {
         /// An if-chain: if { } [else if { }]* [else { }]?
         /// No newlines required between parts
         pub rule if_chain() -> Vec<Statement<'t>> =
-            head:if_statement() rest:([Token::Newline]* s:(else_if_statement() / else_statement()) { s })* {
-                let mut v = vec![head];
-                v.extend(rest);
-                v
+        head:if_statement() rest:([Token::Newline]* s:(else_if_statement() / else_statement()) { s })* {
+            let mut v = vec![head];
+            v.extend(rest);
+            v
+        }
+
+        pub rule while_statement() -> Statement<'t> =
+            [ Token::While ] cond:expr() body:statement_body() {
+                Statement::While(cond, body)
             }
 
         /// Simple statements (not if-chains)
@@ -133,7 +139,7 @@ parser! {
 
         /// For use inside statement bodies
         pub rule statement() -> Statement<'t> =
-            if_statement() / else_if_statement() / else_statement() / simple_statement()
+            if_statement() / else_if_statement() / else_statement() / while_statement() / simple_statement()
 
         pub rule module() -> Module<'t> =
             ss:(if_chain() / (s:simple_statement() { vec![s] })) ** ([Token::Newline]+) eof() {

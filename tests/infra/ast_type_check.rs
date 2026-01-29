@@ -38,7 +38,7 @@ fn type_check_expr(e: &Expr, env: &mut TypeEnv) -> ValueType {
         }
         Ternary(cond, pos, neg) => {
             let cond_type = type_check_expr(&*cond, env);
-            assert_eq!(cond_type, ValueType::BoolType);
+            assert!([ValueType::BoolType, ValueType::IntType].contains(&cond_type));
 
             let pos_type = type_check_expr(&*pos, env);
             let neg_type = type_check_expr(&*neg, env);
@@ -77,10 +77,16 @@ fn type_check_statements(statements: &[Statement], env: &mut TypeEnv) {
             }
             Conditional(cond, pos, neg) => {
                 let cond_type = type_check_expr(cond, env);
-                assert_eq!(cond_type, ValueType::BoolType);
+                assert!([ValueType::BoolType, ValueType::IntType].contains(&cond_type));
 
                 type_check_statements(pos, env);
                 type_check_statements(neg, env);
+            },
+            WhileLoop(cond, body) => {
+                let cond_type = type_check_expr(cond, env);
+                assert!([ValueType::BoolType, ValueType::IntType].contains(&cond_type));
+
+                type_check_statements(body, env);
             }
         }
     }

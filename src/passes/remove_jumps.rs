@@ -36,12 +36,12 @@ impl X86Pass for RemoveJumps {
         }
 
         // Go in reverse order to prevent the stale indices from being
-        // problematic. Blocks should be topologically sorted - we
-        // should always be merging a higher index into a lower one,
-        // so if this operation is chained then going in forward order
-        // could cause a case where a block gets merged out of, then
-        // the next block gets merged into it and both get deleted.
-        // Reverse order prevents this possibility
+        // problematic. Blocks should be sorted by usage - we should
+        // always be merging a higher index into a lower one, so if this
+        // operation is chained then going in forward order could cause
+        // a case where a block gets merged out of, then the next block
+        // gets merged into it and both get deleted. Reverse order
+        // prevents this possibility
         for (into_idx, from_idx) in blocks_to_squash.into_iter().rev() {
             let from_block = m.blocks.remove(from_idx);
             let into_block = m.blocks.get_mut(into_idx).unwrap();

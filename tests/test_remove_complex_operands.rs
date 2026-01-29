@@ -314,3 +314,143 @@ fn test_remove_complex_operands_cascading_assigns() {
         expected_outputs: VecDeque::from(vec![10 + (10 + 20) + (10 + 20 + 30) + 40]),
     });
 }
+
+#[test]
+fn test_remove_complex_operands_while_loop_simple() {
+    // x = 5
+    // while x > 0 {
+    //     print_int(x)
+    //     x = x - 1
+    // }
+    execute_test_case(TestCase {
+        ast: Module::Body(vec![
+            Statement::Assign(
+                Identifier::Named(Arc::from("x")),
+                Expr::Constant(Value::I64(5)),
+            ),
+            Statement::WhileLoop(
+                Expr::BinaryOp(
+                    Box::new(Expr::Id(Identifier::Named(Arc::from("x")))),
+                    BinaryOperator::Greater,
+                    Box::new(Expr::Constant(Value::I64(0))),
+                ),
+                vec![
+                    Statement::Expr(Expr::Call(
+                        Identifier::Named(Arc::from("print_int")),
+                        vec![Expr::Id(Identifier::Named(Arc::from("x")))],
+                    )),
+                    Statement::Assign(
+                        Identifier::Named(Arc::from("x")),
+                        Expr::BinaryOp(
+                            Box::new(Expr::Id(Identifier::Named(Arc::from("x")))),
+                            BinaryOperator::Subtract,
+                            Box::new(Expr::Constant(Value::I64(1))),
+                        ),
+                    ),
+                ],
+            ),
+        ]),
+        inputs: VecDeque::new(),
+        expected_outputs: VecDeque::from(vec![5, 4, 3, 2, 1]),
+    });
+}
+
+#[test]
+fn test_remove_complex_operands_while_loop_complex_condition() {
+    // x = 10
+    // while (x - 5) > 0 {
+    //     print_int(x)
+    //     x = x - 1
+    // }
+    // The condition should have ephemeral assignment extracted
+    execute_test_case(TestCase {
+        ast: Module::Body(vec![
+            Statement::Assign(
+                Identifier::Named(Arc::from("x")),
+                Expr::Constant(Value::I64(10)),
+            ),
+            Statement::WhileLoop(
+                Expr::BinaryOp(
+                    Box::new(Expr::BinaryOp(
+                        Box::new(Expr::Id(Identifier::Named(Arc::from("x")))),
+                        BinaryOperator::Subtract,
+                        Box::new(Expr::Constant(Value::I64(5))),
+                    )),
+                    BinaryOperator::Greater,
+                    Box::new(Expr::Constant(Value::I64(0))),
+                ),
+                vec![
+                    Statement::Expr(Expr::Call(
+                        Identifier::Named(Arc::from("print_int")),
+                        vec![Expr::Id(Identifier::Named(Arc::from("x")))],
+                    )),
+                    Statement::Assign(
+                        Identifier::Named(Arc::from("x")),
+                        Expr::BinaryOp(
+                            Box::new(Expr::Id(Identifier::Named(Arc::from("x")))),
+                            BinaryOperator::Subtract,
+                            Box::new(Expr::Constant(Value::I64(1))),
+                        ),
+                    ),
+                ],
+            ),
+        ]),
+        inputs: VecDeque::new(),
+        expected_outputs: VecDeque::from(vec![10, 9, 8, 7, 6]),
+    });
+}
+
+#[test]
+fn test_remove_complex_operands_while_loop_complex_body() {
+    // i = 3
+    // while i > 0 {
+    //     print_int((read_int() + 10) + (20 - 5))
+    //     i = i - 1
+    // }
+    execute_test_case(TestCase {
+        ast: Module::Body(vec![
+            Statement::Assign(
+                Identifier::Named(Arc::from("i")),
+                Expr::Constant(Value::I64(3)),
+            ),
+            Statement::WhileLoop(
+                Expr::BinaryOp(
+                    Box::new(Expr::Id(Identifier::Named(Arc::from("i")))),
+                    BinaryOperator::Greater,
+                    Box::new(Expr::Constant(Value::I64(0))),
+                ),
+                vec![
+                    Statement::Expr(Expr::Call(
+                        Identifier::Named(Arc::from("print_int")),
+                        vec![Expr::BinaryOp(
+                            Box::new(Expr::BinaryOp(
+                                Box::new(Expr::Call(
+                                    Identifier::Named(Arc::from("read_int")),
+                                    vec![],
+                                )),
+                                BinaryOperator::Add,
+                                Box::new(Expr::Constant(Value::I64(10))),
+                            )),
+                            BinaryOperator::Add,
+                            Box::new(Expr::BinaryOp(
+                                Box::new(Expr::Constant(Value::I64(20))),
+                                BinaryOperator::Subtract,
+                                Box::new(Expr::Constant(Value::I64(5))),
+                            )),
+                        )],
+                    )),
+                    Statement::Assign(
+                        Identifier::Named(Arc::from("i")),
+                        Expr::BinaryOp(
+                            Box::new(Expr::Id(Identifier::Named(Arc::from("i")))),
+                            BinaryOperator::Subtract,
+                            Box::new(Expr::Constant(Value::I64(1))),
+                        ),
+                    ),
+                ],
+            ),
+        ]),
+        inputs: VecDeque::from(vec![1, 2, 3]),
+        expected_outputs: VecDeque::from(vec![1 + 10 + 15, 2 + 10 + 15, 3 + 10 + 15]),
+    });
+}

@@ -123,7 +123,13 @@ pub fn to_ast_statement<'a>(
             panic!(
                 "Unexpected Else statement - either in wrong place or bug in to_ast's If branch"
             );
-        }
+        },
+        Some(pt::Statement::While(cond, body)) => {
+            Some(ast::Statement::WhileLoop(
+                to_ast_expr(cond),
+                to_ast_statements(body)
+            ))
+        },
         None => None,
     }
 }

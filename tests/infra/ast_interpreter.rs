@@ -89,7 +89,7 @@ fn interpret_statement(
             }
         }
         Statement::Assign(id, e) => {
-            let result = interpret_expr(e, inputs, outputs, env).expect_int();
+            let result = interpret_expr(e, inputs, outputs, env).coerce_int();
             env.insert(id.clone(), Value::I64(result));
 
             if !remaining_stmts.is_empty() {
@@ -103,11 +103,31 @@ fn interpret_statement(
             }
         },
         Statement::Conditional(cond, pos, neg) => {
-            let result = interpret_expr(cond, inputs, outputs, env).expect_bool();
-            
+            let result = interpret_expr(cond, inputs, outputs, env).coerce_bool();
+
             let exec_next = if result { pos } else { neg };
-            for i in exec_next {
-                interpret_statement(i, inputs, outputs, remaining_stmts, env);
+            if !exec_next.is_empty() {
+                interpret_statement(&exec_next[0], inputs, outputs, &exec_next[1..], env);
+            }
+
+            if !remaining_stmts.is_empty() {
+                interpret_statement(&remaining_stmts[0], inputs, outputs, &remaining_stmts[1..], env);
+            }
+        },
+        Statement::WhileLoop(cond, body) => {
+            let mut iterations = 0;
+            while interpret_expr(cond, inputs, outputs, env).expect_bool() {
+                if !body.is_empty() {
+                    interpret_statement(&body[0], inputs, outputs, &body[1..], env);
+                }
+                iterations += 1;
+                if iterations > 1000 {
+                    panic!("infinite loop? iterated 1000 times");
+                }
+            }
+
+            if !remaining_stmts.is_empty() {
+                interpret_statement(&remaining_stmts[0], inputs, outputs, &remaining_stmts[1..], env);
             }
         }
     };

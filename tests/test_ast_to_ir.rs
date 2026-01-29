@@ -370,3 +370,256 @@ fn test_ast_to_ir_ternary_complex() {
         expected_outputs: VecDeque::from([12, 25]),
     });
 }
+
+#[test]
+fn test_ast_to_ir_while_loop_simple() {
+    // x = 5
+    // while x > 0 {
+    //     print_int(x)
+    //     x = x - 1
+    // }
+    execute_test_case(TestCase {
+        ast: Module::Body(vec![
+            Statement::Assign(
+                Identifier::Named(Arc::from("x")),
+                Expr::Constant(Value::I64(5)),
+            ),
+            Statement::WhileLoop(
+                Expr::BinaryOp(
+                    Box::new(Expr::Id(Identifier::Named(Arc::from("x")))),
+                    BinaryOperator::Greater,
+                    Box::new(Expr::Constant(Value::I64(0))),
+                ),
+                vec![
+                    Statement::Expr(Expr::Call(
+                        Identifier::Named(Arc::from("print_int")),
+                        vec![Expr::Id(Identifier::Named(Arc::from("x")))],
+                    )),
+                    Statement::Assign(
+                        Identifier::Named(Arc::from("x")),
+                        Expr::BinaryOp(
+                            Box::new(Expr::Id(Identifier::Named(Arc::from("x")))),
+                            BinaryOperator::Subtract,
+                            Box::new(Expr::Constant(Value::I64(1))),
+                        ),
+                    ),
+                ],
+            ),
+        ]),
+        inputs: VecDeque::new(),
+        expected_outputs: VecDeque::from(vec![5, 4, 3, 2, 1]),
+    });
+}
+
+#[test]
+fn test_ast_to_ir_while_loop_zero_iterations() {
+    // x = 0
+    // while x > 0 {
+    //     print_int(x)
+    // }
+    // print_int(42)
+    execute_test_case(TestCase {
+        ast: Module::Body(vec![
+            Statement::Assign(
+                Identifier::Named(Arc::from("x")),
+                Expr::Constant(Value::I64(0)),
+            ),
+            Statement::WhileLoop(
+                Expr::BinaryOp(
+                    Box::new(Expr::Id(Identifier::Named(Arc::from("x")))),
+                    BinaryOperator::Greater,
+                    Box::new(Expr::Constant(Value::I64(0))),
+                ),
+                vec![Statement::Expr(Expr::Call(
+                    Identifier::Named(Arc::from("print_int")),
+                    vec![Expr::Id(Identifier::Named(Arc::from("x")))],
+                ))],
+            ),
+            Statement::Expr(Expr::Call(
+                Identifier::Named(Arc::from("print_int")),
+                vec![Expr::Constant(Value::I64(42))],
+            )),
+        ]),
+        inputs: VecDeque::new(),
+        expected_outputs: VecDeque::from(vec![42]),
+    });
+}
+
+#[test]
+fn test_ast_to_ir_while_loop_accumulator() {
+    // sum = 0
+    // i = 1
+    // while i <= 5 {
+    //     sum = sum + i
+    //     i = i + 1
+    // }
+    // print_int(sum)
+    execute_test_case(TestCase {
+        ast: Module::Body(vec![
+            Statement::Assign(
+                Identifier::Named(Arc::from("sum")),
+                Expr::Constant(Value::I64(0)),
+            ),
+            Statement::Assign(
+                Identifier::Named(Arc::from("i")),
+                Expr::Constant(Value::I64(1)),
+            ),
+            Statement::WhileLoop(
+                Expr::BinaryOp(
+                    Box::new(Expr::Id(Identifier::Named(Arc::from("i")))),
+                    BinaryOperator::LessEquals,
+                    Box::new(Expr::Constant(Value::I64(5))),
+                ),
+                vec![
+                    Statement::Assign(
+                        Identifier::Named(Arc::from("sum")),
+                        Expr::BinaryOp(
+                            Box::new(Expr::Id(Identifier::Named(Arc::from("sum")))),
+                            BinaryOperator::Add,
+                            Box::new(Expr::Id(Identifier::Named(Arc::from("i")))),
+                        ),
+                    ),
+                    Statement::Assign(
+                        Identifier::Named(Arc::from("i")),
+                        Expr::BinaryOp(
+                            Box::new(Expr::Id(Identifier::Named(Arc::from("i")))),
+                            BinaryOperator::Add,
+                            Box::new(Expr::Constant(Value::I64(1))),
+                        ),
+                    ),
+                ],
+            ),
+            Statement::Expr(Expr::Call(
+                Identifier::Named(Arc::from("print_int")),
+                vec![Expr::Id(Identifier::Named(Arc::from("sum")))],
+            )),
+        ]),
+        inputs: VecDeque::new(),
+        expected_outputs: VecDeque::from(vec![15]), // sum of 1..5
+    });
+}
+
+#[test]
+fn test_ast_to_ir_while_loop_nested() {
+    // i = 0
+    // while i < 2 {
+    //     j = 0
+    //     while j < 2 {
+    //         print_int(i)
+    //         print_int(j)
+    //         j = j + 1
+    //     }
+    //     i = i + 1
+    // }
+    execute_test_case(TestCase {
+        ast: Module::Body(vec![
+            Statement::Assign(
+                Identifier::Named(Arc::from("i")),
+                Expr::Constant(Value::I64(0)),
+            ),
+            Statement::WhileLoop(
+                Expr::BinaryOp(
+                    Box::new(Expr::Id(Identifier::Named(Arc::from("i")))),
+                    BinaryOperator::Less,
+                    Box::new(Expr::Constant(Value::I64(2))),
+                ),
+                vec![
+                    Statement::Assign(
+                        Identifier::Named(Arc::from("j")),
+                        Expr::Constant(Value::I64(0)),
+                    ),
+                    Statement::WhileLoop(
+                        Expr::BinaryOp(
+                            Box::new(Expr::Id(Identifier::Named(Arc::from("j")))),
+                            BinaryOperator::Less,
+                            Box::new(Expr::Constant(Value::I64(2))),
+                        ),
+                        vec![
+                            Statement::Expr(Expr::Call(
+                                Identifier::Named(Arc::from("print_int")),
+                                vec![Expr::Id(Identifier::Named(Arc::from("i")))],
+                            )),
+                            Statement::Expr(Expr::Call(
+                                Identifier::Named(Arc::from("print_int")),
+                                vec![Expr::Id(Identifier::Named(Arc::from("j")))],
+                            )),
+                            Statement::Assign(
+                                Identifier::Named(Arc::from("j")),
+                                Expr::BinaryOp(
+                                    Box::new(Expr::Id(Identifier::Named(Arc::from("j")))),
+                                    BinaryOperator::Add,
+                                    Box::new(Expr::Constant(Value::I64(1))),
+                                ),
+                            ),
+                        ],
+                    ),
+                    Statement::Assign(
+                        Identifier::Named(Arc::from("i")),
+                        Expr::BinaryOp(
+                            Box::new(Expr::Id(Identifier::Named(Arc::from("i")))),
+                            BinaryOperator::Add,
+                            Box::new(Expr::Constant(Value::I64(1))),
+                        ),
+                    ),
+                ],
+            ),
+        ]),
+        inputs: VecDeque::new(),
+        expected_outputs: VecDeque::from(vec![0, 0, 0, 1, 1, 0, 1, 1]),
+    });
+}
+
+#[test]
+fn test_ast_to_ir_while_loop_with_conditional() {
+    // i = 0
+    // while i < 5 {
+    //     if i == 2 {
+    //         print_int(100)
+    //     } else {
+    //         print_int(i)
+    //     }
+    //     i = i + 1
+    // }
+    execute_test_case(TestCase {
+        ast: Module::Body(vec![
+            Statement::Assign(
+                Identifier::Named(Arc::from("i")),
+                Expr::Constant(Value::I64(0)),
+            ),
+            Statement::WhileLoop(
+                Expr::BinaryOp(
+                    Box::new(Expr::Id(Identifier::Named(Arc::from("i")))),
+                    BinaryOperator::Less,
+                    Box::new(Expr::Constant(Value::I64(5))),
+                ),
+                vec![
+                    Statement::Conditional(
+                        Expr::BinaryOp(
+                            Box::new(Expr::Id(Identifier::Named(Arc::from("i")))),
+                            BinaryOperator::Equals,
+                            Box::new(Expr::Constant(Value::I64(2))),
+                        ),
+                        vec![Statement::Expr(Expr::Call(
+                            Identifier::Named(Arc::from("print_int")),
+                            vec![Expr::Constant(Value::I64(100))],
+                        ))],
+                        vec![Statement::Expr(Expr::Call(
+                            Identifier::Named(Arc::from("print_int")),
+                            vec![Expr::Id(Identifier::Named(Arc::from("i")))],
+                        ))],
+                    ),
+                    Statement::Assign(
+                        Identifier::Named(Arc::from("i")),
+                        Expr::BinaryOp(
+                            Box::new(Expr::Id(Identifier::Named(Arc::from("i")))),
+                            BinaryOperator::Add,
+                            Box::new(Expr::Constant(Value::I64(1))),
+                        ),
+                    ),
+                ],
+            ),
+        ]),
+        inputs: VecDeque::new(),
+        expected_outputs: VecDeque::from(vec![0, 1, 100, 3, 4]),
+    });
+}

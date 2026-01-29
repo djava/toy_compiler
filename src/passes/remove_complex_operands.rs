@@ -81,6 +81,28 @@ fn rco_statement(s: &Statement, new_body: &mut Vec<Statement>) {
                 neg_new_body,
             ));
         }
+        Statement::WhileLoop(cond, loop_body) => {
+            // Condition must be non-atomic to enable good codegen
+            let cond_transform = rco_expr(cond, false);
+
+            // Put cond in a statement block so that it recalculates it
+            // every iteration
+            let ephemeral_assign_stmts = cond_transform
+                .ephemeral_assigns
+                .iter()
+                .map(|(id, expr)| Statement::Assign(id.clone(), expr.clone()));
+            let cond_statement_block = Expr::StatementBlock(
+                ephemeral_assign_stmts.collect(),
+                Box::new(cond_transform.new_expr),
+            );
+
+            let mut new_loop_body = Vec::new();
+            loop_body
+                .iter()
+                .for_each(|s| rco_statement(s, &mut new_loop_body));
+
+            new_body.push(Statement::WhileLoop(cond_statement_block, new_loop_body));
+        }
     }
 }
 

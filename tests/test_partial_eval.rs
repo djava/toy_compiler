@@ -149,3 +149,112 @@ fn test_partial_eval_mixed() {
         expected_outputs: VecDeque::from(vec![44 - 100]),
     });
 }
+
+#[test]
+fn test_partial_eval_while_loop_simple() {
+    // x = 5
+    // while x > 0 {
+    //     print_int(x)
+    //     x = x - 1
+    // }
+    execute_test_case(TestCase {
+        ast: Module::Body(vec![
+            Statement::Assign(
+                Identifier::Named(Arc::from("x")),
+                Expr::Constant(Value::I64(5)),
+            ),
+            Statement::WhileLoop(
+                Expr::BinaryOp(
+                    Box::new(Expr::Id(Identifier::Named(Arc::from("x")))),
+                    BinaryOperator::Greater,
+                    Box::new(Expr::Constant(Value::I64(0))),
+                ),
+                vec![
+                    Statement::Expr(Expr::Call(
+                        Identifier::Named(Arc::from("print_int")),
+                        vec![Expr::Id(Identifier::Named(Arc::from("x")))],
+                    )),
+                    Statement::Assign(
+                        Identifier::Named(Arc::from("x")),
+                        Expr::BinaryOp(
+                            Box::new(Expr::Id(Identifier::Named(Arc::from("x")))),
+                            BinaryOperator::Subtract,
+                            Box::new(Expr::Constant(Value::I64(1))),
+                        ),
+                    ),
+                ],
+            ),
+        ]),
+        inputs: VecDeque::new(),
+        expected_outputs: VecDeque::from(vec![5, 4, 3, 2, 1]),
+    });
+}
+
+#[test]
+fn test_partial_eval_while_loop_constant_false() {
+    // while false {
+    //     print_int(100)
+    // }
+    // print_int(42)
+    execute_test_case(TestCase {
+        ast: Module::Body(vec![
+            Statement::WhileLoop(
+                Expr::Constant(Value::Bool(false)),
+                vec![Statement::Expr(Expr::Call(
+                    Identifier::Named(Arc::from("print_int")),
+                    vec![Expr::Constant(Value::I64(100))],
+                ))],
+            ),
+            Statement::Expr(Expr::Call(
+                Identifier::Named(Arc::from("print_int")),
+                vec![Expr::Constant(Value::I64(42))],
+            )),
+        ]),
+        inputs: VecDeque::new(),
+        expected_outputs: VecDeque::from(vec![42]), // Loop should be removed entirely
+    });
+}
+
+#[test]
+fn test_partial_eval_while_loop_with_partial_eval_in_body() {
+    // x = 3
+    // while x > 0 {
+    //     print_int(10 + 10)  // Should be partial evaluated to 20
+    //     x = x - 1
+    // }
+    execute_test_case(TestCase {
+        ast: Module::Body(vec![
+            Statement::Assign(
+                Identifier::Named(Arc::from("x")),
+                Expr::Constant(Value::I64(3)),
+            ),
+            Statement::WhileLoop(
+                Expr::BinaryOp(
+                    Box::new(Expr::Id(Identifier::Named(Arc::from("x")))),
+                    BinaryOperator::Greater,
+                    Box::new(Expr::Constant(Value::I64(0))),
+                ),
+                vec![
+                    Statement::Expr(Expr::Call(
+                        Identifier::Named(Arc::from("print_int")),
+                        vec![Expr::BinaryOp(
+                            Box::new(Expr::Constant(Value::I64(10))),
+                            BinaryOperator::Add,
+                            Box::new(Expr::Constant(Value::I64(10))),
+                        )],
+                    )),
+                    Statement::Assign(
+                        Identifier::Named(Arc::from("x")),
+                        Expr::BinaryOp(
+                            Box::new(Expr::Id(Identifier::Named(Arc::from("x")))),
+                            BinaryOperator::Subtract,
+                            Box::new(Expr::Constant(Value::I64(1))),
+                        ),
+                    ),
+                ],
+            ),
+        ]),
+        inputs: VecDeque::new(),
+        expected_outputs: VecDeque::from(vec![20, 20, 20]),
+    });
+}

@@ -28,6 +28,7 @@ pub enum Token<'a> {
     CloseBracket,
     QuestionMark,
     Colon,
+    While,
 }
 
 parser! {
@@ -71,6 +72,7 @@ parser! {
 
         rule _if() -> Token<'input> = "if" { Token::If }
         rule _else() -> Token<'input> = "else" { Token::Else }
+        rule _while() -> Token <'input> = "while" { Token::While }
 
         rule and_word() -> Token<'input> = "and" &__ { Token::And }
         rule or_word() -> Token<'input> = "or" &__ { Token::Or }
@@ -79,7 +81,7 @@ parser! {
         /// A word token requires trailing whitespace/EOF/puncutation
         rule word_token() -> Token<'input>
             = t:(bool() / and_word() / or_word() / not_word() /
-                 int() / _if() / _else() / identifier()) &__ {t}
+                 _if() / _else() / _while() / int() / identifier()) &__ {t}
 
         /// A punctuation token does not require trailing whitespace
         rule punctuation_token() -> Token<'input>
