@@ -83,15 +83,25 @@ impl LivenessMap {
                 // is neither s nor d, add edge (d, v)
                 for v in l_after {
                     if v != &s && v != &d {
+                        if !loc_to_node.contains_key(v) {
+                            panic!(
+                                "Couldn't find location node for {v:?} - most likely, it is read but never written to"
+                            );
+                        }
                         graph.add_edge(loc_to_node[&d], loc_to_node[v], ());
                     }
                 }
-            } else{
+            } else {
                 // If instruction is not movq, for each d in W(k) and v
                 // in L_after, if v != d, add edge (d,v)
                 for d in locs_written(i) {
                     for v in l_after {
                         if v != &d {
+                            if !loc_to_node.contains_key(v) {
+                                panic!(
+                                    "Couldn't find location node for {v:?} - most likely, it is read but never written to"
+                                );
+                            }
                             graph.add_edge(loc_to_node[&d], loc_to_node[v], ());
                         }
                     }
@@ -184,11 +194,7 @@ fn locs_written(i: &Instr) -> Vec<Location> {
 
             locations.extend(CALLER_SAVED_REGISTERS.iter().map(|r| Location::Reg(*r)));
         }
-        Instr::pushq(_)
-        | Instr::retq
-        | Instr::cmpq(_, _)
-        | Instr::jmp(_)
-        | Instr::jmpcc(_, _) => {}
+        Instr::pushq(_) | Instr::retq | Instr::cmpq(_, _) | Instr::jmp(_) | Instr::jmpcc(_, _) => {}
     };
 
     locations

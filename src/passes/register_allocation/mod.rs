@@ -133,8 +133,6 @@ fn run_for_block(instrs: &mut Vec<Instr>, location_to_storage: &HashMap<&Locatio
                         && let Some(storage) = location_to_storage.get(&loc)
                     {
                         *arg = storage.with_stack_offset(stack_offset).to_arg();
-                    } else {
-                        println!("COULDN'T GET LOCATION/STORAGE: {arg}")
                     }
                 }
             }
