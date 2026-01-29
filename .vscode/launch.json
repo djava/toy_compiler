@@ -1,0 +1,119 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+
+        {
+            "name": "Debug unit tests in library 'cs4999_compiler'",
+            "type": "lldb",
+            "request": "launch",
+            "cargo": {
+                "args": [
+                    "test"
+                ]
+            }
+        },
+        {
+            "name": "Debug executable 'cs4999-compiler'",
+            "type": "lldb",
+            "request": "launch",
+            "cargo": {
+                "args": [
+                    "run",
+                    "--bin=cs4999-compiler"
+                ]
+            },
+            "args": ["test-program.bob"]
+        },
+        {
+            "name": "Debug unit tests in executable 'cs4999-compiler'",
+            "type": "lldb",
+            "request": "launch",
+            "cargo": {
+                "args": [
+                    "test",
+                    "--bin=cs4999-compiler"
+                ]
+            }
+        },
+        {
+            "name": "Debug integration test 'test_ast_to_ir'",
+            "type": "lldb",
+            "request": "launch",
+            "cargo": {
+                "args": [
+                    "test",
+                    "--test=test_ast_to_ir"
+                ]
+            }
+        },
+        {
+            "name": "Debug integration test 'test_parser'",
+            "type": "lldb",
+            "request": "launch",
+            "cargo": {
+                "args": [
+                    "test",
+                    "--test=test_parser"
+                ]
+            }
+        },
+        {
+            "name": "Debug integration test 'test_partial_eval'",
+            "type": "lldb",
+            "request": "launch",
+            "cargo": {
+                "args": [
+                    "test",
+                    "--test=test_partial_eval"
+                ]
+            }
+        },
+        {
+            "name": "Debug integration test 'test_patch_instructions'",
+            "type": "lldb",
+            "request": "launch",
+            "cargo": {
+                "args": [
+                    "test",
+                    "--test=test_patch_instructions"
+                ]
+            }
+        },
+        {
+            "name": "Debug integration test 'test_register_allocation'",
+            "type": "lldb",
+            "request": "launch",
+            "cargo": {
+                "args": [
+                    "test",
+                    "--test=test_register_allocation"
+                ]
+            }
+        },
+        {
+            "name": "Debug integration test 'test_remove_complex_operands'",
+            "type": "lldb",
+            "request": "launch",
+            "cargo": {
+                "args": [
+                    "test",
+                    "--test=test_remove_complex_operands"
+                ]
+            }
+        },
+        {
+            "name": "Debug integration test 'test_short_circuiting'",
+            "type": "lldb",
+            "request": "launch",
+            "cargo": {
+                "args": [
+                    "test",
+                    "--test=test_short_circuiting"
+                ]
+            }
+        }
+    ]
+}

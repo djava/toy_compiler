@@ -1,41 +1,41 @@
+mod dataflow_analysis;
 mod graph_coloring;
-mod liveness_analysis;
-mod topological_sort;
 
-use std::collections::HashMap;
 use std::mem::size_of;
+use std::{collections::HashMap, sync::Arc};
 
 use crate::{
     ast::Identifier,
     passes::{X86Pass, register_allocation::graph_coloring::COLOR_TO_REG_STORAGE},
     x86_ast,
 };
+use dataflow_analysis::LivenessMap;
 use graph_coloring::color_location_graph;
-use liveness_analysis::LivenessMap;
 use x86_ast::*;
 
 pub struct RegisterAllocation;
 
 impl X86Pass for RegisterAllocation {
-    fn run_pass(self, m: X86Program) -> X86Program {
-        let mut ordered_blocks = topological_sort::block_topological_sort(m.blocks);
-        
-        let ordered_instrs: Vec<_> = ordered_blocks.iter().map(|b| b.instrs.clone()).flatten().collect();
-        let liveness = LivenessMap::from_instrs(&ordered_instrs);
+    fn run_pass(self, mut m: X86Program) -> X86Program {
+        let liveness = LivenessMap::from_blocks(&m.blocks);
 
         let (location_to_storage, stack_var_size) = allocate_storage(&liveness);
-        
+
         let callee_saved_used: Vec<_> = location_to_storage
-        .values()
+            .values()
             .filter(|stg| matches!(stg, Storage::Reg(reg) if CALLEE_SAVED_REGISTERS.contains(reg)))
             .collect();
         let callee_offset = -((callee_saved_used.len() * size_of::<i64>()) as i32);
-        
-        for b in ordered_blocks.iter_mut() {
+
+        for b in m.blocks.iter_mut() {
             run_for_block(&mut b.instrs, &location_to_storage, callee_offset);
         }
 
-        if let Some(entry) = ordered_blocks.first_mut() {
+        if let Some(user_entry) = m
+            .blocks
+            .iter_mut()
+            .find(|b| b.label == Directive::Label(Identifier::Named(Arc::from("user_entry"))))
+        {
             let callee_pushqs = callee_saved_used.iter().filter_map(|loc| {
                 if let Storage::Reg(reg) = loc {
                     Some(Instr::pushq(Arg::Reg(*reg)))
@@ -44,10 +44,14 @@ impl X86Pass for RegisterAllocation {
                 }
             });
 
-            entry.instrs.splice(0..0, callee_pushqs);
+            user_entry.instrs.splice(0..0, callee_pushqs);
         }
 
-        if let Some(exit) = ordered_blocks.last_mut() {
+        if let Some(user_exit) = m
+            .blocks
+            .iter_mut()
+            .find(|b| b.label == Directive::Label(Identifier::Named(Arc::from("user_exit"))))
+        {
             let callee_popqs = callee_saved_used.iter().rev().filter_map(|loc| {
                 if let Storage::Reg(reg) = loc {
                     Some(Instr::popq(Arg::Reg(*reg)))
@@ -56,10 +60,11 @@ impl X86Pass for RegisterAllocation {
                 }
             });
 
-            exit.instrs.extend(callee_popqs);
+            let len = user_exit.instrs.len();
+            user_exit.instrs.splice((len-2)..=(len-2), callee_popqs);
         }
 
-        let used_stack = callee_offset + stack_var_size;
+        let used_stack = -callee_offset + stack_var_size;
         let aligned_stack_size = if used_stack % STACK_ALIGNMENT == 0 {
             used_stack
         } else {
@@ -68,7 +73,7 @@ impl X86Pass for RegisterAllocation {
 
         X86Program {
             header: vec![],
-            blocks: ordered_blocks,
+            blocks: m.blocks,
             stack_size: aligned_stack_size as _,
         }
     }
@@ -115,7 +120,11 @@ impl Storage {
     }
 }
 
-fn run_for_block(instrs: &mut Vec<Instr>, location_to_storage: &HashMap<&Location, Storage>, stack_offset: i32) {
+fn run_for_block(
+    instrs: &mut Vec<Instr>,
+    location_to_storage: &HashMap<&Location, Storage>,
+    stack_offset: i32,
+) {
     for i in instrs.iter_mut() {
         match i {
             Instr::addq(s, d) | Instr::subq(s, d) | Instr::movq(s, d) | Instr::xorq(s, d) => {

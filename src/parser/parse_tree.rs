@@ -135,11 +135,11 @@ parser! {
 
         /// Simple statements (not if-chains)
         pub rule simple_statement() -> Statement<'t> =
-            assign() / (e:expr() { Statement::Expr(e) })
+            assign() / (e:expr() { Statement::Expr(e) }) / while_statement()
 
         /// For use inside statement bodies
         pub rule statement() -> Statement<'t> =
-            if_statement() / else_if_statement() / else_statement() / while_statement() / simple_statement()
+            if_statement() / else_if_statement() / else_statement() / simple_statement()
 
         pub rule module() -> Module<'t> =
             ss:(if_chain() / (s:simple_statement() { vec![s] })) ** ([Token::Newline]+) eof() {

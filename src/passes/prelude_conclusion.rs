@@ -11,14 +11,13 @@ impl X86Pass for PreludeConclusion {
         ];
 
         let prelude_instrs: [Instr; 4] = [
-            Instr::subq(Arg::Immediate(m.stack_size as _), Arg::Reg(Register::rsp)),
             Instr::pushq(Arg::Reg(Register::rbp)),
             Instr::movq(Arg::Reg(Register::rsp), Arg::Reg(Register::rbp)),
+            Instr::subq(Arg::Immediate(m.stack_size as _), Arg::Reg(Register::rsp)),
             Instr::jmp(Identifier::Named(Arc::from("user_entry")))
         ];
-        let conclusion_instrs: [Instr; 4] = [
+        let conclusion_instrs: [Instr; 3] = [
             Instr::addq(Arg::Immediate(m.stack_size as _), Arg::Reg(Register::rsp)),
-            Instr::movq(Arg::Deref(Register::rbp, -48), Arg::Reg(Register::rax)),
             Instr::popq(Arg::Reg(Register::rbp)),
             Instr::retq,
         ];

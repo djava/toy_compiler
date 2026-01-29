@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use petgraph::graph::DiGraph;
 use crate::x86_ast::{Block, Directive, Instr};
 
-pub fn x86_block_adj_graph<'a>(blocks: &'a Vec<Block>) -> DiGraph<&'a Block, ()> {
+pub fn x86_block_adj_graph<'a>(blocks: &'a [Block]) -> DiGraph<&'a Block, ()> {
     let mut block_graph = DiGraph::new();
 
     let label_node_map = {

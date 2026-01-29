@@ -1,7 +1,11 @@
-use petgraph::graph::UnGraph;
-use std::collections::{HashMap, HashSet};
+use petgraph::{
+    Direction,
+    graph::{DiGraph, NodeIndex, UnGraph},
+    visit::EdgeRef,
+};
+use std::collections::{HashMap, HashSet, VecDeque};
 
-use crate::{passes::register_allocation::Location, x86_ast::*};
+use crate::{passes::register_allocation::Location, utils::x86_block_adj_graph, x86_ast::*};
 
 #[derive(Debug, Clone)]
 pub struct LivenessMap {
@@ -9,29 +13,96 @@ pub struct LivenessMap {
 }
 
 impl LivenessMap {
-    pub fn from_instrs(instrs: &[Instr]) -> Self {
-        let alive_befores = LivenessMap::make_alive_befores(instrs);
-        let all_locations: HashSet<_> = instrs.iter().map(locs_written).flatten().collect();
+    pub fn from_blocks(blocks: &[Block]) -> LivenessMap {
+        let block_adj_graph = x86_block_adj_graph(blocks);
+
+        let alive_after_instrs = Self::analyze_dataflow(block_adj_graph);
+        let all_locations: HashSet<_> = blocks
+            .iter()
+            .map(|b| &b.instrs)
+            .flatten()
+            .map(locs_written)
+            .flatten()
+            .collect();
+
+        let alive_after_instrs = {
+            let instrs = alive_after_instrs.iter().map(|(b, _)| &b.instrs).flatten();
+
+            let alive_afters = alive_after_instrs
+                .iter()
+                .map(|(_, v_hashset)| v_hashset)
+                .flatten();
+
+            instrs.zip(alive_afters)
+        };
+
         let interference_graph =
-            LivenessMap::make_interference_graph(instrs, &alive_befores, &all_locations);
+            LivenessMap::make_interference_graph(alive_after_instrs, &all_locations);
 
         Self { interference_graph }
     }
 
-    fn make_alive_befores(instrs: &[Instr]) -> Vec<HashSet<Location>> {
+    fn analyze_dataflow(
+        block_graph: DiGraph<&Block, ()>,
+    ) -> HashMap<&Block, Vec<HashSet<Location>>> {
+        let mut alive_before_blocks: HashMap<NodeIndex, HashSet<Location>> = block_graph
+            .node_indices()
+            .map(|b| (b, HashSet::new()))
+            .collect();
+
+        let mut work_list = VecDeque::from_iter(block_graph.node_indices());
+
+        let mut final_alive_afters = HashMap::new();
+
+        let mut iters: usize = 0;
+        while !work_list.is_empty() {
+            iters += 1;
+            if iters > block_graph.node_count() * 20 {
+                panic!("probably stuck with alive_after_blocks: {alive_before_blocks:?}");
+            }
+
+            let curr_node = work_list.pop_front().unwrap();
+            let input = block_graph
+                .edges_directed(curr_node, Direction::Outgoing)
+                .map(|edge| alive_before_blocks[&edge.target()].clone())
+                .fold(HashSet::new(), |mut acc: HashSet<Location>, this_set| {
+                    acc.extend(this_set.clone());
+                    acc
+                });
+
+            let curr_block = block_graph.node_weight(curr_node).unwrap();
+            let (alive_afters, alive_before) = Self::get_alive_befores_and_after(&curr_block.instrs, input.clone());
+
+            if alive_before_blocks[&curr_node] == alive_before {
+                final_alive_afters.insert(*curr_block, alive_afters);
+            } else {
+                alive_before_blocks.insert(curr_node, alive_before);
+                work_list.extend(
+                    block_graph
+                        .edges_directed(curr_node, Direction::Incoming)
+                        .map(|e| e.source()),
+                );
+                work_list.push_back(curr_node);
+            }
+        }
+
+        final_alive_afters
+    }
+
+    fn get_alive_befores_and_after(
+        instrs: &[Instr],
+        alive_after_block: HashSet<Location>,
+    ) -> (Vec<HashSet<Location>>, HashSet<Location>) {
         // Implements the textbook's equation for liveness analysis:
         //      `L_before(k) = (L_after(k) - W(k)) union R(k)`
         //
-        // Reverse the list of instructions, then go one-by-one and
-        // remove writtten ones and add read ones. Iter::scan() carries
-        // the previous iteration's state into the next one, so we
-        // always start with the L_before(k) and do the set operations
-        // to get the L_after based on locs_written(i) and locs_read(i)
+        // Returns alive_AFTER for each instruction (needed for interference graph)
+        // alive_after(instr_i) = alive_before(instr_i+1) = alive_before(block) for first instr
 
-        let mut alive_befores: Vec<_> = instrs
+        let mut alive_befores_and_after: Vec<_> = instrs
             .iter()
             .rev()
-            .scan(HashSet::new(), |alive_after, instr| {
+            .scan(alive_after_block.clone(), |alive_after, instr| {
                 let alive_before = {
                     let written = locs_written(instr);
                     alive_after.retain(|l| !written.contains(l));
@@ -42,13 +113,18 @@ impl LivenessMap {
             })
             .collect();
 
-        alive_befores.reverse();
-        alive_befores
+        let alive_before = alive_befores_and_after.pop().unwrap();
+
+        alive_befores_and_after.reverse();
+
+        // Add alive_after(block) to get alive_after for the last instruction
+        alive_befores_and_after.push(alive_after_block);
+
+        (alive_befores_and_after, alive_before)
     }
 
-    fn make_interference_graph(
-        instrs: &[Instr],
-        alive_befores: &[HashSet<Location>],
+    fn make_interference_graph<'a>(
+        alive_before_instrs: impl Iterator<Item = (&'a Instr, &'a HashSet<Location>)>,
         all_locations: &HashSet<Location>,
     ) -> UnGraph<Location, ()> {
         let mut graph = UnGraph::new_undirected();
@@ -57,13 +133,8 @@ impl LivenessMap {
             .map(|loc| (loc, graph.add_node(loc.clone())))
             .collect();
 
-        // Extra l_after for the last instruction, since it wouldn't
-        // have one because these after's are being converted from before's.
-        let last_l_after = &HashSet::new();
-        let alive_afters = alive_befores.iter().skip(1).chain([last_l_after]);
-
         // Following algoirthm from textbook
-        for (i, l_after) in instrs.iter().zip(alive_afters) {
+        for (i, l_after) in alive_before_instrs {
             if let Instr::movq(s_arg, d_arg) = i
                 && let Some(s) = Location::try_from_arg(s_arg)
                 && let Some(d) = Location::try_from_arg(d_arg)

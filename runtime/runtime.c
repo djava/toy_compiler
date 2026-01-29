@@ -605,7 +605,7 @@ int64_t read_int() {
 
 // print an integer to stdout
 void print_int(int64_t x) {
-  printf("%" PRId64, x);
+  printf("%" PRId64 "\n", x);
 }
 
 // print a bool to stdout
