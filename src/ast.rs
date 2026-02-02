@@ -150,6 +150,12 @@ impl Identifier {
     }
 }
 
+impl From<&str> for Identifier {
+    fn from(value: &str) -> Self {
+        Identifier::Named(Arc::from(value))
+    }
+}
+
 #[derive(Debug, Clone, PartialEq)]
 pub enum Expr {
     Constant(Value),

@@ -1,6 +1,5 @@
 mod infra;
 use std::collections::VecDeque;
-use std::sync::Arc;
 
 use cs4999_compiler::{
     ast::*,
@@ -43,7 +42,7 @@ fn execute_test_case(mut tc: TestCase) {
 fn test_ast_to_ir_add() {
     execute_test_case(TestCase {
         ast: Module::Body(vec![Statement::Expr(Expr::Call(
-            Identifier::Named(Arc::from("print_int")),
+            Identifier::from("print_int"),
             vec![Expr::BinaryOp(
                 Box::new(Expr::Constant(Value::I64(40))),
                 BinaryOperator::Add,
@@ -59,8 +58,8 @@ fn test_ast_to_ir_add() {
 fn test_ast_to_ir_input() {
     execute_test_case(TestCase {
         ast: Module::Body(vec![Statement::Expr(Expr::Call(
-            Identifier::Named(Arc::from("print_int")),
-            vec![Expr::Call(Identifier::Named(Arc::from("read_int")), vec![])],
+            Identifier::from("print_int"),
+            vec![Expr::Call(Identifier::from("read_int"), vec![])],
         ))]),
         inputs: VecDeque::from(vec![42]),
         expected_outputs: VecDeque::from(vec![42]),
@@ -71,11 +70,11 @@ fn test_ast_to_ir_input() {
 fn test_ast_to_ir_subinput() {
     execute_test_case(TestCase {
         ast: Module::Body(vec![Statement::Expr(Expr::Call(
-            Identifier::Named(Arc::from("print_int")),
+            Identifier::from("print_int"),
             vec![Expr::BinaryOp(
-                Box::new(Expr::Call(Identifier::Named(Arc::from("read_int")), vec![])),
+                Box::new(Expr::Call(Identifier::from("read_int"), vec![])),
                 BinaryOperator::Subtract,
-                Box::new(Expr::Call(Identifier::Named(Arc::from("read_int")), vec![])),
+                Box::new(Expr::Call(Identifier::from("read_int"), vec![])),
             )],
         ))]),
         inputs: VecDeque::from(vec![5, 3]),
@@ -87,7 +86,7 @@ fn test_ast_to_ir_subinput() {
 fn test_ast_to_ir_zero() {
     execute_test_case(TestCase {
         ast: Module::Body(vec![Statement::Expr(Expr::Call(
-            Identifier::Named(Arc::from("print_int")),
+            Identifier::from("print_int"),
             vec![Expr::Constant(Value::I64(0))],
         ))]),
         inputs: VecDeque::from(vec![]),
@@ -99,7 +98,7 @@ fn test_ast_to_ir_zero() {
 fn test_ast_to_ir_nested() {
     execute_test_case(TestCase {
         ast: Module::Body(vec![Statement::Expr(Expr::Call(
-            Identifier::Named(Arc::from("print_int")),
+            Identifier::from("print_int"),
             vec![Expr::BinaryOp(
                 Box::new(Expr::BinaryOp(
                     Box::new(Expr::Constant(Value::I64(40))),
@@ -123,10 +122,10 @@ fn test_ast_to_ir_nested() {
 fn test_ast_to_ir_mixed() {
     execute_test_case(TestCase {
         ast: Module::Body(vec![Statement::Expr(Expr::Call(
-            Identifier::Named(Arc::from("print_int")),
+            Identifier::from("print_int"),
             vec![Expr::BinaryOp(
                 Box::new(Expr::BinaryOp(
-                    Box::new(Expr::Call(Identifier::Named(Arc::from("read_int")), vec![])),
+                    Box::new(Expr::Call(Identifier::from("read_int"), vec![])),
                     BinaryOperator::Add,
                     Box::new(Expr::Constant(Value::I64(2))),
                 )),
@@ -148,12 +147,12 @@ fn test_ast_to_ir_simple_assignment() {
     execute_test_case(TestCase {
         ast: Module::Body(vec![
             Statement::Assign(
-                Identifier::Named(Arc::from("x")),
+                Identifier::from("x"),
                 Expr::Constant(Value::I64(1000)),
             ),
             Statement::Expr(Expr::Call(
-                Identifier::Named(Arc::from("print_int")),
-                vec![Expr::Id(Identifier::Named(Arc::from("x")))],
+                Identifier::from("print_int"),
+                vec![Expr::Id(Identifier::from("x"))],
             )),
         ]),
         inputs: VecDeque::from(vec![]),
@@ -175,10 +174,10 @@ fn test_ast_to_ir_complex_assignment() {
     execute_test_case(TestCase {
         ast: Module::Body(vec![
             Statement::Assign(
-                Identifier::Named(Arc::from("foofoo")),
+                Identifier::from("foofoo"),
                 Expr::BinaryOp(
                     Box::new(Expr::BinaryOp(
-                        Box::new(Expr::Call(Identifier::Named(Arc::from("read_int")), vec![])),
+                        Box::new(Expr::Call(Identifier::from("read_int"), vec![])),
                         BinaryOperator::Add,
                         Box::new(Expr::Constant(Value::I64(2))),
                     )),
@@ -191,8 +190,8 @@ fn test_ast_to_ir_complex_assignment() {
                 ),
             ),
             Statement::Expr(Expr::Call(
-                Identifier::Named(Arc::from("print_int")),
-                vec![Expr::Id(Identifier::Named(Arc::from("foofoo")))],
+                Identifier::from("print_int"),
+                vec![Expr::Id(Identifier::from("foofoo"))],
             )),
         ]),
         inputs: VecDeque::from(vec![10]),
@@ -204,10 +203,10 @@ fn test_ast_to_ir_complex_assignment() {
 fn test_ast_to_ir_complex_args() {
     execute_test_case(TestCase {
         ast: Module::Body(vec![Statement::Expr(Expr::Call(
-            Identifier::Named(Arc::from("print_int")),
+            Identifier::from("print_int"),
             vec![Expr::BinaryOp(
                 Box::new(Expr::BinaryOp(
-                    Box::new(Expr::Call(Identifier::Named(Arc::from("read_int")), vec![])),
+                    Box::new(Expr::Call(Identifier::from("read_int"), vec![])),
                     BinaryOperator::Add,
                     Box::new(Expr::Constant(Value::I64(2))),
                 )),
@@ -248,43 +247,43 @@ fn test_ast_to_ir_cascading_assigns() {
     execute_test_case(TestCase {
         ast: Module::Body(vec![
             Statement::Assign(
-                Identifier::Named(Arc::from("foo")),
-                Expr::Call(Identifier::Named(Arc::from("read_int")), vec![]),
+                Identifier::from("foo"),
+                Expr::Call(Identifier::from("read_int"), vec![]),
             ),
             Statement::Assign(
-                Identifier::Named(Arc::from("bar")),
+                Identifier::from("bar"),
                 Expr::BinaryOp(
-                    Box::new(Expr::Call(Identifier::Named(Arc::from("read_int")), vec![])),
+                    Box::new(Expr::Call(Identifier::from("read_int"), vec![])),
                     BinaryOperator::Add,
-                    Box::new(Expr::Id(Identifier::Named(Arc::from("foo")))),
+                    Box::new(Expr::Id(Identifier::from("foo"))),
                 ),
             ),
             Statement::Assign(
-                Identifier::Named(Arc::from("baz")),
+                Identifier::from("baz"),
                 Expr::BinaryOp(
-                    Box::new(Expr::Call(Identifier::Named(Arc::from("read_int")), vec![])),
+                    Box::new(Expr::Call(Identifier::from("read_int"), vec![])),
                     BinaryOperator::Add,
-                    Box::new(Expr::Id(Identifier::Named(Arc::from("bar")))),
+                    Box::new(Expr::Id(Identifier::from("bar"))),
                 ),
             ),
             Statement::Assign(
-                Identifier::Named(Arc::from("bop")),
+                Identifier::from("bop"),
                 Expr::BinaryOp(
                     Box::new(Expr::BinaryOp(
-                        Box::new(Expr::Id(Identifier::Named(Arc::from("foo")))),
+                        Box::new(Expr::Id(Identifier::from("foo"))),
                         BinaryOperator::Add,
-                        Box::new(Expr::Id(Identifier::Named(Arc::from("bar")))),
+                        Box::new(Expr::Id(Identifier::from("bar"))),
                     )),
                     BinaryOperator::Add,
-                    Box::new(Expr::Id(Identifier::Named(Arc::from("baz")))),
+                    Box::new(Expr::Id(Identifier::from("baz"))),
                 ),
             ),
             Statement::Expr(Expr::Call(
-                Identifier::Named(Arc::from("print_int")),
+                Identifier::from("print_int"),
                 vec![Expr::BinaryOp(
-                    Box::new(Expr::Call(Identifier::Named(Arc::from("read_int")), vec![])),
+                    Box::new(Expr::Call(Identifier::from("read_int"), vec![])),
                     BinaryOperator::Add,
-                    Box::new(Expr::Id(Identifier::Named(Arc::from("bop")))),
+                    Box::new(Expr::Id(Identifier::from("bop"))),
                 )],
             )),
         ]),
@@ -381,24 +380,24 @@ fn test_ast_to_ir_while_loop_simple() {
     execute_test_case(TestCase {
         ast: Module::Body(vec![
             Statement::Assign(
-                Identifier::Named(Arc::from("x")),
+                Identifier::from("x"),
                 Expr::Constant(Value::I64(5)),
             ),
             Statement::WhileLoop(
                 Expr::BinaryOp(
-                    Box::new(Expr::Id(Identifier::Named(Arc::from("x")))),
+                    Box::new(Expr::Id(Identifier::from("x"))),
                     BinaryOperator::Greater,
                     Box::new(Expr::Constant(Value::I64(0))),
                 ),
                 vec![
                     Statement::Expr(Expr::Call(
-                        Identifier::Named(Arc::from("print_int")),
-                        vec![Expr::Id(Identifier::Named(Arc::from("x")))],
+                        Identifier::from("print_int"),
+                        vec![Expr::Id(Identifier::from("x"))],
                     )),
                     Statement::Assign(
-                        Identifier::Named(Arc::from("x")),
+                        Identifier::from("x"),
                         Expr::BinaryOp(
-                            Box::new(Expr::Id(Identifier::Named(Arc::from("x")))),
+                            Box::new(Expr::Id(Identifier::from("x"))),
                             BinaryOperator::Subtract,
                             Box::new(Expr::Constant(Value::I64(1))),
                         ),
@@ -421,22 +420,22 @@ fn test_ast_to_ir_while_loop_zero_iterations() {
     execute_test_case(TestCase {
         ast: Module::Body(vec![
             Statement::Assign(
-                Identifier::Named(Arc::from("x")),
+                Identifier::from("x"),
                 Expr::Constant(Value::I64(0)),
             ),
             Statement::WhileLoop(
                 Expr::BinaryOp(
-                    Box::new(Expr::Id(Identifier::Named(Arc::from("x")))),
+                    Box::new(Expr::Id(Identifier::from("x"))),
                     BinaryOperator::Greater,
                     Box::new(Expr::Constant(Value::I64(0))),
                 ),
                 vec![Statement::Expr(Expr::Call(
-                    Identifier::Named(Arc::from("print_int")),
-                    vec![Expr::Id(Identifier::Named(Arc::from("x")))],
+                    Identifier::from("print_int"),
+                    vec![Expr::Id(Identifier::from("x"))],
                 ))],
             ),
             Statement::Expr(Expr::Call(
-                Identifier::Named(Arc::from("print_int")),
+                Identifier::from("print_int"),
                 vec![Expr::Constant(Value::I64(42))],
             )),
         ]),
@@ -457,32 +456,32 @@ fn test_ast_to_ir_while_loop_accumulator() {
     execute_test_case(TestCase {
         ast: Module::Body(vec![
             Statement::Assign(
-                Identifier::Named(Arc::from("sum")),
+                Identifier::from("sum"),
                 Expr::Constant(Value::I64(0)),
             ),
             Statement::Assign(
-                Identifier::Named(Arc::from("i")),
+                Identifier::from("i"),
                 Expr::Constant(Value::I64(1)),
             ),
             Statement::WhileLoop(
                 Expr::BinaryOp(
-                    Box::new(Expr::Id(Identifier::Named(Arc::from("i")))),
+                    Box::new(Expr::Id(Identifier::from("i"))),
                     BinaryOperator::LessEquals,
                     Box::new(Expr::Constant(Value::I64(5))),
                 ),
                 vec![
                     Statement::Assign(
-                        Identifier::Named(Arc::from("sum")),
+                        Identifier::from("sum"),
                         Expr::BinaryOp(
-                            Box::new(Expr::Id(Identifier::Named(Arc::from("sum")))),
+                            Box::new(Expr::Id(Identifier::from("sum"))),
                             BinaryOperator::Add,
-                            Box::new(Expr::Id(Identifier::Named(Arc::from("i")))),
+                            Box::new(Expr::Id(Identifier::from("i"))),
                         ),
                     ),
                     Statement::Assign(
-                        Identifier::Named(Arc::from("i")),
+                        Identifier::from("i"),
                         Expr::BinaryOp(
-                            Box::new(Expr::Id(Identifier::Named(Arc::from("i")))),
+                            Box::new(Expr::Id(Identifier::from("i"))),
                             BinaryOperator::Add,
                             Box::new(Expr::Constant(Value::I64(1))),
                         ),
@@ -490,8 +489,8 @@ fn test_ast_to_ir_while_loop_accumulator() {
                 ],
             ),
             Statement::Expr(Expr::Call(
-                Identifier::Named(Arc::from("print_int")),
-                vec![Expr::Id(Identifier::Named(Arc::from("sum")))],
+                Identifier::from("print_int"),
+                vec![Expr::Id(Identifier::from("sum"))],
             )),
         ]),
         inputs: VecDeque::new(),
@@ -514,39 +513,39 @@ fn test_ast_to_ir_while_loop_nested() {
     execute_test_case(TestCase {
         ast: Module::Body(vec![
             Statement::Assign(
-                Identifier::Named(Arc::from("i")),
+                Identifier::from("i"),
                 Expr::Constant(Value::I64(0)),
             ),
             Statement::WhileLoop(
                 Expr::BinaryOp(
-                    Box::new(Expr::Id(Identifier::Named(Arc::from("i")))),
+                    Box::new(Expr::Id(Identifier::from("i"))),
                     BinaryOperator::Less,
                     Box::new(Expr::Constant(Value::I64(2))),
                 ),
                 vec![
                     Statement::Assign(
-                        Identifier::Named(Arc::from("j")),
+                        Identifier::from("j"),
                         Expr::Constant(Value::I64(0)),
                     ),
                     Statement::WhileLoop(
                         Expr::BinaryOp(
-                            Box::new(Expr::Id(Identifier::Named(Arc::from("j")))),
+                            Box::new(Expr::Id(Identifier::from("j"))),
                             BinaryOperator::Less,
                             Box::new(Expr::Constant(Value::I64(2))),
                         ),
                         vec![
                             Statement::Expr(Expr::Call(
-                                Identifier::Named(Arc::from("print_int")),
-                                vec![Expr::Id(Identifier::Named(Arc::from("i")))],
+                                Identifier::from("print_int"),
+                                vec![Expr::Id(Identifier::from("i"))],
                             )),
                             Statement::Expr(Expr::Call(
-                                Identifier::Named(Arc::from("print_int")),
-                                vec![Expr::Id(Identifier::Named(Arc::from("j")))],
+                                Identifier::from("print_int"),
+                                vec![Expr::Id(Identifier::from("j"))],
                             )),
                             Statement::Assign(
-                                Identifier::Named(Arc::from("j")),
+                                Identifier::from("j"),
                                 Expr::BinaryOp(
-                                    Box::new(Expr::Id(Identifier::Named(Arc::from("j")))),
+                                    Box::new(Expr::Id(Identifier::from("j"))),
                                     BinaryOperator::Add,
                                     Box::new(Expr::Constant(Value::I64(1))),
                                 ),
@@ -554,9 +553,9 @@ fn test_ast_to_ir_while_loop_nested() {
                         ],
                     ),
                     Statement::Assign(
-                        Identifier::Named(Arc::from("i")),
+                        Identifier::from("i"),
                         Expr::BinaryOp(
-                            Box::new(Expr::Id(Identifier::Named(Arc::from("i")))),
+                            Box::new(Expr::Id(Identifier::from("i"))),
                             BinaryOperator::Add,
                             Box::new(Expr::Constant(Value::I64(1))),
                         ),
@@ -583,35 +582,35 @@ fn test_ast_to_ir_while_loop_with_conditional() {
     execute_test_case(TestCase {
         ast: Module::Body(vec![
             Statement::Assign(
-                Identifier::Named(Arc::from("i")),
+                Identifier::from("i"),
                 Expr::Constant(Value::I64(0)),
             ),
             Statement::WhileLoop(
                 Expr::BinaryOp(
-                    Box::new(Expr::Id(Identifier::Named(Arc::from("i")))),
+                    Box::new(Expr::Id(Identifier::from("i"))),
                     BinaryOperator::Less,
                     Box::new(Expr::Constant(Value::I64(5))),
                 ),
                 vec![
                     Statement::Conditional(
                         Expr::BinaryOp(
-                            Box::new(Expr::Id(Identifier::Named(Arc::from("i")))),
+                            Box::new(Expr::Id(Identifier::from("i"))),
                             BinaryOperator::Equals,
                             Box::new(Expr::Constant(Value::I64(2))),
                         ),
                         vec![Statement::Expr(Expr::Call(
-                            Identifier::Named(Arc::from("print_int")),
+                            Identifier::from("print_int"),
                             vec![Expr::Constant(Value::I64(100))],
                         ))],
                         vec![Statement::Expr(Expr::Call(
-                            Identifier::Named(Arc::from("print_int")),
-                            vec![Expr::Id(Identifier::Named(Arc::from("i")))],
+                            Identifier::from("print_int"),
+                            vec![Expr::Id(Identifier::from("i"))],
                         ))],
                     ),
                     Statement::Assign(
-                        Identifier::Named(Arc::from("i")),
+                        Identifier::from("i"),
                         Expr::BinaryOp(
-                            Box::new(Expr::Id(Identifier::Named(Arc::from("i")))),
+                            Box::new(Expr::Id(Identifier::from("i"))),
                             BinaryOperator::Add,
                             Box::new(Expr::Constant(Value::I64(1))),
                         ),

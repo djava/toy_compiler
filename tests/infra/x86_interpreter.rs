@@ -1,5 +1,4 @@
 use std::collections::VecDeque;
-use std::sync::Arc;
 
 use crate::infra::ValueEnv;
 use cs4999_compiler::{ast::Value, ir::Identifier, x86_ast::*};
@@ -172,11 +171,11 @@ fn execute_runtime_calls(
     outputs: &mut VecDeque<i64>,
     env: &mut X86Env,
 ) -> bool {
-    if label == &Identifier::Named(Arc::from("print_int")) {
+    if label == &Identifier::from("print_int") {
         let int = env.read_arg(&Arg::Reg(Register::rdi));
         outputs.push_back(int);
         return true;
-    } else if label == &Identifier::Named(Arc::from("read_int")) {
+    } else if label == &Identifier::from("read_int") {
         let int = inputs.pop_front().expect("Overflowed input values");
         env.write_arg(&Arg::Reg(Register::rax), int);
         return true;
@@ -272,7 +271,7 @@ pub fn interpret_x86(m: &X86Program, inputs: &mut VecDeque<i64>, outputs: &mut V
     let main_instrs = &m
         .blocks
         .iter()
-        .find(|block| block.label == Directive::Label(Identifier::Named(Arc::from("main"))))
+        .find(|block| block.label == Directive::Label(Identifier::from("main")))
         .unwrap();
 
     let mut curr_instr_iter = main_instrs.instrs.iter();

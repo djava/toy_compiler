@@ -1,5 +1,4 @@
 mod infra;
-use std::sync::Arc;
 use std::collections::VecDeque;
 
 use cs4999_compiler::{ast::*, passes::*, pipeline::Pipeline, x86_ast};
@@ -58,7 +57,7 @@ fn execute_test_case(mut tc: TestCase) {
 fn test_register_allocation_add() {
     execute_test_case(TestCase {
         ast: Module::Body(vec![Statement::Expr(Expr::Call(
-            Identifier::Named(Arc::from("print_int")),
+            Identifier::from("print_int"),
             vec![Expr::BinaryOp(
                 Box::new(Expr::Constant(Value::I64(40))),
                 BinaryOperator::Add,
@@ -74,8 +73,8 @@ fn test_register_allocation_add() {
 fn test_register_allocation_input() {
     execute_test_case(TestCase {
         ast: Module::Body(vec![Statement::Expr(Expr::Call(
-            Identifier::Named(Arc::from("print_int")),
-            vec![Expr::Call(Identifier::Named(Arc::from("read_int")), vec![])],
+            Identifier::from("print_int"),
+            vec![Expr::Call(Identifier::from("read_int"), vec![])],
         ))]),
         inputs: VecDeque::from(vec![42]),
         expected_outputs: VecDeque::from(vec![42]),
@@ -86,11 +85,11 @@ fn test_register_allocation_input() {
 fn test_register_allocation_subinput() {
     execute_test_case(TestCase {
         ast: Module::Body(vec![Statement::Expr(Expr::Call(
-            Identifier::Named(Arc::from("print_int")),
+            Identifier::from("print_int"),
             vec![Expr::BinaryOp(
-                Box::new(Expr::Call(Identifier::Named(Arc::from("read_int")), vec![])),
+                Box::new(Expr::Call(Identifier::from("read_int"), vec![])),
                 BinaryOperator::Subtract,
-                Box::new(Expr::Call(Identifier::Named(Arc::from("read_int")), vec![])),
+                Box::new(Expr::Call(Identifier::from("read_int"), vec![])),
             )],
         ))]),
         inputs: VecDeque::from(vec![5, 3]),
@@ -102,7 +101,7 @@ fn test_register_allocation_subinput() {
 fn test_register_allocation_zero() {
     execute_test_case(TestCase {
         ast: Module::Body(vec![Statement::Expr(Expr::Call(
-            Identifier::Named(Arc::from("print_int")),
+            Identifier::from("print_int"),
             vec![Expr::Constant(Value::I64(0))],
         ))]),
         inputs: VecDeque::from(vec![]),
@@ -114,7 +113,7 @@ fn test_register_allocation_zero() {
 fn test_register_allocation_nested() {
     execute_test_case(TestCase {
         ast: Module::Body(vec![Statement::Expr(Expr::Call(
-            Identifier::Named(Arc::from("print_int")),
+            Identifier::from("print_int"),
             vec![Expr::BinaryOp(
                 Box::new(Expr::BinaryOp(
                     Box::new(Expr::Constant(Value::I64(40))),
@@ -138,10 +137,10 @@ fn test_register_allocation_nested() {
 fn test_register_allocation_mixed() {
     execute_test_case(TestCase {
         ast: Module::Body(vec![Statement::Expr(Expr::Call(
-            Identifier::Named(Arc::from("print_int")),
+            Identifier::from("print_int"),
             vec![Expr::BinaryOp(
                 Box::new(Expr::BinaryOp(
-                    Box::new(Expr::Call(Identifier::Named(Arc::from("read_int")), vec![])),
+                    Box::new(Expr::Call(Identifier::from("read_int"), vec![])),
                     BinaryOperator::Add,
                     Box::new(Expr::Constant(Value::I64(2))),
                 )),
@@ -162,10 +161,10 @@ fn test_register_allocation_mixed() {
 fn test_register_allocation_simple_assignment() {
     execute_test_case(TestCase {
         ast: Module::Body(vec![
-            Statement::Assign(Identifier::Named(Arc::from("x")), Expr::Constant(Value::I64(1000))),
+            Statement::Assign(Identifier::from("x"), Expr::Constant(Value::I64(1000))),
             Statement::Expr(Expr::Call(
-                Identifier::Named(Arc::from("print_int")),
-                vec![Expr::Id(Identifier::Named(Arc::from("x")))],
+                Identifier::from("print_int"),
+                vec![Expr::Id(Identifier::from("x"))],
             )),
         ]),
         inputs: VecDeque::from(vec![]),
@@ -187,10 +186,10 @@ fn test_register_allocation_complex_assignment() {
     execute_test_case(TestCase {
         ast: Module::Body(vec![
             Statement::Assign(
-                Identifier::Named(Arc::from("foofoo")),
+                Identifier::from("foofoo"),
                 Expr::BinaryOp(
                     Box::new(Expr::BinaryOp(
-                        Box::new(Expr::Call(Identifier::Named(Arc::from("read_int")), vec![])),
+                        Box::new(Expr::Call(Identifier::from("read_int"), vec![])),
                         BinaryOperator::Add,
                         Box::new(Expr::Constant(Value::I64(2))),
                     )),
@@ -203,8 +202,8 @@ fn test_register_allocation_complex_assignment() {
                 ),
             ),
             Statement::Expr(Expr::Call(
-                Identifier::Named(Arc::from("print_int")),
-                vec![Expr::Id(Identifier::Named(Arc::from("foofoo")))],
+                Identifier::from("print_int"),
+                vec![Expr::Id(Identifier::from("foofoo"))],
             )),
         ]),
         inputs: VecDeque::from(vec![10]),
@@ -216,10 +215,10 @@ fn test_register_allocation_complex_assignment() {
 fn test_register_allocation_complex_args() {
     execute_test_case(TestCase {
         ast: Module::Body(vec![Statement::Expr(Expr::Call(
-            Identifier::Named(Arc::from("print_int")),
+            Identifier::from("print_int"),
             vec![Expr::BinaryOp(
                 Box::new(Expr::BinaryOp(
-                    Box::new(Expr::Call(Identifier::Named(Arc::from("read_int")), vec![])),
+                    Box::new(Expr::Call(Identifier::from("read_int"), vec![])),
                     BinaryOperator::Add,
                     Box::new(Expr::Constant(Value::I64(2))),
                 )),
@@ -260,43 +259,43 @@ fn test_register_allocation_cascading_assigns() {
     execute_test_case(TestCase {
         ast: Module::Body(vec![
             Statement::Assign(
-                Identifier::Named(Arc::from("finger")),
-                Expr::Call(Identifier::Named(Arc::from("read_int")), vec![]),
+                Identifier::from("finger"),
+                Expr::Call(Identifier::from("read_int"), vec![]),
             ),
             Statement::Assign(
-                Identifier::Named(Arc::from("bar")),
+                Identifier::from("bar"),
                 Expr::BinaryOp(
-                    Box::new(Expr::Call(Identifier::Named(Arc::from("read_int")), vec![])),
+                    Box::new(Expr::Call(Identifier::from("read_int"), vec![])),
                     BinaryOperator::Add,
-                    Box::new(Expr::Id(Identifier::Named(Arc::from("finger")))),
+                    Box::new(Expr::Id(Identifier::from("finger"))),
                 ),
             ),
             Statement::Assign(
-                Identifier::Named(Arc::from("baz")),
+                Identifier::from("baz"),
                 Expr::BinaryOp(
-                    Box::new(Expr::Call(Identifier::Named(Arc::from("read_int")), vec![])),
+                    Box::new(Expr::Call(Identifier::from("read_int"), vec![])),
                     BinaryOperator::Add,
-                    Box::new(Expr::Id(Identifier::Named(Arc::from("bar")))),
+                    Box::new(Expr::Id(Identifier::from("bar"))),
                 ),
             ),
             Statement::Assign(
-                Identifier::Named(Arc::from("bop")),
+                Identifier::from("bop"),
                 Expr::BinaryOp(
                     Box::new(Expr::BinaryOp(
-                        Box::new(Expr::Id(Identifier::Named(Arc::from("finger")))),
+                        Box::new(Expr::Id(Identifier::from("finger"))),
                         BinaryOperator::Add,
-                        Box::new(Expr::Id(Identifier::Named(Arc::from("bar")))),
+                        Box::new(Expr::Id(Identifier::from("bar"))),
                     )),
                     BinaryOperator::Add,
-                    Box::new(Expr::Id(Identifier::Named(Arc::from("baz")))),
+                    Box::new(Expr::Id(Identifier::from("baz"))),
                 ),
             ),
             Statement::Expr(Expr::Call(
-                Identifier::Named(Arc::from("print_int")),
+                Identifier::from("print_int"),
                 vec![Expr::BinaryOp(
-                    Box::new(Expr::Call(Identifier::Named(Arc::from("read_int")), vec![])),
+                    Box::new(Expr::Call(Identifier::from("read_int"), vec![])),
                     BinaryOperator::Add,
-                    Box::new(Expr::Id(Identifier::Named(Arc::from("bop")))),
+                    Box::new(Expr::Id(Identifier::from("bop"))),
                 )],
             )),
         ]),
@@ -309,30 +308,30 @@ fn test_register_allocation_cascading_assigns() {
 fn test_register_allocation_force_spills() {
     execute_test_case(TestCase {
         ast: Module::Body(vec![
-            Statement::Expr(Expr::Call(Identifier::Named(Arc::from("print_int")), vec![
-                Expr::BinaryOp(Box::new(Expr::Call(Identifier::Named(Arc::from("read_int")), vec![])), BinaryOperator::Add,
-                Box::new(Expr::BinaryOp(Box::new(Expr::Call(Identifier::Named(Arc::from("read_int")), vec![])), BinaryOperator::Add,
-                Box::new(Expr::BinaryOp(Box::new(Expr::Call(Identifier::Named(Arc::from("read_int")), vec![])), BinaryOperator::Add,
-                Box::new(Expr::BinaryOp(Box::new(Expr::Call(Identifier::Named(Arc::from("read_int")), vec![])), BinaryOperator::Add,
-                Box::new(Expr::BinaryOp(Box::new(Expr::Call(Identifier::Named(Arc::from("read_int")), vec![])), BinaryOperator::Add,
-                Box::new(Expr::BinaryOp(Box::new(Expr::Call(Identifier::Named(Arc::from("read_int")), vec![])), BinaryOperator::Add,
-                Box::new(Expr::BinaryOp(Box::new(Expr::Call(Identifier::Named(Arc::from("read_int")), vec![])), BinaryOperator::Add,
-                Box::new(Expr::BinaryOp(Box::new(Expr::Call(Identifier::Named(Arc::from("read_int")), vec![])), BinaryOperator::Add,
-                Box::new(Expr::BinaryOp(Box::new(Expr::Call(Identifier::Named(Arc::from("read_int")), vec![])), BinaryOperator::Add,
-                Box::new(Expr::BinaryOp(Box::new(Expr::Call(Identifier::Named(Arc::from("read_int")), vec![])), BinaryOperator::Add,
-                Box::new(Expr::BinaryOp(Box::new(Expr::Call(Identifier::Named(Arc::from("read_int")), vec![])), BinaryOperator::Add,
-                Box::new(Expr::BinaryOp(Box::new(Expr::Call(Identifier::Named(Arc::from("read_int")), vec![])), BinaryOperator::Add,
-                Box::new(Expr::BinaryOp(Box::new(Expr::Call(Identifier::Named(Arc::from("read_int")), vec![])), BinaryOperator::Add,
-                Box::new(Expr::BinaryOp(Box::new(Expr::Call(Identifier::Named(Arc::from("read_int")), vec![])), BinaryOperator::Add,
-                Box::new(Expr::BinaryOp(Box::new(Expr::Call(Identifier::Named(Arc::from("read_int")), vec![])), BinaryOperator::Add,
-                Box::new(Expr::BinaryOp(Box::new(Expr::Call(Identifier::Named(Arc::from("read_int")), vec![])), BinaryOperator::Add,
-                Box::new(Expr::BinaryOp(Box::new(Expr::Call(Identifier::Named(Arc::from("read_int")), vec![])), BinaryOperator::Add,
-                Box::new(Expr::BinaryOp(Box::new(Expr::Call(Identifier::Named(Arc::from("read_int")), vec![])), BinaryOperator::Add,
-                Box::new(Expr::BinaryOp(Box::new(Expr::Call(Identifier::Named(Arc::from("read_int")), vec![])), BinaryOperator::Add,
-                Box::new(Expr::BinaryOp(Box::new(Expr::Call(Identifier::Named(Arc::from("read_int")), vec![])), BinaryOperator::Add,
-                Box::new(Expr::BinaryOp(Box::new(Expr::Call(Identifier::Named(Arc::from("read_int")), vec![])), BinaryOperator::Add,
-                Box::new(Expr::BinaryOp(Box::new(Expr::Call(Identifier::Named(Arc::from("read_int")), vec![])), BinaryOperator::Add,
-                Box::new(Expr::Call(Identifier::Named(Arc::from("read_int")), vec![])))))))))))))))))))))))))))))))))))))))))))))
+            Statement::Expr(Expr::Call(Identifier::from("print_int"), vec![
+                Expr::BinaryOp(Box::new(Expr::Call(Identifier::from("read_int"), vec![])), BinaryOperator::Add,
+                Box::new(Expr::BinaryOp(Box::new(Expr::Call(Identifier::from("read_int"), vec![])), BinaryOperator::Add,
+                Box::new(Expr::BinaryOp(Box::new(Expr::Call(Identifier::from("read_int"), vec![])), BinaryOperator::Add,
+                Box::new(Expr::BinaryOp(Box::new(Expr::Call(Identifier::from("read_int"), vec![])), BinaryOperator::Add,
+                Box::new(Expr::BinaryOp(Box::new(Expr::Call(Identifier::from("read_int"), vec![])), BinaryOperator::Add,
+                Box::new(Expr::BinaryOp(Box::new(Expr::Call(Identifier::from("read_int"), vec![])), BinaryOperator::Add,
+                Box::new(Expr::BinaryOp(Box::new(Expr::Call(Identifier::from("read_int"), vec![])), BinaryOperator::Add,
+                Box::new(Expr::BinaryOp(Box::new(Expr::Call(Identifier::from("read_int"), vec![])), BinaryOperator::Add,
+                Box::new(Expr::BinaryOp(Box::new(Expr::Call(Identifier::from("read_int"), vec![])), BinaryOperator::Add,
+                Box::new(Expr::BinaryOp(Box::new(Expr::Call(Identifier::from("read_int"), vec![])), BinaryOperator::Add,
+                Box::new(Expr::BinaryOp(Box::new(Expr::Call(Identifier::from("read_int"), vec![])), BinaryOperator::Add,
+                Box::new(Expr::BinaryOp(Box::new(Expr::Call(Identifier::from("read_int"), vec![])), BinaryOperator::Add,
+                Box::new(Expr::BinaryOp(Box::new(Expr::Call(Identifier::from("read_int"), vec![])), BinaryOperator::Add,
+                Box::new(Expr::BinaryOp(Box::new(Expr::Call(Identifier::from("read_int"), vec![])), BinaryOperator::Add,
+                Box::new(Expr::BinaryOp(Box::new(Expr::Call(Identifier::from("read_int"), vec![])), BinaryOperator::Add,
+                Box::new(Expr::BinaryOp(Box::new(Expr::Call(Identifier::from("read_int"), vec![])), BinaryOperator::Add,
+                Box::new(Expr::BinaryOp(Box::new(Expr::Call(Identifier::from("read_int"), vec![])), BinaryOperator::Add,
+                Box::new(Expr::BinaryOp(Box::new(Expr::Call(Identifier::from("read_int"), vec![])), BinaryOperator::Add,
+                Box::new(Expr::BinaryOp(Box::new(Expr::Call(Identifier::from("read_int"), vec![])), BinaryOperator::Add,
+                Box::new(Expr::BinaryOp(Box::new(Expr::Call(Identifier::from("read_int"), vec![])), BinaryOperator::Add,
+                Box::new(Expr::BinaryOp(Box::new(Expr::Call(Identifier::from("read_int"), vec![])), BinaryOperator::Add,
+                Box::new(Expr::BinaryOp(Box::new(Expr::Call(Identifier::from("read_int"), vec![])), BinaryOperator::Add,
+                Box::new(Expr::Call(Identifier::from("read_int"), vec![])))))))))))))))))))))))))))))))))))))))))))))
             ]))
         ]),
         inputs: (0..23).collect(),
@@ -344,53 +343,53 @@ fn test_register_allocation_force_spills() {
 fn test_register_allocation_force_spills_constants() {
     execute_test_case(TestCase {
         ast: Module::Body(vec![
-            Statement::Assign(Identifier::Named(Arc::from("x1")), Expr::Constant(Value::I64(1))),
-            Statement::Assign(Identifier::Named(Arc::from("x2")), Expr::Constant(Value::I64(1))),
-            Statement::Assign(Identifier::Named(Arc::from("x3")), Expr::Constant(Value::I64(1))),
-            Statement::Assign(Identifier::Named(Arc::from("x4")), Expr::Constant(Value::I64(1))),
-            Statement::Assign(Identifier::Named(Arc::from("x5")), Expr::Constant(Value::I64(1))),
-            Statement::Assign(Identifier::Named(Arc::from("x6")), Expr::Constant(Value::I64(1))),
-            Statement::Assign(Identifier::Named(Arc::from("x7")), Expr::Constant(Value::I64(1))),
-            Statement::Assign(Identifier::Named(Arc::from("x8")), Expr::Constant(Value::I64(1))),
-            Statement::Assign(Identifier::Named(Arc::from("x9")), Expr::Constant(Value::I64(1))),
-            Statement::Assign(Identifier::Named(Arc::from("x10")), Expr::Constant(Value::I64(1))),
-            Statement::Assign(Identifier::Named(Arc::from("x11")), Expr::Constant(Value::I64(1))),
-            Statement::Assign(Identifier::Named(Arc::from("x12")), Expr::Constant(Value::I64(1))),
-            Statement::Assign(Identifier::Named(Arc::from("x13")), Expr::Constant(Value::I64(1))),
-            Statement::Assign(Identifier::Named(Arc::from("x14")), Expr::Constant(Value::I64(1))),
-            Statement::Assign(Identifier::Named(Arc::from("x15")), Expr::Constant(Value::I64(1))),
-            Statement::Assign(Identifier::Named(Arc::from("x16")), Expr::Constant(Value::I64(1))),
-            Statement::Assign(Identifier::Named(Arc::from("x17")), Expr::Constant(Value::I64(1))),
-            Statement::Assign(Identifier::Named(Arc::from("x18")), Expr::Constant(Value::I64(1))),
-            Statement::Assign(Identifier::Named(Arc::from("x19")), Expr::Constant(Value::I64(1))),
-            Statement::Assign(Identifier::Named(Arc::from("x20")), Expr::Constant(Value::I64(1))),
-            Statement::Assign(Identifier::Named(Arc::from("x21")), Expr::Constant(Value::I64(1))),
-            Statement::Assign(Identifier::Named(Arc::from("x22")), Expr::Constant(Value::I64(1))),
-            Statement::Assign(Identifier::Named(Arc::from("x23")), Expr::Constant(Value::I64(1))),
-            Statement::Expr(Expr::Call(Identifier::Named(Arc::from("print_int")), vec![
-                         Expr::BinaryOp(Box::new(Expr::Id(Identifier::Named(Arc::from("x1")))), BinaryOperator::Add,
-                Box::new(Expr::BinaryOp(Box::new(Expr::Id(Identifier::Named(Arc::from("x2")))), BinaryOperator::Add,
-                Box::new(Expr::BinaryOp(Box::new(Expr::Id(Identifier::Named(Arc::from("x3")))), BinaryOperator::Add,
-                Box::new(Expr::BinaryOp(Box::new(Expr::Id(Identifier::Named(Arc::from("x4")))), BinaryOperator::Add,
-                Box::new(Expr::BinaryOp(Box::new(Expr::Id(Identifier::Named(Arc::from("x5")))), BinaryOperator::Add,
-                Box::new(Expr::BinaryOp(Box::new(Expr::Id(Identifier::Named(Arc::from("x6")))), BinaryOperator::Add,
-                Box::new(Expr::BinaryOp(Box::new(Expr::Id(Identifier::Named(Arc::from("x7")))), BinaryOperator::Add,
-                Box::new(Expr::BinaryOp(Box::new(Expr::Id(Identifier::Named(Arc::from("x8")))), BinaryOperator::Add,
-                Box::new(Expr::BinaryOp(Box::new(Expr::Id(Identifier::Named(Arc::from("x9")))), BinaryOperator::Add,
-                Box::new(Expr::BinaryOp(Box::new(Expr::Id(Identifier::Named(Arc::from("x10")))), BinaryOperator::Add,
-                Box::new(Expr::BinaryOp(Box::new(Expr::Id(Identifier::Named(Arc::from("x11")))), BinaryOperator::Add,
-                Box::new(Expr::BinaryOp(Box::new(Expr::Id(Identifier::Named(Arc::from("x12")))), BinaryOperator::Add,
-                Box::new(Expr::BinaryOp(Box::new(Expr::Id(Identifier::Named(Arc::from("x13")))), BinaryOperator::Add,
-                Box::new(Expr::BinaryOp(Box::new(Expr::Id(Identifier::Named(Arc::from("x14")))), BinaryOperator::Add,
-                Box::new(Expr::BinaryOp(Box::new(Expr::Id(Identifier::Named(Arc::from("x15")))), BinaryOperator::Add,
-                Box::new(Expr::BinaryOp(Box::new(Expr::Id(Identifier::Named(Arc::from("x16")))), BinaryOperator::Add,
-                Box::new(Expr::BinaryOp(Box::new(Expr::Id(Identifier::Named(Arc::from("x17")))), BinaryOperator::Add,
-                Box::new(Expr::BinaryOp(Box::new(Expr::Id(Identifier::Named(Arc::from("x18")))), BinaryOperator::Add,
-                Box::new(Expr::BinaryOp(Box::new(Expr::Id(Identifier::Named(Arc::from("x19")))), BinaryOperator::Add,
-                Box::new(Expr::BinaryOp(Box::new(Expr::Id(Identifier::Named(Arc::from("x20")))), BinaryOperator::Add,
-                Box::new(Expr::BinaryOp(Box::new(Expr::Id(Identifier::Named(Arc::from("x21")))), BinaryOperator::Add,
-                Box::new(Expr::BinaryOp(Box::new(Expr::Id(Identifier::Named(Arc::from("x22")))), BinaryOperator::Add,
-                                        Box::new(Expr::Id(Identifier::Named(Arc::from("x23"))
+            Statement::Assign(Identifier::from("x1"), Expr::Constant(Value::I64(1))),
+            Statement::Assign(Identifier::from("x2"), Expr::Constant(Value::I64(1))),
+            Statement::Assign(Identifier::from("x3"), Expr::Constant(Value::I64(1))),
+            Statement::Assign(Identifier::from("x4"), Expr::Constant(Value::I64(1))),
+            Statement::Assign(Identifier::from("x5"), Expr::Constant(Value::I64(1))),
+            Statement::Assign(Identifier::from("x6"), Expr::Constant(Value::I64(1))),
+            Statement::Assign(Identifier::from("x7"), Expr::Constant(Value::I64(1))),
+            Statement::Assign(Identifier::from("x8"), Expr::Constant(Value::I64(1))),
+            Statement::Assign(Identifier::from("x9"), Expr::Constant(Value::I64(1))),
+            Statement::Assign(Identifier::from("x10"), Expr::Constant(Value::I64(1))),
+            Statement::Assign(Identifier::from("x11"), Expr::Constant(Value::I64(1))),
+            Statement::Assign(Identifier::from("x12"), Expr::Constant(Value::I64(1))),
+            Statement::Assign(Identifier::from("x13"), Expr::Constant(Value::I64(1))),
+            Statement::Assign(Identifier::from("x14"), Expr::Constant(Value::I64(1))),
+            Statement::Assign(Identifier::from("x15"), Expr::Constant(Value::I64(1))),
+            Statement::Assign(Identifier::from("x16"), Expr::Constant(Value::I64(1))),
+            Statement::Assign(Identifier::from("x17"), Expr::Constant(Value::I64(1))),
+            Statement::Assign(Identifier::from("x18"), Expr::Constant(Value::I64(1))),
+            Statement::Assign(Identifier::from("x19"), Expr::Constant(Value::I64(1))),
+            Statement::Assign(Identifier::from("x20"), Expr::Constant(Value::I64(1))),
+            Statement::Assign(Identifier::from("x21"), Expr::Constant(Value::I64(1))),
+            Statement::Assign(Identifier::from("x22"), Expr::Constant(Value::I64(1))),
+            Statement::Assign(Identifier::from("x23"), Expr::Constant(Value::I64(1))),
+            Statement::Expr(Expr::Call(Identifier::from("print_int"), vec![
+                         Expr::BinaryOp(Box::new(Expr::Id(Identifier::from("x1"))), BinaryOperator::Add,
+                Box::new(Expr::BinaryOp(Box::new(Expr::Id(Identifier::from("x2"))), BinaryOperator::Add,
+                Box::new(Expr::BinaryOp(Box::new(Expr::Id(Identifier::from("x3"))), BinaryOperator::Add,
+                Box::new(Expr::BinaryOp(Box::new(Expr::Id(Identifier::from("x4"))), BinaryOperator::Add,
+                Box::new(Expr::BinaryOp(Box::new(Expr::Id(Identifier::from("x5"))), BinaryOperator::Add,
+                Box::new(Expr::BinaryOp(Box::new(Expr::Id(Identifier::from("x6"))), BinaryOperator::Add,
+                Box::new(Expr::BinaryOp(Box::new(Expr::Id(Identifier::from("x7"))), BinaryOperator::Add,
+                Box::new(Expr::BinaryOp(Box::new(Expr::Id(Identifier::from("x8"))), BinaryOperator::Add,
+                Box::new(Expr::BinaryOp(Box::new(Expr::Id(Identifier::from("x9"))), BinaryOperator::Add,
+                Box::new(Expr::BinaryOp(Box::new(Expr::Id(Identifier::from("x10"))), BinaryOperator::Add,
+                Box::new(Expr::BinaryOp(Box::new(Expr::Id(Identifier::from("x11"))), BinaryOperator::Add,
+                Box::new(Expr::BinaryOp(Box::new(Expr::Id(Identifier::from("x12"))), BinaryOperator::Add,
+                Box::new(Expr::BinaryOp(Box::new(Expr::Id(Identifier::from("x13"))), BinaryOperator::Add,
+                Box::new(Expr::BinaryOp(Box::new(Expr::Id(Identifier::from("x14"))), BinaryOperator::Add,
+                Box::new(Expr::BinaryOp(Box::new(Expr::Id(Identifier::from("x15"))), BinaryOperator::Add,
+                Box::new(Expr::BinaryOp(Box::new(Expr::Id(Identifier::from("x16"))), BinaryOperator::Add,
+                Box::new(Expr::BinaryOp(Box::new(Expr::Id(Identifier::from("x17"))), BinaryOperator::Add,
+                Box::new(Expr::BinaryOp(Box::new(Expr::Id(Identifier::from("x18"))), BinaryOperator::Add,
+                Box::new(Expr::BinaryOp(Box::new(Expr::Id(Identifier::from("x19"))), BinaryOperator::Add,
+                Box::new(Expr::BinaryOp(Box::new(Expr::Id(Identifier::from("x20"))), BinaryOperator::Add,
+                Box::new(Expr::BinaryOp(Box::new(Expr::Id(Identifier::from("x21"))), BinaryOperator::Add,
+                Box::new(Expr::BinaryOp(Box::new(Expr::Id(Identifier::from("x22"))), BinaryOperator::Add,
+                                        Box::new(Expr::Id(Identifier::from("x23")
             )))))))))))))))))))))))))))))))))))))))))))))
             ]))
         ]),

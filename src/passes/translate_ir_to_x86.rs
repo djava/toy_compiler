@@ -1,4 +1,3 @@
-use std::sync::Arc;
 
 use crate::{
     ir::{self, BinaryOperator, IRProgram, Identifier, UnaryOperator},
@@ -51,7 +50,7 @@ fn translate_statement(s: ir::Statement) -> Vec<Instr> {
         ir::Statement::Assign(dest_id, expr) => translate_assign(dest_id, expr),
         ir::Statement::Return(atom) => vec![
             Instr::movq(atom_to_arg(atom), x86::Arg::Reg(Register::rax)),
-            Instr::jmp(Identifier::Named(Arc::from("exit"))),
+            Instr::jmp(Identifier::from("exit")),
         ],
         ir::Statement::Goto(label) => vec![Instr::jmp(label)],
         ir::Statement::If(cond, pos_label, neg_label) => {

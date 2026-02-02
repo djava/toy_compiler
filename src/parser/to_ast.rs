@@ -1,14 +1,13 @@
 use crate::ast;
 use crate::parser::parse_tree as pt;
 use std::iter::Peekable;
-use std::sync::Arc;
 use std::vec::IntoIter;
 
 fn to_ast_expr(pte: pt::Expr) -> ast::Expr {
     match pte {
         pt::Expr::Int(val) => ast::Expr::Constant(ast::Value::I64(val)),
         pt::Expr::Bool(val) => ast::Expr::Constant(ast::Value::Bool(val)),
-        pt::Expr::Id(name) => ast::Expr::Id(ast::Identifier::Named(Arc::from(name))),
+        pt::Expr::Id(name) => ast::Expr::Id(ast::Identifier::from(name)),
         pt::Expr::Unary(op, val) => {
             let ast_val = Box::new(to_ast_expr(*val));
             let ast_op = match op {
@@ -45,7 +44,7 @@ fn to_ast_expr(pte: pt::Expr) -> ast::Expr {
         pt::Expr::Call(id, args) => {
             let ast_args = args.into_iter().map(to_ast_expr).collect();
 
-            ast::Expr::Call(ast::Identifier::Named(Arc::from(id)), ast_args)
+            ast::Expr::Call(ast::Identifier::from(id), ast_args)
         }
         pt::Expr::Ternary(cond, pos, neg) => {
             let ast_cond = to_ast_expr(*cond);
@@ -63,7 +62,7 @@ pub fn to_ast_statement<'a>(
     match iter.next() {
         Some(pt::Statement::Expr(pte)) => Some(ast::Statement::Expr(to_ast_expr(pte))),
         Some(pt::Statement::Assign(name, pte)) => Some(ast::Statement::Assign(
-            ast::Identifier::Named(Arc::from(name)),
+            ast::Identifier::from(name),
             to_ast_expr(pte),
         )),
         Some(pt::Statement::If(cond, body)) => {

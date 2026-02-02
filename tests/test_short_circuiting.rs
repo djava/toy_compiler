@@ -1,5 +1,5 @@
 mod infra;
-use std::{collections::VecDeque, sync::Arc};
+use std::collections::VecDeque;
 
 use cs4999_compiler::{
     ast::*,
@@ -133,7 +133,7 @@ fn test_short_circuiting_comparisons_and() {
                 Box::new(Expr::BinaryOp(
                     Box::new(Expr::Constant(Value::I64(1))),
                     BinaryOperator::Equals,
-                    Box::new(Expr::Call(Identifier::Named(Arc::from("read_int")), vec![])),
+                    Box::new(Expr::Call(Identifier::from("read_int"), vec![])),
                 )),
             )),
             Statement::Expr(Expr::BinaryOp(
@@ -142,7 +142,7 @@ fn test_short_circuiting_comparisons_and() {
                 Box::new(Expr::BinaryOp(
                     Box::new(Expr::Constant(Value::I64(1))),
                     BinaryOperator::Equals,
-                    Box::new(Expr::Call(Identifier::Named(Arc::from("read_int")), vec![])),
+                    Box::new(Expr::Call(Identifier::from("read_int"), vec![])),
                 )),
             )),
         ]),
@@ -163,7 +163,7 @@ fn test_short_circuiting_comparisons_or() {
                 Box::new(Expr::BinaryOp(
                     Box::new(Expr::Constant(Value::I64(1))),
                     BinaryOperator::Equals,
-                    Box::new(Expr::Call(Identifier::Named(Arc::from("read_int")), vec![])),
+                    Box::new(Expr::Call(Identifier::from("read_int"), vec![])),
                 )),
             )),
             Statement::Expr(Expr::BinaryOp(
@@ -172,7 +172,7 @@ fn test_short_circuiting_comparisons_or() {
                 Box::new(Expr::BinaryOp(
                     Box::new(Expr::Constant(Value::I64(1))),
                     BinaryOperator::Equals,
-                    Box::new(Expr::Call(Identifier::Named(Arc::from("read_int")), vec![])),
+                    Box::new(Expr::Call(Identifier::from("read_int"), vec![])),
                 )),
             )),
         ]),

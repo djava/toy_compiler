@@ -1,5 +1,4 @@
 use crate::{passes::X86Pass, x86_ast::*};
-use std::sync::Arc;
 
 pub struct PatchInstructions;
 
@@ -8,7 +7,7 @@ impl X86Pass for PatchInstructions {
         let main_instrs = &mut m
             .blocks
             .iter_mut()
-            .find(|block| block.label == Directive::Label(Identifier::Named(Arc::from("user_entry"))))
+            .find(|block| block.label == Directive::Label(Identifier::from("user_entry")))
             .expect("Didn't find an entry function")
             .instrs;
 

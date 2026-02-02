@@ -1,7 +1,6 @@
 use crate::infra::{ValueEnv, interpreter_utils::*};
 use cs4999_compiler::ast::*;
 use std::collections::VecDeque;
-use std::sync::Arc;
 
 fn interpret_expr(
     e: &Expr,
@@ -30,9 +29,9 @@ fn interpret_expr(
         }
         Constant(v) => Some((*v).into()),
         Call(name, args) => {
-            if name == &Identifier::Named(Arc::from("read_int")) && args.is_empty() {
+            if name == &Identifier::from("read_int") && args.is_empty() {
                 Some(Value::I64(inputs.pop_front().expect("Ran out of inputs")))
-            } else if name == &Identifier::Named(Arc::from("print_int")) && args.len() == 1 {
+            } else if name == &Identifier::from("print_int") && args.len() == 1 {
                 let val = interpret_expr(&args[0], inputs, outputs, env).expect_int();
                 outputs.push_back(val);
 

@@ -1,5 +1,4 @@
 use cs4999_compiler::{ast, parser::*};
-use std::sync::Arc;
 
 use parse_tree as pt;
 
@@ -162,7 +161,7 @@ fn test_parser_simple_assign() {
             )]),
         },
         expected_ast: ast::Module::Body(vec![ast::Statement::Assign(
-            ast::Identifier::Named(Arc::from("x")),
+            ast::Identifier::from("x"),
             ast::Expr::BinaryOp(
                 Box::new(ast::Expr::Constant(ast::Value::I64(1000))),
                 ast::BinaryOperator::Add,
@@ -190,8 +189,8 @@ fn test_parser_call_simple_arg() {
             ))],
         },
         expected_ast: ast::Module::Body(vec![ast::Statement::Expr(ast::Expr::Call(
-            ast::Identifier::Named(Arc::from("print")),
-            vec![ast::Expr::Id(ast::Identifier::Named(Arc::from("x")))],
+            ast::Identifier::from("print"),
+            vec![ast::Expr::Id(ast::Identifier::from("x"))],
         ))]),
     };
     tc.run();
@@ -210,7 +209,7 @@ fn test_parser_call_no_arg() {
             statements: vec![pt::Statement::Expr(pt::Expr::Call("oogabooga", vec![]))],
         },
         expected_ast: ast::Module::Body(vec![ast::Statement::Expr(ast::Expr::Call(
-            ast::Identifier::Named(Arc::from("oogabooga")),
+            ast::Identifier::from("oogabooga"),
             vec![],
         ))]),
     };
@@ -258,7 +257,7 @@ fn test_parser_call_complex_arg() {
             ))],
         },
         expected_ast: ast::Module::Body(vec![ast::Statement::Expr(ast::Expr::Call(
-            ast::Identifier::Named(Arc::from("print")),
+            ast::Identifier::from("print"),
             vec![ast::Expr::BinaryOp(
                 Box::new(ast::Expr::BinaryOp(
                     Box::new(ast::Expr::Constant(ast::Value::I64(1))),
@@ -271,7 +270,7 @@ fn test_parser_call_complex_arg() {
                 )),
                 ast::BinaryOperator::Subtract,
                 Box::new(ast::Expr::Call(
-                    ast::Identifier::Named(Arc::from("read_int")),
+                    ast::Identifier::from("read_int"),
                     vec![],
                 )),
             )],
@@ -311,10 +310,10 @@ fn test_parser_call_multi_arg() {
             ))],
         },
         expected_ast: ast::Module::Body(vec![ast::Statement::Expr(ast::Expr::Call(
-            ast::Identifier::Named(Arc::from("print")),
+            ast::Identifier::from("print"),
             vec![
-                ast::Expr::Id(ast::Identifier::Named(Arc::from("x"))),
-                ast::Expr::Id(ast::Identifier::Named(Arc::from("y"))),
+                ast::Expr::Id(ast::Identifier::from("x")),
+                ast::Expr::Id(ast::Identifier::from("y")),
                 ast::Expr::Constant(ast::Value::I64(1)),
                 ast::Expr::Constant(ast::Value::I64(3)),
                 ast::Expr::Constant(ast::Value::I64(1000)),
@@ -343,9 +342,9 @@ fn test_parser_assign_to_call() {
             )],
         },
         expected_ast: ast::Module::Body(vec![ast::Statement::Assign(
-            ast::Identifier::Named(Arc::from("x")),
+            ast::Identifier::from("x"),
             ast::Expr::Call(
-                ast::Identifier::Named(Arc::from("Fffoo")),
+                ast::Identifier::from("Fffoo"),
                 vec![ast::Expr::Constant(ast::Value::I64(1))],
             ),
         )]),
@@ -395,16 +394,16 @@ fn test_parser_multiline() {
         },
         expected_ast: ast::Module::Body(vec![
             ast::Statement::Assign(
-                ast::Identifier::Named(Arc::from("x")),
+                ast::Identifier::from("x"),
                 ast::Expr::Constant(ast::Value::I64(100)),
             ),
             ast::Statement::Expr(ast::Expr::Call(
-                ast::Identifier::Named(Arc::from("print")),
+                ast::Identifier::from("print"),
                 vec![ast::Expr::Constant(ast::Value::I64(1000))],
             )),
             ast::Statement::Assign(
-                ast::Identifier::Named(Arc::from("whatevn")),
-                ast::Expr::Id(ast::Identifier::Named(Arc::from("x"))),
+                ast::Identifier::from("whatevn"),
+                ast::Expr::Id(ast::Identifier::from("x")),
             ),
             ast::Statement::Expr(ast::Expr::BinaryOp(
                 Box::new(ast::Expr::Constant(ast::Value::I64(101010))),
@@ -523,7 +522,7 @@ fn test_parser_bool_op_complex() {
         },
         expected_ast: ast::Module::Body(vec![
             ast::Statement::Expr(ast::Expr::Call(
-            ast::Identifier::Named(Arc::from("truefoofalse")),
+            ast::Identifier::from("truefoofalse"),
             vec![ast::Expr::BinaryOp(
                 Box::new(ast::Expr::BinaryOp(
                     Box::new(ast::Expr::UnaryOp(
@@ -798,13 +797,13 @@ fn test_parser_if_with_complex_condition() {
         },
         expected_ast: ast::Module::Body(vec![ast::Statement::Conditional(
             ast::Expr::BinaryOp(
-                Box::new(ast::Expr::Id(ast::Identifier::Named(Arc::from("x")))),
+                Box::new(ast::Expr::Id(ast::Identifier::from("x"))),
                 ast::BinaryOperator::Equals,
                 Box::new(ast::Expr::Constant(ast::Value::I64(1))),
             ),
             vec![ast::Statement::Expr(ast::Expr::Call(
-                ast::Identifier::Named(Arc::from("print")),
-                vec![ast::Expr::Id(ast::Identifier::Named(Arc::from("x")))],
+                ast::Identifier::from("print"),
+                vec![ast::Expr::Id(ast::Identifier::from("x"))],
             ))],
             vec![],
         )]),
@@ -848,12 +847,12 @@ fn test_parser_if_multiline_body() {
             ast::Expr::Constant(ast::Value::Bool(true)),
             vec![
                 ast::Statement::Assign(
-                    ast::Identifier::Named(Arc::from("x")),
+                    ast::Identifier::from("x"),
                     ast::Expr::Constant(ast::Value::I64(1)),
                 ),
                 ast::Statement::Expr(ast::Expr::Call(
-                    ast::Identifier::Named(Arc::from("print")),
-                    vec![ast::Expr::Id(ast::Identifier::Named(Arc::from("x")))],
+                    ast::Identifier::from("print"),
+                    vec![ast::Expr::Id(ast::Identifier::from("x"))],
                 )),
             ],
             vec![],
@@ -972,28 +971,28 @@ else { 5 }",
         },
         expected_ast: ast::Module::Body(vec![ast::Statement::Conditional(
             ast::Expr::BinaryOp(
-                Box::new(ast::Expr::Id(ast::Identifier::Named(Arc::from("x")))),
+                Box::new(ast::Expr::Id(ast::Identifier::from("x"))),
                 ast::BinaryOperator::Equals,
                 Box::new(ast::Expr::Constant(ast::Value::I64(1))),
             ),
             vec![ast::Statement::Expr(ast::Expr::Constant(ast::Value::I64(1)))],
             vec![ast::Statement::Conditional(
                 ast::Expr::BinaryOp(
-                    Box::new(ast::Expr::Id(ast::Identifier::Named(Arc::from("x")))),
+                    Box::new(ast::Expr::Id(ast::Identifier::from("x"))),
                     ast::BinaryOperator::Equals,
                     Box::new(ast::Expr::Constant(ast::Value::I64(2))),
                 ),
                 vec![ast::Statement::Expr(ast::Expr::Constant(ast::Value::I64(2)))],
                 vec![ast::Statement::Conditional(
                     ast::Expr::BinaryOp(
-                        Box::new(ast::Expr::Id(ast::Identifier::Named(Arc::from("x")))),
+                        Box::new(ast::Expr::Id(ast::Identifier::from("x"))),
                         ast::BinaryOperator::Equals,
                         Box::new(ast::Expr::Constant(ast::Value::I64(3))),
                     ),
                     vec![ast::Statement::Expr(ast::Expr::Constant(ast::Value::I64(3)))],
                     vec![ast::Statement::Conditional(
                         ast::Expr::BinaryOp(
-                            Box::new(ast::Expr::Id(ast::Identifier::Named(Arc::from("x")))),
+                            Box::new(ast::Expr::Id(ast::Identifier::from("x"))),
                             ast::BinaryOperator::Equals,
                             Box::new(ast::Expr::Constant(ast::Value::I64(4))),
                         ),

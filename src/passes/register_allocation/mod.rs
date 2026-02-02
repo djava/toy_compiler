@@ -2,7 +2,7 @@ mod dataflow_analysis;
 mod graph_coloring;
 
 use std::mem::size_of;
-use std::{collections::HashMap, sync::Arc};
+use std::collections::HashMap;
 
 use crate::{
     ast::Identifier,
@@ -34,7 +34,7 @@ impl X86Pass for RegisterAllocation {
         if let Some(user_entry) = m
             .blocks
             .iter_mut()
-            .find(|b| b.label == Directive::Label(Identifier::Named(Arc::from("user_entry"))))
+            .find(|b| b.label == Directive::Label(Identifier::from("user_entry")))
         {
             let callee_pushqs = callee_saved_used.iter().filter_map(|loc| {
                 if let Storage::Reg(reg) = loc {
@@ -50,7 +50,7 @@ impl X86Pass for RegisterAllocation {
         if let Some(user_exit) = m
             .blocks
             .iter_mut()
-            .find(|b| b.label == Directive::Label(Identifier::Named(Arc::from("user_exit"))))
+            .find(|b| b.label == Directive::Label(Identifier::from("user_exit")))
         {
             let callee_popqs = callee_saved_used.iter().rev().filter_map(|loc| {
                 if let Storage::Reg(reg) = loc {
