@@ -1,4 +1,5 @@
 use cs4999_compiler::{ast, parser::*};
+use std::collections::HashMap;
 
 use parse_tree as pt;
 
@@ -30,9 +31,12 @@ fn test_parser_simple_constant() {
         expected_parse_tree: pt::Module {
             statements: vec![pt::Statement::Expr(pt::Expr::Int(1))],
         },
-        expected_ast: ast::Module::Body(vec![ast::Statement::Expr(ast::Expr::Constant(
-            ast::Value::I64(1),
-        ))]),
+        expected_ast: ast::Module {
+            body: vec![ast::Statement::Expr(ast::Expr::Constant(ast::Value::I64(
+                1,
+            )))],
+            types: HashMap::new(),
+        },
     };
 
     tc.run();
@@ -46,9 +50,12 @@ fn test_parser_simple_neg_constant() {
         expected_parse_tree: pt::Module {
             statements: vec![pt::Statement::Expr(pt::Expr::Int(-100))],
         },
-        expected_ast: ast::Module::Body(vec![ast::Statement::Expr(ast::Expr::Constant(
-            ast::Value::I64(-100),
-        ))]),
+        expected_ast: ast::Module {
+            body: vec![ast::Statement::Expr(ast::Expr::Constant(ast::Value::I64(
+                -100,
+            )))],
+            types: HashMap::new(),
+        },
     };
 
     tc.run();
@@ -66,11 +73,14 @@ fn test_parser_simple_binop() {
                 Box::new(pt::Expr::Int(2)),
             ))],
         },
-        expected_ast: ast::Module::Body(vec![ast::Statement::Expr(ast::Expr::BinaryOp(
-            Box::new(ast::Expr::Constant(ast::Value::I64(1))),
-            ast::BinaryOperator::Add,
-            Box::new(ast::Expr::Constant(ast::Value::I64(2))),
-        ))]),
+        expected_ast: ast::Module {
+            body: vec![ast::Statement::Expr(ast::Expr::BinaryOp(
+                Box::new(ast::Expr::Constant(ast::Value::I64(1))),
+                ast::BinaryOperator::Add,
+                Box::new(ast::Expr::Constant(ast::Value::I64(2))),
+            ))],
+            types: HashMap::new(),
+        },
     };
 
     tc.run();
@@ -100,15 +110,18 @@ fn test_parser_parens() {
                 )))),
             ))],
         },
-        expected_ast: ast::Module::Body(vec![ast::Statement::Expr(ast::Expr::BinaryOp(
-            Box::new(ast::Expr::Constant(ast::Value::I64(1))),
-            ast::BinaryOperator::Add,
-            Box::new(ast::Expr::BinaryOp(
-                Box::new(ast::Expr::Constant(ast::Value::I64(2))),
+        expected_ast: ast::Module {
+            body: vec![ast::Statement::Expr(ast::Expr::BinaryOp(
+                Box::new(ast::Expr::Constant(ast::Value::I64(1))),
                 ast::BinaryOperator::Add,
-                Box::new(ast::Expr::Constant(ast::Value::I64(3))),
-            )),
-        ))]),
+                Box::new(ast::Expr::BinaryOp(
+                    Box::new(ast::Expr::Constant(ast::Value::I64(2))),
+                    ast::BinaryOperator::Add,
+                    Box::new(ast::Expr::Constant(ast::Value::I64(3))),
+                )),
+            ))],
+            types: HashMap::new(),
+        },
     };
 
     tc.run();
@@ -130,10 +143,13 @@ fn test_parser_simple_unaryop() {
                 Box::new(pt::Expr::Parens(Box::new(pt::Expr::Int(1)))),
             ))],
         },
-        expected_ast: ast::Module::Body(vec![ast::Statement::Expr(ast::Expr::UnaryOp(
-            ast::UnaryOperator::Minus,
-            Box::new(ast::Expr::Constant(ast::Value::I64(1))),
-        ))]),
+        expected_ast: ast::Module {
+            body: vec![ast::Statement::Expr(ast::Expr::UnaryOp(
+                ast::UnaryOperator::Minus,
+                Box::new(ast::Expr::Constant(ast::Value::I64(1))),
+            ))],
+            types: HashMap::new(),
+        },
     };
 
     tc.run();
@@ -151,23 +167,26 @@ fn test_parser_simple_assign() {
             Token::Int(-21912983),
         ],
         expected_parse_tree: pt::Module {
-            statements: (vec![pt::Statement::Assign(
+            statements: vec![pt::Statement::Assign(
                 "x",
                 pt::Expr::Binary(
                     Box::new(pt::Expr::Int(1000)),
                     pt::Operator::Plus,
                     Box::new(pt::Expr::Int(-21912983)),
                 ),
-            )]),
+            )],
         },
-        expected_ast: ast::Module::Body(vec![ast::Statement::Assign(
-            ast::Identifier::from("x"),
-            ast::Expr::BinaryOp(
-                Box::new(ast::Expr::Constant(ast::Value::I64(1000))),
-                ast::BinaryOperator::Add,
-                Box::new(ast::Expr::Constant(ast::Value::I64(-21912983))),
-            ),
-        )]),
+        expected_ast: ast::Module {
+            body: vec![ast::Statement::Assign(
+                ast::Identifier::from("x"),
+                ast::Expr::BinaryOp(
+                    Box::new(ast::Expr::Constant(ast::Value::I64(1000))),
+                    ast::BinaryOperator::Add,
+                    Box::new(ast::Expr::Constant(ast::Value::I64(-21912983))),
+                ),
+            )],
+            types: HashMap::new(),
+        },
     };
     tc.run();
 }
@@ -188,10 +207,13 @@ fn test_parser_call_simple_arg() {
                 vec![pt::Expr::Id("x")],
             ))],
         },
-        expected_ast: ast::Module::Body(vec![ast::Statement::Expr(ast::Expr::Call(
-            ast::Identifier::from("print"),
-            vec![ast::Expr::Id(ast::Identifier::from("x"))],
-        ))]),
+        expected_ast: ast::Module {
+            body: vec![ast::Statement::Expr(ast::Expr::Call(
+                ast::Identifier::from("print"),
+                vec![ast::Expr::Id(ast::Identifier::from("x"))],
+            ))],
+            types: HashMap::new(),
+        },
     };
     tc.run();
 }
@@ -208,10 +230,13 @@ fn test_parser_call_no_arg() {
         expected_parse_tree: pt::Module {
             statements: vec![pt::Statement::Expr(pt::Expr::Call("oogabooga", vec![]))],
         },
-        expected_ast: ast::Module::Body(vec![ast::Statement::Expr(ast::Expr::Call(
-            ast::Identifier::from("oogabooga"),
-            vec![],
-        ))]),
+        expected_ast: ast::Module {
+            body: vec![ast::Statement::Expr(ast::Expr::Call(
+                ast::Identifier::from("oogabooga"),
+                vec![],
+            ))],
+            types: HashMap::new(),
+        },
     };
     tc.run();
 }
@@ -256,25 +281,25 @@ fn test_parser_call_complex_arg() {
                 )],
             ))],
         },
-        expected_ast: ast::Module::Body(vec![ast::Statement::Expr(ast::Expr::Call(
-            ast::Identifier::from("print"),
-            vec![ast::Expr::BinaryOp(
-                Box::new(ast::Expr::BinaryOp(
-                    Box::new(ast::Expr::Constant(ast::Value::I64(1))),
-                    ast::BinaryOperator::Add,
+        expected_ast: ast::Module {
+            body: vec![ast::Statement::Expr(ast::Expr::Call(
+                ast::Identifier::from("print"),
+                vec![ast::Expr::BinaryOp(
                     Box::new(ast::Expr::BinaryOp(
-                        Box::new(ast::Expr::Constant(ast::Value::I64(2))),
+                        Box::new(ast::Expr::Constant(ast::Value::I64(1))),
                         ast::BinaryOperator::Add,
-                        Box::new(ast::Expr::Constant(ast::Value::I64(4))),
+                        Box::new(ast::Expr::BinaryOp(
+                            Box::new(ast::Expr::Constant(ast::Value::I64(2))),
+                            ast::BinaryOperator::Add,
+                            Box::new(ast::Expr::Constant(ast::Value::I64(4))),
+                        )),
                     )),
-                )),
-                ast::BinaryOperator::Subtract,
-                Box::new(ast::Expr::Call(
-                    ast::Identifier::from("read_int"),
-                    vec![],
-                )),
-            )],
-        ))]),
+                    ast::BinaryOperator::Subtract,
+                    Box::new(ast::Expr::Call(ast::Identifier::from("read_int"), vec![])),
+                )],
+            ))],
+            types: HashMap::new(),
+        },
     };
     tc.run();
 }
@@ -309,16 +334,19 @@ fn test_parser_call_multi_arg() {
                 ],
             ))],
         },
-        expected_ast: ast::Module::Body(vec![ast::Statement::Expr(ast::Expr::Call(
-            ast::Identifier::from("print"),
-            vec![
-                ast::Expr::Id(ast::Identifier::from("x")),
-                ast::Expr::Id(ast::Identifier::from("y")),
-                ast::Expr::Constant(ast::Value::I64(1)),
-                ast::Expr::Constant(ast::Value::I64(3)),
-                ast::Expr::Constant(ast::Value::I64(1000)),
-            ],
-        ))]),
+        expected_ast: ast::Module {
+            body: vec![ast::Statement::Expr(ast::Expr::Call(
+                ast::Identifier::from("print"),
+                vec![
+                    ast::Expr::Id(ast::Identifier::from("x")),
+                    ast::Expr::Id(ast::Identifier::from("y")),
+                    ast::Expr::Constant(ast::Value::I64(1)),
+                    ast::Expr::Constant(ast::Value::I64(3)),
+                    ast::Expr::Constant(ast::Value::I64(1000)),
+                ],
+            ))],
+            types: HashMap::new(),
+        },
     };
     tc.run();
 }
@@ -341,13 +369,16 @@ fn test_parser_assign_to_call() {
                 pt::Expr::Call("Fffoo", vec![pt::Expr::Int(1)]),
             )],
         },
-        expected_ast: ast::Module::Body(vec![ast::Statement::Assign(
-            ast::Identifier::from("x"),
-            ast::Expr::Call(
-                ast::Identifier::from("Fffoo"),
-                vec![ast::Expr::Constant(ast::Value::I64(1))],
-            ),
-        )]),
+        expected_ast: ast::Module {
+            body: vec![ast::Statement::Assign(
+                ast::Identifier::from("x"),
+                ast::Expr::Call(
+                    ast::Identifier::from("Fffoo"),
+                    vec![ast::Expr::Constant(ast::Value::I64(1))],
+                ),
+            )],
+            types: HashMap::new(),
+        },
     };
 
     tc.run();
@@ -392,25 +423,28 @@ fn test_parser_multiline() {
                 )),
             ],
         },
-        expected_ast: ast::Module::Body(vec![
-            ast::Statement::Assign(
-                ast::Identifier::from("x"),
-                ast::Expr::Constant(ast::Value::I64(100)),
-            ),
-            ast::Statement::Expr(ast::Expr::Call(
-                ast::Identifier::from("print"),
-                vec![ast::Expr::Constant(ast::Value::I64(1000))],
-            )),
-            ast::Statement::Assign(
-                ast::Identifier::from("whatevn"),
-                ast::Expr::Id(ast::Identifier::from("x")),
-            ),
-            ast::Statement::Expr(ast::Expr::BinaryOp(
-                Box::new(ast::Expr::Constant(ast::Value::I64(101010))),
-                ast::BinaryOperator::Add,
-                Box::new(ast::Expr::Constant(ast::Value::I64(1001010))),
-            )),
-        ]),
+        expected_ast: ast::Module {
+            body: vec![
+                ast::Statement::Assign(
+                    ast::Identifier::from("x"),
+                    ast::Expr::Constant(ast::Value::I64(100)),
+                ),
+                ast::Statement::Expr(ast::Expr::Call(
+                    ast::Identifier::from("print"),
+                    vec![ast::Expr::Constant(ast::Value::I64(1000))],
+                )),
+                ast::Statement::Assign(
+                    ast::Identifier::from("whatevn"),
+                    ast::Expr::Id(ast::Identifier::from("x")),
+                ),
+                ast::Statement::Expr(ast::Expr::BinaryOp(
+                    Box::new(ast::Expr::Constant(ast::Value::I64(101010))),
+                    ast::BinaryOperator::Add,
+                    Box::new(ast::Expr::Constant(ast::Value::I64(1001010))),
+                )),
+            ],
+            types: HashMap::new(),
+        },
     };
 
     tc.run()
@@ -431,14 +465,17 @@ fn test_parser_space_delimited_unary() {
                 )),
             ))],
         },
-        expected_ast: ast::Module::Body(vec![ast::Statement::Expr(ast::Expr::BinaryOp(
-            Box::new(ast::Expr::Constant(ast::Value::I64(2))),
-            ast::BinaryOperator::Add,
-            Box::new(ast::Expr::UnaryOp(
-                ast::UnaryOperator::Minus,
-                Box::new(ast::Expr::Constant(ast::Value::I64(5))),
-            )),
-        ))]),
+        expected_ast: ast::Module {
+            body: vec![ast::Statement::Expr(ast::Expr::BinaryOp(
+                Box::new(ast::Expr::Constant(ast::Value::I64(2))),
+                ast::BinaryOperator::Add,
+                Box::new(ast::Expr::UnaryOp(
+                    ast::UnaryOperator::Minus,
+                    Box::new(ast::Expr::Constant(ast::Value::I64(5))),
+                )),
+            ))],
+            types: HashMap::new(),
+        },
     };
     tc.run();
 }
@@ -455,11 +492,14 @@ fn test_parser_bool_op_simple() {
                 Box::new(pt::Expr::Bool(true)),
             ))],
         },
-        expected_ast: ast::Module::Body(vec![ast::Statement::Expr(ast::Expr::BinaryOp(
-            Box::new(ast::Expr::Constant(ast::Value::Bool(false))),
-            ast::BinaryOperator::And,
-            Box::new(ast::Expr::Constant(ast::Value::Bool(true))),
-        ))]),
+        expected_ast: ast::Module {
+            body: vec![ast::Statement::Expr(ast::Expr::BinaryOp(
+                Box::new(ast::Expr::Constant(ast::Value::Bool(false))),
+                ast::BinaryOperator::And,
+                Box::new(ast::Expr::Constant(ast::Value::Bool(true))),
+            ))],
+            types: HashMap::new(),
+        },
     };
     tc.run();
 }
@@ -520,34 +560,36 @@ fn test_parser_bool_op_complex() {
                 )],
             ))],
         },
-        expected_ast: ast::Module::Body(vec![
-            ast::Statement::Expr(ast::Expr::Call(
-            ast::Identifier::from("truefoofalse"),
-            vec![ast::Expr::BinaryOp(
-                Box::new(ast::Expr::BinaryOp(
-                    Box::new(ast::Expr::UnaryOp(
-                        ast::UnaryOperator::Not,
+        expected_ast: ast::Module {
+            body: vec![ast::Statement::Expr(ast::Expr::Call(
+                ast::Identifier::from("truefoofalse"),
+                vec![ast::Expr::BinaryOp(
+                    Box::new(ast::Expr::BinaryOp(
+                        Box::new(ast::Expr::UnaryOp(
+                            ast::UnaryOperator::Not,
+                            Box::new(ast::Expr::BinaryOp(
+                                Box::new(ast::Expr::Constant(ast::Value::Bool(false))),
+                                ast::BinaryOperator::And,
+                                Box::new(ast::Expr::Constant(ast::Value::Bool(true))),
+                            )),
+                        )),
+                        ast::BinaryOperator::Or,
                         Box::new(ast::Expr::BinaryOp(
                             Box::new(ast::Expr::Constant(ast::Value::Bool(false))),
-                            ast::BinaryOperator::And,
+                            ast::BinaryOperator::Equals,
                             Box::new(ast::Expr::Constant(ast::Value::Bool(true))),
                         )),
                     )),
-                    ast::BinaryOperator::Or,
+                    ast::BinaryOperator::GreaterEquals,
                     Box::new(ast::Expr::BinaryOp(
+                        Box::new(ast::Expr::Constant(ast::Value::I64(1))),
+                        ast::BinaryOperator::Subtract,
                         Box::new(ast::Expr::Constant(ast::Value::Bool(false))),
-                        ast::BinaryOperator::Equals,
-                        Box::new(ast::Expr::Constant(ast::Value::Bool(true))),
                     )),
-                )),
-                ast::BinaryOperator::GreaterEquals,
-                Box::new(ast::Expr::BinaryOp(
-                    Box::new(ast::Expr::Constant(ast::Value::I64(1))),
-                    ast::BinaryOperator::Subtract,
-                    Box::new(ast::Expr::Constant(ast::Value::Bool(false))),
-                )),
-            )],
-        ))]),
+                )],
+            ))],
+            types: HashMap::new(),
+        },
     };
     tc.run();
 }
@@ -570,11 +612,14 @@ fn test_parser_ternary_simple() {
                 Box::new(pt::Expr::Int(2)),
             ))],
         },
-        expected_ast: ast::Module::Body(vec![ast::Statement::Expr(ast::Expr::Ternary(
-            Box::new(ast::Expr::Constant(ast::Value::Bool(true))),
-            Box::new(ast::Expr::Constant(ast::Value::I64(1))),
-            Box::new(ast::Expr::Constant(ast::Value::I64(2))),
-        ))]),
+        expected_ast: ast::Module {
+            body: vec![ast::Statement::Expr(ast::Expr::Ternary(
+                Box::new(ast::Expr::Constant(ast::Value::Bool(true))),
+                Box::new(ast::Expr::Constant(ast::Value::I64(1))),
+                Box::new(ast::Expr::Constant(ast::Value::I64(2))),
+            ))],
+            types: HashMap::new(),
+        },
     };
     tc.run();
 }
@@ -606,15 +651,18 @@ fn test_parser_ternary_nested() {
                 )),
             ))],
         },
-        expected_ast: ast::Module::Body(vec![ast::Statement::Expr(ast::Expr::Ternary(
-            Box::new(ast::Expr::Constant(ast::Value::Bool(true))),
-            Box::new(ast::Expr::Constant(ast::Value::I64(1))),
-            Box::new(ast::Expr::Ternary(
-                Box::new(ast::Expr::Constant(ast::Value::Bool(false))),
-                Box::new(ast::Expr::Constant(ast::Value::I64(2))),
-                Box::new(ast::Expr::Constant(ast::Value::I64(3))),
-            )),
-        ))]),
+        expected_ast: ast::Module {
+            body: vec![ast::Statement::Expr(ast::Expr::Ternary(
+                Box::new(ast::Expr::Constant(ast::Value::Bool(true))),
+                Box::new(ast::Expr::Constant(ast::Value::I64(1))),
+                Box::new(ast::Expr::Ternary(
+                    Box::new(ast::Expr::Constant(ast::Value::Bool(false))),
+                    Box::new(ast::Expr::Constant(ast::Value::I64(2))),
+                    Box::new(ast::Expr::Constant(ast::Value::I64(3))),
+                )),
+            ))],
+            types: HashMap::new(),
+        },
     };
     tc.run();
 }
@@ -644,15 +692,18 @@ fn test_parser_ternary_with_binop() {
                 Box::new(pt::Expr::Int(4)),
             ))],
         },
-        expected_ast: ast::Module::Body(vec![ast::Statement::Expr(ast::Expr::Ternary(
-            Box::new(ast::Expr::BinaryOp(
-                Box::new(ast::Expr::Constant(ast::Value::I64(1))),
-                ast::BinaryOperator::Add,
-                Box::new(ast::Expr::Constant(ast::Value::I64(2))),
-            )),
-            Box::new(ast::Expr::Constant(ast::Value::I64(3))),
-            Box::new(ast::Expr::Constant(ast::Value::I64(4))),
-        ))]),
+        expected_ast: ast::Module {
+            body: vec![ast::Statement::Expr(ast::Expr::Ternary(
+                Box::new(ast::Expr::BinaryOp(
+                    Box::new(ast::Expr::Constant(ast::Value::I64(1))),
+                    ast::BinaryOperator::Add,
+                    Box::new(ast::Expr::Constant(ast::Value::I64(2))),
+                )),
+                Box::new(ast::Expr::Constant(ast::Value::I64(3))),
+                Box::new(ast::Expr::Constant(ast::Value::I64(4))),
+            ))],
+            types: HashMap::new(),
+        },
     };
     tc.run();
 }
@@ -674,11 +725,16 @@ fn test_parser_if_simple() {
                 vec![pt::Statement::Expr(pt::Expr::Int(1))],
             )],
         },
-        expected_ast: ast::Module::Body(vec![ast::Statement::Conditional(
-            ast::Expr::Constant(ast::Value::Bool(true)),
-            vec![ast::Statement::Expr(ast::Expr::Constant(ast::Value::I64(1)))],
-            vec![],
-        )]),
+        expected_ast: ast::Module {
+            body: vec![ast::Statement::Conditional(
+                ast::Expr::Constant(ast::Value::Bool(true)),
+                vec![ast::Statement::Expr(ast::Expr::Constant(ast::Value::I64(
+                    1,
+                )))],
+                vec![],
+            )],
+            types: HashMap::new(),
+        },
     };
     tc.run();
 }
@@ -709,11 +765,18 @@ else { 2 }",
                 pt::Statement::Else(vec![pt::Statement::Expr(pt::Expr::Int(2))]),
             ],
         },
-        expected_ast: ast::Module::Body(vec![ast::Statement::Conditional(
-            ast::Expr::Constant(ast::Value::Bool(true)),
-            vec![ast::Statement::Expr(ast::Expr::Constant(ast::Value::I64(1)))],
-            vec![ast::Statement::Expr(ast::Expr::Constant(ast::Value::I64(2)))],
-        )]),
+        expected_ast: ast::Module {
+            body: vec![ast::Statement::Conditional(
+                ast::Expr::Constant(ast::Value::Bool(true)),
+                vec![ast::Statement::Expr(ast::Expr::Constant(ast::Value::I64(
+                    1,
+                )))],
+                vec![ast::Statement::Expr(ast::Expr::Constant(ast::Value::I64(
+                    2,
+                )))],
+            )],
+            types: HashMap::new(),
+        },
     };
     tc.run();
 }
@@ -756,15 +819,24 @@ else { 3 }",
                 pt::Statement::Else(vec![pt::Statement::Expr(pt::Expr::Int(3))]),
             ],
         },
-        expected_ast: ast::Module::Body(vec![ast::Statement::Conditional(
-            ast::Expr::Constant(ast::Value::Bool(true)),
-            vec![ast::Statement::Expr(ast::Expr::Constant(ast::Value::I64(1)))],
-            vec![ast::Statement::Conditional(
-                ast::Expr::Constant(ast::Value::Bool(false)),
-                vec![ast::Statement::Expr(ast::Expr::Constant(ast::Value::I64(2)))],
-                vec![ast::Statement::Expr(ast::Expr::Constant(ast::Value::I64(3)))],
+        expected_ast: ast::Module {
+            body: vec![ast::Statement::Conditional(
+                ast::Expr::Constant(ast::Value::Bool(true)),
+                vec![ast::Statement::Expr(ast::Expr::Constant(ast::Value::I64(
+                    1,
+                )))],
+                vec![ast::Statement::Conditional(
+                    ast::Expr::Constant(ast::Value::Bool(false)),
+                    vec![ast::Statement::Expr(ast::Expr::Constant(ast::Value::I64(
+                        2,
+                    )))],
+                    vec![ast::Statement::Expr(ast::Expr::Constant(ast::Value::I64(
+                        3,
+                    )))],
+                )],
             )],
-        )]),
+            types: HashMap::new(),
+        },
     };
     tc.run();
 }
@@ -792,21 +864,27 @@ fn test_parser_if_with_complex_condition() {
                     pt::Operator::Equals,
                     Box::new(pt::Expr::Int(1)),
                 ),
-                vec![pt::Statement::Expr(pt::Expr::Call("print", vec![pt::Expr::Id("x")]))],
+                vec![pt::Statement::Expr(pt::Expr::Call(
+                    "print",
+                    vec![pt::Expr::Id("x")],
+                ))],
             )],
         },
-        expected_ast: ast::Module::Body(vec![ast::Statement::Conditional(
-            ast::Expr::BinaryOp(
-                Box::new(ast::Expr::Id(ast::Identifier::from("x"))),
-                ast::BinaryOperator::Equals,
-                Box::new(ast::Expr::Constant(ast::Value::I64(1))),
-            ),
-            vec![ast::Statement::Expr(ast::Expr::Call(
-                ast::Identifier::from("print"),
-                vec![ast::Expr::Id(ast::Identifier::from("x"))],
-            ))],
-            vec![],
-        )]),
+        expected_ast: ast::Module {
+            body: vec![ast::Statement::Conditional(
+                ast::Expr::BinaryOp(
+                    Box::new(ast::Expr::Id(ast::Identifier::from("x"))),
+                    ast::BinaryOperator::Equals,
+                    Box::new(ast::Expr::Constant(ast::Value::I64(1))),
+                ),
+                vec![ast::Statement::Expr(ast::Expr::Call(
+                    ast::Identifier::from("print"),
+                    vec![ast::Expr::Id(ast::Identifier::from("x"))],
+                ))],
+                vec![],
+            )],
+            types: HashMap::new(),
+        },
     };
     tc.run();
 }
@@ -843,20 +921,23 @@ fn test_parser_if_multiline_body() {
                 ],
             )],
         },
-        expected_ast: ast::Module::Body(vec![ast::Statement::Conditional(
-            ast::Expr::Constant(ast::Value::Bool(true)),
-            vec![
-                ast::Statement::Assign(
-                    ast::Identifier::from("x"),
-                    ast::Expr::Constant(ast::Value::I64(1)),
-                ),
-                ast::Statement::Expr(ast::Expr::Call(
-                    ast::Identifier::from("print"),
-                    vec![ast::Expr::Id(ast::Identifier::from("x"))],
-                )),
-            ],
-            vec![],
-        )]),
+        expected_ast: ast::Module {
+            body: vec![ast::Statement::Conditional(
+                ast::Expr::Constant(ast::Value::Bool(true)),
+                vec![
+                    ast::Statement::Assign(
+                        ast::Identifier::from("x"),
+                        ast::Expr::Constant(ast::Value::I64(1)),
+                    ),
+                    ast::Statement::Expr(ast::Expr::Call(
+                        ast::Identifier::from("print"),
+                        vec![ast::Expr::Id(ast::Identifier::from("x"))],
+                    )),
+                ],
+                vec![],
+            )],
+            types: HashMap::new(),
+        },
     };
     tc.run();
 }
@@ -874,11 +955,14 @@ fn test_parser_if_empty_body() {
         expected_parse_tree: pt::Module {
             statements: vec![pt::Statement::If(pt::Expr::Bool(true), vec![])],
         },
-        expected_ast: ast::Module::Body(vec![ast::Statement::Conditional(
-            ast::Expr::Constant(ast::Value::Bool(true)),
-            vec![],
-            vec![],
-        )]),
+        expected_ast: ast::Module {
+            body: vec![ast::Statement::Conditional(
+                ast::Expr::Constant(ast::Value::Bool(true)),
+                vec![],
+                vec![],
+            )],
+            types: HashMap::new(),
+        },
     };
     tc.run();
 }
@@ -969,39 +1053,52 @@ else { 5 }",
                 pt::Statement::Else(vec![pt::Statement::Expr(pt::Expr::Int(5))]),
             ],
         },
-        expected_ast: ast::Module::Body(vec![ast::Statement::Conditional(
-            ast::Expr::BinaryOp(
-                Box::new(ast::Expr::Id(ast::Identifier::from("x"))),
-                ast::BinaryOperator::Equals,
-                Box::new(ast::Expr::Constant(ast::Value::I64(1))),
-            ),
-            vec![ast::Statement::Expr(ast::Expr::Constant(ast::Value::I64(1)))],
-            vec![ast::Statement::Conditional(
+        expected_ast: ast::Module {
+            body: vec![ast::Statement::Conditional(
                 ast::Expr::BinaryOp(
                     Box::new(ast::Expr::Id(ast::Identifier::from("x"))),
                     ast::BinaryOperator::Equals,
-                    Box::new(ast::Expr::Constant(ast::Value::I64(2))),
+                    Box::new(ast::Expr::Constant(ast::Value::I64(1))),
                 ),
-                vec![ast::Statement::Expr(ast::Expr::Constant(ast::Value::I64(2)))],
+                vec![ast::Statement::Expr(ast::Expr::Constant(ast::Value::I64(
+                    1,
+                )))],
                 vec![ast::Statement::Conditional(
                     ast::Expr::BinaryOp(
                         Box::new(ast::Expr::Id(ast::Identifier::from("x"))),
                         ast::BinaryOperator::Equals,
-                        Box::new(ast::Expr::Constant(ast::Value::I64(3))),
+                        Box::new(ast::Expr::Constant(ast::Value::I64(2))),
                     ),
-                    vec![ast::Statement::Expr(ast::Expr::Constant(ast::Value::I64(3)))],
+                    vec![ast::Statement::Expr(ast::Expr::Constant(ast::Value::I64(
+                        2,
+                    )))],
                     vec![ast::Statement::Conditional(
                         ast::Expr::BinaryOp(
                             Box::new(ast::Expr::Id(ast::Identifier::from("x"))),
                             ast::BinaryOperator::Equals,
-                            Box::new(ast::Expr::Constant(ast::Value::I64(4))),
+                            Box::new(ast::Expr::Constant(ast::Value::I64(3))),
                         ),
-                        vec![ast::Statement::Expr(ast::Expr::Constant(ast::Value::I64(4)))],
-                        vec![ast::Statement::Expr(ast::Expr::Constant(ast::Value::I64(5)))],
+                        vec![ast::Statement::Expr(ast::Expr::Constant(ast::Value::I64(
+                            3,
+                        )))],
+                        vec![ast::Statement::Conditional(
+                            ast::Expr::BinaryOp(
+                                Box::new(ast::Expr::Id(ast::Identifier::from("x"))),
+                                ast::BinaryOperator::Equals,
+                                Box::new(ast::Expr::Constant(ast::Value::I64(4))),
+                            ),
+                            vec![ast::Statement::Expr(ast::Expr::Constant(ast::Value::I64(
+                                4,
+                            )))],
+                            vec![ast::Statement::Expr(ast::Expr::Constant(ast::Value::I64(
+                                5,
+                            )))],
+                        )],
                     )],
                 )],
             )],
-        )]),
+            types: HashMap::new(),
+        },
     };
     tc.run();
 }
@@ -1031,11 +1128,18 @@ fn test_parser_if_else_single_line() {
                 pt::Statement::Else(vec![pt::Statement::Expr(pt::Expr::Int(2))]),
             ],
         },
-        expected_ast: ast::Module::Body(vec![ast::Statement::Conditional(
-            ast::Expr::Constant(ast::Value::Bool(true)),
-            vec![ast::Statement::Expr(ast::Expr::Constant(ast::Value::I64(1)))],
-            vec![ast::Statement::Expr(ast::Expr::Constant(ast::Value::I64(2)))],
-        )]),
+        expected_ast: ast::Module {
+            body: vec![ast::Statement::Conditional(
+                ast::Expr::Constant(ast::Value::Bool(true)),
+                vec![ast::Statement::Expr(ast::Expr::Constant(ast::Value::I64(
+                    1,
+                )))],
+                vec![ast::Statement::Expr(ast::Expr::Constant(ast::Value::I64(
+                    2,
+                )))],
+            )],
+            types: HashMap::new(),
+        },
     };
     tc.run();
 }
@@ -1074,15 +1178,24 @@ fn test_parser_if_else_if_else_single_line() {
                 pt::Statement::Else(vec![pt::Statement::Expr(pt::Expr::Int(3))]),
             ],
         },
-        expected_ast: ast::Module::Body(vec![ast::Statement::Conditional(
-            ast::Expr::Constant(ast::Value::Bool(true)),
-            vec![ast::Statement::Expr(ast::Expr::Constant(ast::Value::I64(1)))],
-            vec![ast::Statement::Conditional(
-                ast::Expr::Constant(ast::Value::Bool(false)),
-                vec![ast::Statement::Expr(ast::Expr::Constant(ast::Value::I64(2)))],
-                vec![ast::Statement::Expr(ast::Expr::Constant(ast::Value::I64(3)))],
+        expected_ast: ast::Module {
+            body: vec![ast::Statement::Conditional(
+                ast::Expr::Constant(ast::Value::Bool(true)),
+                vec![ast::Statement::Expr(ast::Expr::Constant(ast::Value::I64(
+                    1,
+                )))],
+                vec![ast::Statement::Conditional(
+                    ast::Expr::Constant(ast::Value::Bool(false)),
+                    vec![ast::Statement::Expr(ast::Expr::Constant(ast::Value::I64(
+                        2,
+                    )))],
+                    vec![ast::Statement::Expr(ast::Expr::Constant(ast::Value::I64(
+                        3,
+                    )))],
+                )],
             )],
-        )]),
+            types: HashMap::new(),
+        },
     };
     tc.run();
 }

@@ -15,8 +15,7 @@ impl ASTtoIRPass for TranslateASTtoIR {
             statements: vec![ir::Statement::Goto(Identifier::from("user_exit"))]
         };
         
-        let ast::Module::Body(ast_statements) = m;
-        for s in ast_statements.iter().rev() {
+        for s in m.body.iter().rev() {
             main_body.statements = generate_for_statement(s, main_body.statements, &mut blocks);
         }
 

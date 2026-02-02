@@ -1,5 +1,8 @@
+use std::collections::HashMap;
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::Arc;
+
+pub type TypeEnv = HashMap<Identifier, ValueType>;
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum ValueType {
@@ -176,6 +179,7 @@ pub enum Statement {
 }
 
 #[derive(Debug, Clone, PartialEq)]
-pub enum Module {
-    Body(Vec<Statement>)
+pub struct Module {
+    pub body: Vec<Statement>,
+    pub types: TypeEnv
 }

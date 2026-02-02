@@ -3,12 +3,10 @@ use crate::{ast::*, passes::ASTPass};
 pub struct ShortCircuiting;
 
 impl ASTPass for ShortCircuiting {
-    fn run_pass(self, m: Module) -> Module {
-        let Module::Body(mut statements) = m;
+    fn run_pass(self, mut m: Module) -> Module {
+        m.body.iter_mut().for_each(shortcircuit_statement);
 
-        statements.iter_mut().for_each(shortcircuit_statement);
-
-        Module::Body(statements)
+        m
     }
 }
 

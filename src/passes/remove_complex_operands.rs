@@ -8,16 +8,15 @@ struct ExprTransformation {
 }
 
 impl ASTPass for RemoveComplexOperands {
-    fn run_pass(self, m: Module) -> Module {
-        let Module::Body(old_body) = m;
-
+    fn run_pass(self, mut m: Module) -> Module {
         let mut new_body: Vec<Statement> = vec![];
 
-        for s in old_body {
+        for s in m.body {
             rco_statement(&s, &mut new_body);
         }
 
-        Module::Body(new_body)
+        m.body = new_body;
+        m
     }
 }
 

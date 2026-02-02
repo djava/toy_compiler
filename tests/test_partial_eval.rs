@@ -6,7 +6,7 @@ use cs4999_compiler::{
     passes::{ASTPass, TypeCheck, partial_eval::PartialEval},
 };
 
-use crate::infra::{ast_interpreter::interpret};
+use crate::infra::ast_interpreter::interpret;
 
 struct TestCase {
     ast: Module,
@@ -36,14 +36,17 @@ fn execute_test_case(mut tc: TestCase) {
 #[test]
 fn test_partial_eval_add() {
     execute_test_case(TestCase {
-        ast: Module::Body(vec![Statement::Expr(Expr::Call(
-            Identifier::from("print_int"),
-            vec![Expr::BinaryOp(
-                Box::new(Expr::Constant(Value::I64(40))),
-                BinaryOperator::Add,
-                Box::new(Expr::Constant(Value::I64(2))),
-            )],
-        ))]),
+        ast: Module {
+            body: vec![Statement::Expr(Expr::Call(
+                Identifier::from("print_int"),
+                vec![Expr::BinaryOp(
+                    Box::new(Expr::Constant(Value::I64(40))),
+                    BinaryOperator::Add,
+                    Box::new(Expr::Constant(Value::I64(2))),
+                )],
+            ))],
+            types: TypeEnv::new(),
+        },
         inputs: VecDeque::new(),
         expected_outputs: VecDeque::from(vec![42]),
     })
@@ -52,13 +55,13 @@ fn test_partial_eval_add() {
 #[test]
 fn test_partial_eval_input() {
     execute_test_case(TestCase {
-        ast: Module::Body(vec![Statement::Expr(Expr::Call(
-            Identifier::from("print_int"),
-            vec![Expr::Call(
-                Identifier::from("read_int"),
-                vec![],
-            )],
-        ))]),
+        ast: Module {
+            body: vec![Statement::Expr(Expr::Call(
+                Identifier::from("print_int"),
+                vec![Expr::Call(Identifier::from("read_int"), vec![])],
+            ))],
+            types: TypeEnv::new(),
+        },
         inputs: VecDeque::from(vec![42]),
         expected_outputs: VecDeque::from(vec![42]),
     })
@@ -67,20 +70,17 @@ fn test_partial_eval_input() {
 #[test]
 fn test_partial_eval_subinput() {
     execute_test_case(TestCase {
-        ast: Module::Body(vec![Statement::Expr(Expr::Call(
-            Identifier::from("print_int"),
-            vec![Expr::BinaryOp(
-                Box::new(Expr::Call(
-                    Identifier::from("read_int"),
-                    vec![],
-                )),
-                BinaryOperator::Subtract,
-                Box::new(Expr::Call(
-                    Identifier::from("read_int"),
-                    vec![],
-                )),
-            )],
-        ))]),
+        ast: Module {
+            body: vec![Statement::Expr(Expr::Call(
+                Identifier::from("print_int"),
+                vec![Expr::BinaryOp(
+                    Box::new(Expr::Call(Identifier::from("read_int"), vec![])),
+                    BinaryOperator::Subtract,
+                    Box::new(Expr::Call(Identifier::from("read_int"), vec![])),
+                )],
+            ))],
+            types: TypeEnv::new(),
+        },
         inputs: VecDeque::from(vec![5, 3]),
         expected_outputs: VecDeque::from(vec![2]),
     });
@@ -89,10 +89,13 @@ fn test_partial_eval_subinput() {
 #[test]
 fn test_partial_eval_zero() {
     execute_test_case(TestCase {
-        ast: Module::Body(vec![Statement::Expr(Expr::Call(
-            Identifier::from("print_int"),
-            vec![Expr::Constant(Value::I64(0))],
-        ))]),
+        ast: Module {
+            body: vec![Statement::Expr(Expr::Call(
+                Identifier::from("print_int"),
+                vec![Expr::Constant(Value::I64(0))],
+            ))],
+            types: TypeEnv::new(),
+        },
         inputs: VecDeque::from(vec![]),
         expected_outputs: VecDeque::from(vec![0]),
     });
@@ -101,22 +104,25 @@ fn test_partial_eval_zero() {
 #[test]
 fn test_partial_eval_nested() {
     execute_test_case(TestCase {
-        ast: Module::Body(vec![Statement::Expr(Expr::Call(
-            Identifier::from("print_int"),
-            vec![Expr::BinaryOp(
-                Box::new(Expr::BinaryOp(
-                    Box::new(Expr::Constant(Value::I64(40))),
+        ast: Module {
+            body: vec![Statement::Expr(Expr::Call(
+                Identifier::from("print_int"),
+                vec![Expr::BinaryOp(
+                    Box::new(Expr::BinaryOp(
+                        Box::new(Expr::Constant(Value::I64(40))),
+                        BinaryOperator::Add,
+                        Box::new(Expr::Constant(Value::I64(2))),
+                    )),
                     BinaryOperator::Add,
-                    Box::new(Expr::Constant(Value::I64(2))),
-                )),
-                BinaryOperator::Add,
-                Box::new(Expr::BinaryOp(
-                    Box::new(Expr::Constant(Value::I64(40))),
-                    BinaryOperator::Add,
-                    Box::new(Expr::Constant(Value::I64(2))),
-                )),
-            )],
-        ))]),
+                    Box::new(Expr::BinaryOp(
+                        Box::new(Expr::Constant(Value::I64(40))),
+                        BinaryOperator::Add,
+                        Box::new(Expr::Constant(Value::I64(2))),
+                    )),
+                )],
+            ))],
+            types: TypeEnv::new(),
+        },
         inputs: VecDeque::from(vec![]),
         expected_outputs: VecDeque::from(vec![84]),
     });
@@ -125,25 +131,25 @@ fn test_partial_eval_nested() {
 #[test]
 fn test_partial_eval_mixed() {
     execute_test_case(TestCase {
-        ast: Module::Body(vec![Statement::Expr(Expr::Call(
-            Identifier::from("print_int"),
-            vec![Expr::BinaryOp(
-                Box::new(Expr::BinaryOp(
-                    Box::new(Expr::Call(
-                        Identifier::from("read_int"),
-                        vec![],
+        ast: Module {
+            body: vec![Statement::Expr(Expr::Call(
+                Identifier::from("print_int"),
+                vec![Expr::BinaryOp(
+                    Box::new(Expr::BinaryOp(
+                        Box::new(Expr::Call(Identifier::from("read_int"), vec![])),
+                        BinaryOperator::Add,
+                        Box::new(Expr::Constant(Value::I64(2))),
                     )),
                     BinaryOperator::Add,
-                    Box::new(Expr::Constant(Value::I64(2))),
-                )),
-                BinaryOperator::Add,
-                Box::new(Expr::BinaryOp(
-                    Box::new(Expr::Constant(Value::I64(40))),
-                    BinaryOperator::Add,
-                    Box::new(Expr::Constant(Value::I64(2))),
-                )),
-            )],
-        ))]),
+                    Box::new(Expr::BinaryOp(
+                        Box::new(Expr::Constant(Value::I64(40))),
+                        BinaryOperator::Add,
+                        Box::new(Expr::Constant(Value::I64(2))),
+                    )),
+                )],
+            ))],
+            types: TypeEnv::new(),
+        },
         inputs: VecDeque::from(vec![-100]),
         expected_outputs: VecDeque::from(vec![44 - 100]),
     });
@@ -157,33 +163,33 @@ fn test_partial_eval_while_loop_simple() {
     //     x = x - 1
     // }
     execute_test_case(TestCase {
-        ast: Module::Body(vec![
-            Statement::Assign(
-                Identifier::from("x"),
-                Expr::Constant(Value::I64(5)),
-            ),
-            Statement::WhileLoop(
-                Expr::BinaryOp(
-                    Box::new(Expr::Id(Identifier::from("x"))),
-                    BinaryOperator::Greater,
-                    Box::new(Expr::Constant(Value::I64(0))),
-                ),
-                vec![
-                    Statement::Expr(Expr::Call(
-                        Identifier::from("print_int"),
-                        vec![Expr::Id(Identifier::from("x"))],
-                    )),
-                    Statement::Assign(
-                        Identifier::from("x"),
-                        Expr::BinaryOp(
-                            Box::new(Expr::Id(Identifier::from("x"))),
-                            BinaryOperator::Subtract,
-                            Box::new(Expr::Constant(Value::I64(1))),
-                        ),
+        ast: Module {
+            body: vec![
+                Statement::Assign(Identifier::from("x"), Expr::Constant(Value::I64(5))),
+                Statement::WhileLoop(
+                    Expr::BinaryOp(
+                        Box::new(Expr::Id(Identifier::from("x"))),
+                        BinaryOperator::Greater,
+                        Box::new(Expr::Constant(Value::I64(0))),
                     ),
-                ],
-            ),
-        ]),
+                    vec![
+                        Statement::Expr(Expr::Call(
+                            Identifier::from("print_int"),
+                            vec![Expr::Id(Identifier::from("x"))],
+                        )),
+                        Statement::Assign(
+                            Identifier::from("x"),
+                            Expr::BinaryOp(
+                                Box::new(Expr::Id(Identifier::from("x"))),
+                                BinaryOperator::Subtract,
+                                Box::new(Expr::Constant(Value::I64(1))),
+                            ),
+                        ),
+                    ],
+                ),
+            ],
+            types: TypeEnv::new(),
+        },
         inputs: VecDeque::new(),
         expected_outputs: VecDeque::from(vec![5, 4, 3, 2, 1]),
     });
@@ -196,19 +202,22 @@ fn test_partial_eval_while_loop_constant_false() {
     // }
     // print_int(42)
     execute_test_case(TestCase {
-        ast: Module::Body(vec![
-            Statement::WhileLoop(
-                Expr::Constant(Value::Bool(false)),
-                vec![Statement::Expr(Expr::Call(
+        ast: Module {
+            body: vec![
+                Statement::WhileLoop(
+                    Expr::Constant(Value::Bool(false)),
+                    vec![Statement::Expr(Expr::Call(
+                        Identifier::from("print_int"),
+                        vec![Expr::Constant(Value::I64(100))],
+                    ))],
+                ),
+                Statement::Expr(Expr::Call(
                     Identifier::from("print_int"),
-                    vec![Expr::Constant(Value::I64(100))],
-                ))],
-            ),
-            Statement::Expr(Expr::Call(
-                Identifier::from("print_int"),
-                vec![Expr::Constant(Value::I64(42))],
-            )),
-        ]),
+                    vec![Expr::Constant(Value::I64(42))],
+                )),
+            ],
+            types: TypeEnv::new(),
+        },
         inputs: VecDeque::new(),
         expected_outputs: VecDeque::from(vec![42]), // Loop should be removed entirely
     });
@@ -222,37 +231,37 @@ fn test_partial_eval_while_loop_with_partial_eval_in_body() {
     //     x = x - 1
     // }
     execute_test_case(TestCase {
-        ast: Module::Body(vec![
-            Statement::Assign(
-                Identifier::from("x"),
-                Expr::Constant(Value::I64(3)),
-            ),
-            Statement::WhileLoop(
-                Expr::BinaryOp(
-                    Box::new(Expr::Id(Identifier::from("x"))),
-                    BinaryOperator::Greater,
-                    Box::new(Expr::Constant(Value::I64(0))),
-                ),
-                vec![
-                    Statement::Expr(Expr::Call(
-                        Identifier::from("print_int"),
-                        vec![Expr::BinaryOp(
-                            Box::new(Expr::Constant(Value::I64(10))),
-                            BinaryOperator::Add,
-                            Box::new(Expr::Constant(Value::I64(10))),
-                        )],
-                    )),
-                    Statement::Assign(
-                        Identifier::from("x"),
-                        Expr::BinaryOp(
-                            Box::new(Expr::Id(Identifier::from("x"))),
-                            BinaryOperator::Subtract,
-                            Box::new(Expr::Constant(Value::I64(1))),
-                        ),
+        ast: Module {
+            body: vec![
+                Statement::Assign(Identifier::from("x"), Expr::Constant(Value::I64(3))),
+                Statement::WhileLoop(
+                    Expr::BinaryOp(
+                        Box::new(Expr::Id(Identifier::from("x"))),
+                        BinaryOperator::Greater,
+                        Box::new(Expr::Constant(Value::I64(0))),
                     ),
-                ],
-            ),
-        ]),
+                    vec![
+                        Statement::Expr(Expr::Call(
+                            Identifier::from("print_int"),
+                            vec![Expr::BinaryOp(
+                                Box::new(Expr::Constant(Value::I64(10))),
+                                BinaryOperator::Add,
+                                Box::new(Expr::Constant(Value::I64(10))),
+                            )],
+                        )),
+                        Statement::Assign(
+                            Identifier::from("x"),
+                            Expr::BinaryOp(
+                                Box::new(Expr::Id(Identifier::from("x"))),
+                                BinaryOperator::Subtract,
+                                Box::new(Expr::Constant(Value::I64(1))),
+                            ),
+                        ),
+                    ],
+                ),
+            ],
+            types: TypeEnv::new(),
+        },
         inputs: VecDeque::new(),
         expected_outputs: VecDeque::from(vec![20, 20, 20]),
     });

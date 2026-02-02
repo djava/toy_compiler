@@ -3,7 +3,7 @@ use std::collections::VecDeque;
 
 use cs4999_compiler::{ast::*, passes::*, pipeline::Pipeline, x86_ast};
 
-use crate::infra::{x86_interpreter::interpret_x86};
+use crate::infra::x86_interpreter::interpret_x86;
 
 struct TestCase {
     ast: Module,
@@ -15,7 +15,10 @@ fn execute_test_case(mut tc: TestCase) {
     println!("\n==================");
 
     let pipeline = Pipeline {
-        ast_passes: vec![ASTtoAST::from(TypeCheck), ASTtoAST::from(RemoveComplexOperands)],
+        ast_passes: vec![
+            ASTtoAST::from(TypeCheck),
+            ASTtoAST::from(RemoveComplexOperands),
+        ],
         ast_to_ir_pass: ASTtoIR::from(TranslateASTtoIR),
         ir_passes: vec![],
         ir_to_x86_pass: IRtoX86::from(TranslateIRtoX86),
@@ -58,14 +61,17 @@ fn execute_test_case(mut tc: TestCase) {
 #[test]
 fn test_patch_instructions_add() {
     execute_test_case(TestCase {
-        ast: Module::Body(vec![Statement::Expr(Expr::Call(
-            Identifier::from("print_int"),
-            vec![Expr::BinaryOp(
-                Box::new(Expr::Constant(Value::I64(40))),
-                BinaryOperator::Add,
-                Box::new(Expr::Constant(Value::I64(2))),
-            )],
-        ))]),
+        ast: Module {
+            body: vec![Statement::Expr(Expr::Call(
+                Identifier::from("print_int"),
+                vec![Expr::BinaryOp(
+                    Box::new(Expr::Constant(Value::I64(40))),
+                    BinaryOperator::Add,
+                    Box::new(Expr::Constant(Value::I64(2))),
+                )],
+            ))],
+            types: TypeEnv::new(),
+        },
         inputs: VecDeque::new(),
         expected_outputs: VecDeque::from(vec![42]),
     })
@@ -74,13 +80,13 @@ fn test_patch_instructions_add() {
 #[test]
 fn test_patch_instructions_input() {
     execute_test_case(TestCase {
-        ast: Module::Body(vec![Statement::Expr(Expr::Call(
-            Identifier::from("print_int"),
-            vec![Expr::Call(
-                Identifier::from("read_int"),
-                vec![],
-            )],
-        ))]),
+        ast: Module {
+            body: vec![Statement::Expr(Expr::Call(
+                Identifier::from("print_int"),
+                vec![Expr::Call(Identifier::from("read_int"), vec![])],
+            ))],
+            types: TypeEnv::new(),
+        },
         inputs: VecDeque::from(vec![42]),
         expected_outputs: VecDeque::from(vec![42]),
     })
@@ -89,20 +95,17 @@ fn test_patch_instructions_input() {
 #[test]
 fn test_patch_instructions_subinput() {
     execute_test_case(TestCase {
-        ast: Module::Body(vec![Statement::Expr(Expr::Call(
-            Identifier::from("print_int"),
-            vec![Expr::BinaryOp(
-                Box::new(Expr::Call(
-                    Identifier::from("read_int"),
-                    vec![],
-                )),
-                BinaryOperator::Subtract,
-                Box::new(Expr::Call(
-                    Identifier::from("read_int"),
-                    vec![],
-                )),
-            )],
-        ))]),
+        ast: Module {
+            body: vec![Statement::Expr(Expr::Call(
+                Identifier::from("print_int"),
+                vec![Expr::BinaryOp(
+                    Box::new(Expr::Call(Identifier::from("read_int"), vec![])),
+                    BinaryOperator::Subtract,
+                    Box::new(Expr::Call(Identifier::from("read_int"), vec![])),
+                )],
+            ))],
+            types: TypeEnv::new(),
+        },
         inputs: VecDeque::from(vec![5, 3]),
         expected_outputs: VecDeque::from(vec![2]),
     });
@@ -111,10 +114,13 @@ fn test_patch_instructions_subinput() {
 #[test]
 fn test_patch_instructions_zero() {
     execute_test_case(TestCase {
-        ast: Module::Body(vec![Statement::Expr(Expr::Call(
-            Identifier::from("print_int"),
-            vec![Expr::Constant(Value::I64(0))],
-        ))]),
+        ast: Module {
+            body: vec![Statement::Expr(Expr::Call(
+                Identifier::from("print_int"),
+                vec![Expr::Constant(Value::I64(0))],
+            ))],
+            types: TypeEnv::new(),
+        },
         inputs: VecDeque::from(vec![]),
         expected_outputs: VecDeque::from(vec![0]),
     });
@@ -123,22 +129,25 @@ fn test_patch_instructions_zero() {
 #[test]
 fn test_patch_instructions_nested() {
     execute_test_case(TestCase {
-        ast: Module::Body(vec![Statement::Expr(Expr::Call(
-            Identifier::from("print_int"),
-            vec![Expr::BinaryOp(
-                Box::new(Expr::BinaryOp(
-                    Box::new(Expr::Constant(Value::I64(40))),
+        ast: Module {
+            body: vec![Statement::Expr(Expr::Call(
+                Identifier::from("print_int"),
+                vec![Expr::BinaryOp(
+                    Box::new(Expr::BinaryOp(
+                        Box::new(Expr::Constant(Value::I64(40))),
+                        BinaryOperator::Add,
+                        Box::new(Expr::Constant(Value::I64(2))),
+                    )),
                     BinaryOperator::Add,
-                    Box::new(Expr::Constant(Value::I64(2))),
-                )),
-                BinaryOperator::Add,
-                Box::new(Expr::BinaryOp(
-                    Box::new(Expr::Constant(Value::I64(40))),
-                    BinaryOperator::Add,
-                    Box::new(Expr::Constant(Value::I64(2))),
-                )),
-            )],
-        ))]),
+                    Box::new(Expr::BinaryOp(
+                        Box::new(Expr::Constant(Value::I64(40))),
+                        BinaryOperator::Add,
+                        Box::new(Expr::Constant(Value::I64(2))),
+                    )),
+                )],
+            ))],
+            types: TypeEnv::new(),
+        },
         inputs: VecDeque::from(vec![]),
         expected_outputs: VecDeque::from(vec![84]),
     });
@@ -147,25 +156,25 @@ fn test_patch_instructions_nested() {
 #[test]
 fn test_patch_instructions_mixed() {
     execute_test_case(TestCase {
-        ast: Module::Body(vec![Statement::Expr(Expr::Call(
-            Identifier::from("print_int"),
-            vec![Expr::BinaryOp(
-                Box::new(Expr::BinaryOp(
-                    Box::new(Expr::Call(
-                        Identifier::from("read_int"),
-                        vec![],
+        ast: Module {
+            body: vec![Statement::Expr(Expr::Call(
+                Identifier::from("print_int"),
+                vec![Expr::BinaryOp(
+                    Box::new(Expr::BinaryOp(
+                        Box::new(Expr::Call(Identifier::from("read_int"), vec![])),
+                        BinaryOperator::Add,
+                        Box::new(Expr::Constant(Value::I64(2))),
                     )),
                     BinaryOperator::Add,
-                    Box::new(Expr::Constant(Value::I64(2))),
-                )),
-                BinaryOperator::Add,
-                Box::new(Expr::BinaryOp(
-                    Box::new(Expr::Constant(Value::I64(40))),
-                    BinaryOperator::Add,
-                    Box::new(Expr::Constant(Value::I64(2))),
-                )),
-            )],
-        ))]),
+                    Box::new(Expr::BinaryOp(
+                        Box::new(Expr::Constant(Value::I64(40))),
+                        BinaryOperator::Add,
+                        Box::new(Expr::Constant(Value::I64(2))),
+                    )),
+                )],
+            ))],
+            types: TypeEnv::new(),
+        },
         inputs: VecDeque::from(vec![-100]),
         expected_outputs: VecDeque::from(vec![44 - 100]),
     });
@@ -174,16 +183,16 @@ fn test_patch_instructions_mixed() {
 #[test]
 fn test_patch_instructions_simple_assignment() {
     execute_test_case(TestCase {
-        ast: Module::Body(vec![
-            Statement::Assign(
-                Identifier::from("x"),
-                Expr::Constant(Value::I64(1000)),
-            ),
-            Statement::Expr(Expr::Call(
-                Identifier::from("print_int"),
-                vec![Expr::Id(Identifier::from("x"))],
-            )),
-        ]),
+        ast: Module {
+            body: vec![
+                Statement::Assign(Identifier::from("x"), Expr::Constant(Value::I64(1000))),
+                Statement::Expr(Expr::Call(
+                    Identifier::from("print_int"),
+                    vec![Expr::Id(Identifier::from("x"))],
+                )),
+            ],
+            types: TypeEnv::new(),
+        },
         inputs: VecDeque::from(vec![]),
         expected_outputs: VecDeque::from(vec![1000]),
     });
@@ -192,16 +201,16 @@ fn test_patch_instructions_simple_assignment() {
 #[test]
 fn test_patch_instructions_simple_assignment_imm64() {
     execute_test_case(TestCase {
-        ast: Module::Body(vec![
-            Statement::Assign(
-                Identifier::from("x"),
-                Expr::Constant(Value::I64(i64::MAX)),
-            ),
-            Statement::Expr(Expr::Call(
-                Identifier::from("print_int"),
-                vec![Expr::Id(Identifier::from("x"))],
-            )),
-        ]),
+        ast: Module {
+            body: vec![
+                Statement::Assign(Identifier::from("x"), Expr::Constant(Value::I64(i64::MAX))),
+                Statement::Expr(Expr::Call(
+                    Identifier::from("print_int"),
+                    vec![Expr::Id(Identifier::from("x"))],
+                )),
+            ],
+            types: TypeEnv::new(),
+        },
         inputs: VecDeque::from(vec![]),
         expected_outputs: VecDeque::from(vec![i64::MAX]),
     });
@@ -219,15 +228,45 @@ fn test_patch_instructions_complex_assignment() {
     // e3 = e1 + e2
     // print(e3)
     execute_test_case(TestCase {
-        ast: Module::Body(vec![
-            Statement::Assign(
-                Identifier::from("foofoo"),
-                Expr::BinaryOp(
-                    Box::new(Expr::BinaryOp(
-                        Box::new(Expr::Call(
-                            Identifier::from("read_int"),
-                            vec![],
+        ast: Module {
+            body: vec![
+                Statement::Assign(
+                    Identifier::from("foofoo"),
+                    Expr::BinaryOp(
+                        Box::new(Expr::BinaryOp(
+                            Box::new(Expr::Call(Identifier::from("read_int"), vec![])),
+                            BinaryOperator::Add,
+                            Box::new(Expr::Constant(Value::I64(2))),
                         )),
+                        BinaryOperator::Add,
+                        Box::new(Expr::BinaryOp(
+                            Box::new(Expr::Constant(Value::I64(40))),
+                            BinaryOperator::Subtract,
+                            Box::new(Expr::Constant(Value::I64(2))),
+                        )),
+                    ),
+                ),
+                Statement::Expr(Expr::Call(
+                    Identifier::from("print_int"),
+                    vec![Expr::Id(Identifier::from("foofoo"))],
+                )),
+            ],
+            types: TypeEnv::new(),
+        },
+        inputs: VecDeque::from(vec![10]),
+        expected_outputs: VecDeque::from(vec![10 + 2 + 40 - 2]),
+    });
+}
+
+#[test]
+fn test_patch_instructions_complex_args() {
+    execute_test_case(TestCase {
+        ast: Module {
+            body: vec![Statement::Expr(Expr::Call(
+                Identifier::from("print_int"),
+                vec![Expr::BinaryOp(
+                    Box::new(Expr::BinaryOp(
+                        Box::new(Expr::Call(Identifier::from("read_int"), vec![])),
                         BinaryOperator::Add,
                         Box::new(Expr::Constant(Value::I64(2))),
                     )),
@@ -237,40 +276,10 @@ fn test_patch_instructions_complex_assignment() {
                         BinaryOperator::Subtract,
                         Box::new(Expr::Constant(Value::I64(2))),
                     )),
-                ),
-            ),
-            Statement::Expr(Expr::Call(
-                Identifier::from("print_int"),
-                vec![Expr::Id(Identifier::from("foofoo"))],
-            )),
-        ]),
-        inputs: VecDeque::from(vec![10]),
-        expected_outputs: VecDeque::from(vec![10 + 2 + 40 - 2]),
-    });
-}
-
-#[test]
-fn test_patch_instructions_complex_args() {
-    execute_test_case(TestCase {
-        ast: Module::Body(vec![Statement::Expr(Expr::Call(
-            Identifier::from("print_int"),
-            vec![Expr::BinaryOp(
-                Box::new(Expr::BinaryOp(
-                    Box::new(Expr::Call(
-                        Identifier::from("read_int"),
-                        vec![],
-                    )),
-                    BinaryOperator::Add,
-                    Box::new(Expr::Constant(Value::I64(2))),
-                )),
-                BinaryOperator::Add,
-                Box::new(Expr::BinaryOp(
-                    Box::new(Expr::Constant(Value::I64(40))),
-                    BinaryOperator::Subtract,
-                    Box::new(Expr::Constant(Value::I64(2))),
-                )),
-            )],
-        ))]),
+                )],
+            ))],
+            types: TypeEnv::new(),
+        },
         inputs: VecDeque::from(vec![10]),
         expected_outputs: VecDeque::from(vec![10 + 2 + 40 - 2]),
     });
@@ -298,57 +307,51 @@ fn test_patch_instructions_cascading_assigns() {
     // print(e4)
 
     execute_test_case(TestCase {
-        ast: Module::Body(vec![
-            Statement::Assign(
-                Identifier::from("foo"),
-                Expr::Call(Identifier::from("read_int"), vec![]),
-            ),
-            Statement::Assign(
-                Identifier::from("bar"),
-                Expr::BinaryOp(
-                    Box::new(Expr::Call(
-                        Identifier::from("read_int"),
-                        vec![],
-                    )),
-                    BinaryOperator::Add,
-                    Box::new(Expr::Id(Identifier::from("foo"))),
+        ast: Module {
+            body: vec![
+                Statement::Assign(
+                    Identifier::from("foo"),
+                    Expr::Call(Identifier::from("read_int"), vec![]),
                 ),
-            ),
-            Statement::Assign(
-                Identifier::from("baz"),
-                Expr::BinaryOp(
-                    Box::new(Expr::Call(
-                        Identifier::from("read_int"),
-                        vec![],
-                    )),
-                    BinaryOperator::Add,
-                    Box::new(Expr::Id(Identifier::from("bar"))),
-                ),
-            ),
-            Statement::Assign(
-                Identifier::from("bop"),
-                Expr::BinaryOp(
-                    Box::new(Expr::BinaryOp(
+                Statement::Assign(
+                    Identifier::from("bar"),
+                    Expr::BinaryOp(
+                        Box::new(Expr::Call(Identifier::from("read_int"), vec![])),
+                        BinaryOperator::Add,
                         Box::new(Expr::Id(Identifier::from("foo"))),
+                    ),
+                ),
+                Statement::Assign(
+                    Identifier::from("baz"),
+                    Expr::BinaryOp(
+                        Box::new(Expr::Call(Identifier::from("read_int"), vec![])),
                         BinaryOperator::Add,
                         Box::new(Expr::Id(Identifier::from("bar"))),
-                    )),
-                    BinaryOperator::Add,
-                    Box::new(Expr::Id(Identifier::from("baz"))),
+                    ),
                 ),
-            ),
-            Statement::Expr(Expr::Call(
-                Identifier::from("print_int"),
-                vec![Expr::BinaryOp(
-                    Box::new(Expr::Call(
-                        Identifier::from("read_int"),
-                        vec![],
-                    )),
-                    BinaryOperator::Add,
-                    Box::new(Expr::Id(Identifier::from("bop"))),
-                )],
-            )),
-        ]),
+                Statement::Assign(
+                    Identifier::from("bop"),
+                    Expr::BinaryOp(
+                        Box::new(Expr::BinaryOp(
+                            Box::new(Expr::Id(Identifier::from("foo"))),
+                            BinaryOperator::Add,
+                            Box::new(Expr::Id(Identifier::from("bar"))),
+                        )),
+                        BinaryOperator::Add,
+                        Box::new(Expr::Id(Identifier::from("baz"))),
+                    ),
+                ),
+                Statement::Expr(Expr::Call(
+                    Identifier::from("print_int"),
+                    vec![Expr::BinaryOp(
+                        Box::new(Expr::Call(Identifier::from("read_int"), vec![])),
+                        BinaryOperator::Add,
+                        Box::new(Expr::Id(Identifier::from("bop"))),
+                    )],
+                )),
+            ],
+            types: TypeEnv::new(),
+        },
         inputs: VecDeque::from(vec![10, 20, 30, 40]),
         expected_outputs: VecDeque::from(vec![10 + (10 + 20) + (10 + 20 + 30) + 40]),
     });

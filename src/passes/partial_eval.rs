@@ -3,15 +3,14 @@ use crate::{ast::*, passes::ASTPass};
 pub struct PartialEval;
 
 impl ASTPass for PartialEval {
-    fn run_pass(self, m: Module) -> Module {
-        let Module::Body(statements) = m;
-
-        let mut new_statements = Vec::new();
-        for s in statements {
-            partial_eval_statement(s, &mut new_statements);
+    fn run_pass(self, mut m: Module) -> Module {
+        let mut new_body = Vec::new();
+        for s in m.body {
+            partial_eval_statement(s, &mut new_body);
         }
 
-        Module::Body(new_statements)
+        m.body = new_body;
+        m
     }
 }
 

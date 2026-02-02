@@ -59,11 +59,17 @@ fn interpret_expr(
         }
         StatementBlock(statements, expr) => {
             if !statements.is_empty() {
-                interpret_statement(statements.first().unwrap(), inputs, outputs, &statements[1..], env);
+                interpret_statement(
+                    statements.first().unwrap(),
+                    inputs,
+                    outputs,
+                    &statements[1..],
+                    env,
+                );
             }
 
             interpret_expr(expr, inputs, outputs, env)
-        },
+        }
     }
 }
 
@@ -100,7 +106,7 @@ fn interpret_statement(
                     env,
                 )
             }
-        },
+        }
         Statement::Conditional(cond, pos, neg) => {
             let result = interpret_expr(cond, inputs, outputs, env).coerce_bool();
 
@@ -110,9 +116,15 @@ fn interpret_statement(
             }
 
             if !remaining_stmts.is_empty() {
-                interpret_statement(&remaining_stmts[0], inputs, outputs, &remaining_stmts[1..], env);
+                interpret_statement(
+                    &remaining_stmts[0],
+                    inputs,
+                    outputs,
+                    &remaining_stmts[1..],
+                    env,
+                );
             }
-        },
+        }
         Statement::WhileLoop(cond, body) => {
             let mut iterations = 0;
             while interpret_expr(cond, inputs, outputs, env).expect_bool() {
@@ -126,16 +138,21 @@ fn interpret_statement(
             }
 
             if !remaining_stmts.is_empty() {
-                interpret_statement(&remaining_stmts[0], inputs, outputs, &remaining_stmts[1..], env);
+                interpret_statement(
+                    &remaining_stmts[0],
+                    inputs,
+                    outputs,
+                    &remaining_stmts[1..],
+                    env,
+                );
             }
         }
     };
 }
 
 pub fn interpret(m: &Module, inputs: &mut VecDeque<i64>, outputs: &mut VecDeque<i64>) {
-    let Module::Body(statements) = m;
-    if !statements.is_empty() {
+    if !m.body.is_empty() {
         let mut env = ValueEnv::new();
-        interpret_statement(&statements[0], inputs, outputs, &statements[1..], &mut env);
+        interpret_statement(&m.body[0], inputs, outputs, &m.body[1..], &mut env);
     }
 }

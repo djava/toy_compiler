@@ -2,16 +2,11 @@ use std::collections::HashMap;
 
 use crate::{ast::*, passes::ASTPass};
 
-type TypeEnv = HashMap<Identifier, ValueType>;
-
 pub struct TypeCheck;
 
 impl ASTPass for TypeCheck {
-    fn run_pass(self, m: Module) -> Module {
-        let Module::Body(ref statements) = m;
-
-        let mut env = TypeEnv::new();
-        type_check_statements(&statements[..], &mut env);
+    fn run_pass(self, mut m: Module) -> Module {
+        type_check_statements(&m.body[..], &mut m.types);
 
         m
     }

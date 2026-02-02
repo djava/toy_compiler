@@ -6,7 +6,7 @@ use cs4999_compiler::{
     passes::{ASTPass, ShortCircuiting, TypeCheck},
 };
 
-use crate::infra::{ast_interpreter::interpret};
+use crate::infra::ast_interpreter::interpret;
 
 struct TestCase {
     ast: Module,
@@ -46,7 +46,7 @@ fn assert_statement_no_and_or(s: &Statement) {
             assert_expr_no_and_or(&expr);
             pos.iter().for_each(assert_statement_no_and_or);
             neg.iter().for_each(assert_statement_no_and_or);
-        },
+        }
         Statement::WhileLoop(expr, body) => {
             assert_expr_no_and_or(&expr);
             body.iter().for_each(assert_statement_no_and_or);
@@ -67,7 +67,7 @@ fn execute_test_case(mut tc: TestCase) {
     let type_checked = TypeCheck.run_pass(post_run_ast);
     println!("Type-check passed after pass");
 
-    let Module::Body(statements) = &type_checked;
+    let statements = &type_checked.body;
     statements.iter().for_each(assert_statement_no_and_or);
 
     let mut outputs = VecDeque::<i64>::new();
@@ -80,11 +80,14 @@ fn execute_test_case(mut tc: TestCase) {
 #[test]
 fn test_short_circuiting_simple() {
     let tc = TestCase {
-        ast: Module::Body(vec![Statement::Expr(Expr::BinaryOp(
-            Box::new(Expr::Constant(Value::Bool(true))),
-            BinaryOperator::And,
-            Box::new(Expr::Constant(Value::Bool(false))),
-        ))]),
+        ast: Module {
+            body: vec![Statement::Expr(Expr::BinaryOp(
+                Box::new(Expr::Constant(Value::Bool(true))),
+                BinaryOperator::And,
+                Box::new(Expr::Constant(Value::Bool(false))),
+            ))],
+            types: TypeEnv::new(),
+        },
         inputs: VecDeque::new(),
         expected_outputs: VecDeque::new(),
     };
@@ -95,10 +98,8 @@ fn test_short_circuiting_simple() {
 #[test]
 fn test_short_circuiting_nested() {
     let tc = TestCase {
-        ast: Module::Body(vec![Statement::Expr(Expr::BinaryOp(
-            Box::new(Expr::Constant(Value::Bool(true))),
-            BinaryOperator::And,
-            Box::new(Expr::BinaryOp(
+        ast: Module {
+            body: vec![Statement::Expr(Expr::BinaryOp(
                 Box::new(Expr::Constant(Value::Bool(true))),
                 BinaryOperator::And,
                 Box::new(Expr::BinaryOp(
@@ -110,12 +111,17 @@ fn test_short_circuiting_nested() {
                         Box::new(Expr::BinaryOp(
                             Box::new(Expr::Constant(Value::Bool(true))),
                             BinaryOperator::And,
-                            Box::new(Expr::Constant(Value::Bool(false))),
+                            Box::new(Expr::BinaryOp(
+                                Box::new(Expr::Constant(Value::Bool(true))),
+                                BinaryOperator::And,
+                                Box::new(Expr::Constant(Value::Bool(false))),
+                            )),
                         )),
                     )),
                 )),
-            )),
-        ))]),
+            ))],
+            types: TypeEnv::new(),
+        },
         inputs: VecDeque::new(),
         expected_outputs: VecDeque::new(),
     };
@@ -126,26 +132,29 @@ fn test_short_circuiting_nested() {
 #[test]
 fn test_short_circuiting_comparisons_and() {
     let tc = TestCase {
-        ast: Module::Body(vec![
-            Statement::Expr(Expr::BinaryOp(
-                Box::new(Expr::Constant(Value::Bool(true))),
-                BinaryOperator::And,
-                Box::new(Expr::BinaryOp(
-                    Box::new(Expr::Constant(Value::I64(1))),
-                    BinaryOperator::Equals,
-                    Box::new(Expr::Call(Identifier::from("read_int"), vec![])),
+        ast: Module {
+            body: vec![
+                Statement::Expr(Expr::BinaryOp(
+                    Box::new(Expr::Constant(Value::Bool(true))),
+                    BinaryOperator::And,
+                    Box::new(Expr::BinaryOp(
+                        Box::new(Expr::Constant(Value::I64(1))),
+                        BinaryOperator::Equals,
+                        Box::new(Expr::Call(Identifier::from("read_int"), vec![])),
+                    )),
                 )),
-            )),
-            Statement::Expr(Expr::BinaryOp(
-                Box::new(Expr::Constant(Value::Bool(false))),
-                BinaryOperator::And,
-                Box::new(Expr::BinaryOp(
-                    Box::new(Expr::Constant(Value::I64(1))),
-                    BinaryOperator::Equals,
-                    Box::new(Expr::Call(Identifier::from("read_int"), vec![])),
+                Statement::Expr(Expr::BinaryOp(
+                    Box::new(Expr::Constant(Value::Bool(false))),
+                    BinaryOperator::And,
+                    Box::new(Expr::BinaryOp(
+                        Box::new(Expr::Constant(Value::I64(1))),
+                        BinaryOperator::Equals,
+                        Box::new(Expr::Call(Identifier::from("read_int"), vec![])),
+                    )),
                 )),
-            )),
-        ]),
+            ],
+            types: TypeEnv::new(),
+        },
         inputs: VecDeque::from([1]),
         expected_outputs: VecDeque::new(),
     };
@@ -156,26 +165,29 @@ fn test_short_circuiting_comparisons_and() {
 #[test]
 fn test_short_circuiting_comparisons_or() {
     let tc = TestCase {
-        ast: Module::Body(vec![
-            Statement::Expr(Expr::BinaryOp(
-                Box::new(Expr::Constant(Value::Bool(true))),
-                BinaryOperator::Or,
-                Box::new(Expr::BinaryOp(
-                    Box::new(Expr::Constant(Value::I64(1))),
-                    BinaryOperator::Equals,
-                    Box::new(Expr::Call(Identifier::from("read_int"), vec![])),
+        ast: Module {
+            body: vec![
+                Statement::Expr(Expr::BinaryOp(
+                    Box::new(Expr::Constant(Value::Bool(true))),
+                    BinaryOperator::Or,
+                    Box::new(Expr::BinaryOp(
+                        Box::new(Expr::Constant(Value::I64(1))),
+                        BinaryOperator::Equals,
+                        Box::new(Expr::Call(Identifier::from("read_int"), vec![])),
+                    )),
                 )),
-            )),
-            Statement::Expr(Expr::BinaryOp(
-                Box::new(Expr::Constant(Value::Bool(false))),
-                BinaryOperator::Or,
-                Box::new(Expr::BinaryOp(
-                    Box::new(Expr::Constant(Value::I64(1))),
-                    BinaryOperator::Equals,
-                    Box::new(Expr::Call(Identifier::from("read_int"), vec![])),
+                Statement::Expr(Expr::BinaryOp(
+                    Box::new(Expr::Constant(Value::Bool(false))),
+                    BinaryOperator::Or,
+                    Box::new(Expr::BinaryOp(
+                        Box::new(Expr::Constant(Value::I64(1))),
+                        BinaryOperator::Equals,
+                        Box::new(Expr::Call(Identifier::from("read_int"), vec![])),
+                    )),
                 )),
-            )),
-        ]),
+            ],
+            types: TypeEnv::new(),
+        },
         inputs: VecDeque::from([1]),
         expected_outputs: VecDeque::new(),
     };
