@@ -1,5 +1,21 @@
-use crate::infra::TypeEnv;
-use cs4999_compiler::ast::*;
+use std::collections::HashMap;
+
+use crate::{ast::*, passes::ASTPass};
+
+type TypeEnv = HashMap<Identifier, ValueType>;
+
+pub struct TypeCheck;
+
+impl ASTPass for TypeCheck {
+    fn run_pass(self, m: Module) -> Module {
+        let Module::Body(ref statements) = m;
+
+        let mut env = TypeEnv::new();
+        type_check_statements(&statements[..], &mut env);
+
+        m
+    }
+}
 
 fn type_check_expr(e: &Expr, env: &mut TypeEnv) -> ValueType {
     use Expr::*;
@@ -90,11 +106,4 @@ fn type_check_statements(statements: &[Statement], env: &mut TypeEnv) {
             }
         }
     }
-}
-
-pub fn type_check(m: &Module) {
-    let Module::Body(statements) = m;
-
-    let mut env = TypeEnv::new();
-    type_check_statements(&statements[..], &mut env);
 }

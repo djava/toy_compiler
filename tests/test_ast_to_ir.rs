@@ -4,12 +4,12 @@ use std::collections::VecDeque;
 use cs4999_compiler::{
     ast::*,
     passes::{
-        ASTPass, ASTtoIRPass, ShortCircuiting, TranslateASTtoIR, remove_complex_operands::RemoveComplexOperands
+        ASTPass, ASTtoIRPass, ShortCircuiting, TranslateASTtoIR, TypeCheck, remove_complex_operands::RemoveComplexOperands
     },
 };
 
 use crate::infra::{
-    ast_const_int, ast_print_int, ast_read_int, ast_type_check::type_check,
+    ast_const_int, ast_print_int, ast_read_int,
     ir_interpreter::interpret_irprogram,
 };
 
@@ -22,10 +22,8 @@ struct TestCase {
 fn execute_test_case(mut tc: TestCase) {
     println!("\n==================");
 
-    type_check(&tc.ast);
-    println!("Type-check passed on source");
-
-    let post_short_circuiting = ShortCircuiting.run_pass(tc.ast);
+    let type_checked = TypeCheck.run_pass(tc.ast);
+    let post_short_circuiting = ShortCircuiting.run_pass(type_checked);
     let post_rco_ast = RemoveComplexOperands.run_pass(post_short_circuiting);
 
     println!("-- AST before ASTtoIR:\n{post_rco_ast:?}");

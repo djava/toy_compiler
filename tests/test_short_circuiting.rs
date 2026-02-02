@@ -3,10 +3,10 @@ use std::collections::VecDeque;
 
 use cs4999_compiler::{
     ast::*,
-    passes::{ASTPass, ShortCircuiting},
+    passes::{ASTPass, ShortCircuiting, TypeCheck},
 };
 
-use crate::infra::{ast_interpreter::interpret, ast_type_check::type_check};
+use crate::infra::{ast_interpreter::interpret};
 
 struct TestCase {
     ast: Module,
@@ -57,21 +57,21 @@ fn assert_statement_no_and_or(s: &Statement) {
 fn execute_test_case(mut tc: TestCase) {
     println!("\n==================");
 
-    type_check(&tc.ast);
+    tc.ast = TypeCheck.run_pass(tc.ast);
     println!("Type-check passed on source");
 
     println!("AST before Short Circuiting: {:?}", tc.ast);
     let post_run_ast = ShortCircuiting.run_pass(tc.ast);
     println!("AST after Short Circuiting: {:?}", post_run_ast);
 
-    type_check(&post_run_ast);
+    let type_checked = TypeCheck.run_pass(post_run_ast);
     println!("Type-check passed after pass");
 
-    let Module::Body(statements) = &post_run_ast;
+    let Module::Body(statements) = &type_checked;
     statements.iter().for_each(assert_statement_no_and_or);
 
     let mut outputs = VecDeque::<i64>::new();
-    interpret(&post_run_ast, &mut tc.inputs, &mut outputs);
+    interpret(&type_checked, &mut tc.inputs, &mut outputs);
 
     assert!(tc.inputs.is_empty());
     assert_eq!(outputs, tc.expected_outputs);

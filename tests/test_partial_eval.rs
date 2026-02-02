@@ -3,10 +3,10 @@ use std::collections::VecDeque;
 
 use cs4999_compiler::{
     ast::*,
-    passes::{ASTPass, partial_eval::PartialEval},
+    passes::{ASTPass, TypeCheck, partial_eval::PartialEval},
 };
 
-use crate::infra::{ast_interpreter::interpret, ast_type_check::type_check};
+use crate::infra::{ast_interpreter::interpret};
 
 struct TestCase {
     ast: Module,
@@ -17,18 +17,18 @@ struct TestCase {
 fn execute_test_case(mut tc: TestCase) {
     println!("\n==================");
 
-    type_check(&tc.ast);
+    tc.ast = TypeCheck.run_pass(tc.ast);
     println!("Type-check passed on source");
 
     println!("AST before Partial Eval: {:?}", tc.ast);
     let post_run_ast = PartialEval.run_pass(tc.ast);
     println!("AST after Partial Eval: {:?}", post_run_ast);
 
-    type_check(&post_run_ast);
+    let type_checked = TypeCheck.run_pass(post_run_ast);
     println!("Type-check passed after pass");
 
     let mut outputs = VecDeque::<i64>::new();
-    interpret(&post_run_ast, &mut tc.inputs, &mut outputs);
+    interpret(&type_checked, &mut tc.inputs, &mut outputs);
 
     assert_eq!(outputs, tc.expected_outputs);
 }

@@ -3,7 +3,7 @@ use std::collections::VecDeque;
 
 use cs4999_compiler::{ast::*, passes::*, pipeline::Pipeline, x86_ast};
 
-use crate::infra::{ast_type_check::type_check, x86_interpreter::interpret_x86};
+use crate::infra::{x86_interpreter::interpret_x86};
 
 struct TestCase {
     ast: Module,
@@ -13,12 +13,10 @@ struct TestCase {
 
 fn execute_test_case(mut tc: TestCase) {
     println!("\n==================");
-
-    type_check(&tc.ast);
     println!("Type-check passed on source");
 
     let pipeline = Pipeline {
-        ast_passes: vec![ASTtoAST::from(RemoveComplexOperands)],
+        ast_passes: vec![ASTtoAST::from(TypeCheck), ASTtoAST::from(RemoveComplexOperands)],
         ast_to_ir_pass: ASTtoIR::from(TranslateASTtoIR),
         ir_passes: vec![],
         ir_to_x86_pass: IRtoX86::from(TranslateIRtoX86),

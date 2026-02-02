@@ -4,7 +4,6 @@ use cs4999_compiler::ast::{self, Identifier, Value, ValueType};
 use std::collections::HashMap;
 
 pub mod ast_interpreter;
-pub mod ast_type_check;
 pub mod ir_interpreter;
 pub mod x86_interpreter;
 

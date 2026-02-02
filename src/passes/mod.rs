@@ -22,6 +22,8 @@ pub mod short_circuiting;
 pub use short_circuiting::ShortCircuiting;
 pub mod remove_jumps;
 pub use remove_jumps::RemoveJumps;
+pub mod type_check;
+pub use type_check::TypeCheck;
 
 #[enum_dispatch]
 pub trait ASTPass {
@@ -30,6 +32,7 @@ pub trait ASTPass {
 
 #[enum_dispatch(ASTPass)]
 pub enum ASTtoAST {
+    TypeCheck,
     ShortCircuiting,
     PartialEval,
     RemoveComplexOperands,
