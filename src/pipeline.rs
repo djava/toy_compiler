@@ -64,7 +64,7 @@ impl Pipeline {
     }
 
     pub fn make_no_opt() -> Self {
-Self {
+        Self {
             ast_passes: vec![
                 ASTtoAST::from(ShortCircuiting),
                 ASTtoAST::from(RemoveComplexOperands),

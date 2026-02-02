@@ -58,7 +58,7 @@ pub enum ByteReg {
     ch,
     cl,
     dh,
-    dl
+    dl,
 }
 
 impl ByteReg {
@@ -88,7 +88,7 @@ pub enum Comparison {
     Less,
     LessEquals,
     Greater,
-    GreaterEquals
+    GreaterEquals,
 }
 
 #[allow(non_camel_case_types)]
@@ -107,7 +107,7 @@ pub enum Instr {
     set(Comparison, ByteReg),
     movzbq(ByteReg, Arg),
     jmp(Identifier),
-    jmpcc(Comparison, Identifier)
+    jmpcc(Comparison, Identifier),
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
@@ -120,7 +120,7 @@ pub enum Directive {
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct Block {
     pub label: Directive,
-    pub instrs: Vec<Instr>
+    pub instrs: Vec<Instr>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]

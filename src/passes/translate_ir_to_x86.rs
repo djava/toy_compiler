@@ -1,4 +1,3 @@
-
 use crate::{
     ir::{self, BinaryOperator, IRProgram, Identifier, UnaryOperator},
     passes::IRtoX86Pass,
@@ -111,10 +110,10 @@ fn translate_conditional(
             let mut call_instrs = translate_call(None, func_id, args);
             call_instrs.extend([
                 Instr::cmpq(x86::Arg::Immediate(0), x86::Arg::Reg(x86::Register::rax)),
-                Instr::jmpcc(x86::Comparison::NotEquals, pos_label)
+                Instr::jmpcc(x86::Comparison::NotEquals, pos_label),
             ]);
             call_instrs
-        },
+        }
     };
 
     instrs.push(Instr::jmp(neg_label));
@@ -138,10 +137,7 @@ fn translate_comparison(
     vec![
         Instr::cmpq(atom_to_arg(r), atom_to_arg(l)),
         Instr::set(cc, x86::ByteReg::al),
-        Instr::movzbq(
-            x86::ByteReg::al,
-            x86::Arg::Variable(dest_id),
-        ),
+        Instr::movzbq(x86::ByteReg::al, x86::Arg::Variable(dest_id)),
     ]
 }
 

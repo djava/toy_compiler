@@ -49,12 +49,16 @@ fn shortcircuit_expr(e: &mut Expr) {
     if let Expr::BinaryOp(left, BinaryOperator::And, right) = e {
         // (A && B) is equivalent to (A ? B : false)
         *e = Expr::Ternary(
-            left.clone(), right.clone(), Box::new(Expr::Constant(Value::Bool(false)))
+            left.clone(),
+            right.clone(),
+            Box::new(Expr::Constant(Value::Bool(false))),
         );
     } else if let Expr::BinaryOp(left, BinaryOperator::Or, right) = e {
         // (A || B) is equivalent to (A ? true : B)
         *e = Expr::Ternary(
-            left.clone(), Box::new(Expr::Constant(Value::Bool(false))), right.clone()
+            left.clone(),
+            Box::new(Expr::Constant(Value::Bool(false))),
+            right.clone(),
         );
     }
 }

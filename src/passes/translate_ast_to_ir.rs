@@ -1,4 +1,3 @@
-
 use crate::{
     ast,
     ir::{self, BlockMap, Identifier, Value},
@@ -12,15 +11,15 @@ impl ASTtoIRPass for TranslateASTtoIR {
         let mut blocks = BlockMap::new();
 
         let mut main_body = ir::Block {
-            statements: vec![ir::Statement::Goto(Identifier::from("user_exit"))]
+            statements: vec![ir::Statement::Goto(Identifier::from("user_exit"))],
         };
-        
+
         for s in m.body.iter().rev() {
             main_body.statements = generate_for_statement(s, main_body.statements, &mut blocks);
         }
 
         blocks.insert(Identifier::from("user_entry"), main_body);
-        
+
         let user_exit = ir::Block {
             statements: vec![ir::Statement::Return(ir::Atom::Constant(Value::I64(0)))],
         };

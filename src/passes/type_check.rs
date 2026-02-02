@@ -1,5 +1,3 @@
-use std::collections::HashMap;
-
 use crate::{ast::*, passes::ASTPass};
 
 pub struct TypeCheck;
@@ -64,7 +62,7 @@ fn type_check_expr(e: &Expr, env: &mut TypeEnv) -> ValueType {
             type_check_statements(statements, env);
 
             type_check_expr(expr, env)
-        },
+        }
     }
 }
 
@@ -92,7 +90,7 @@ fn type_check_statements(statements: &[Statement], env: &mut TypeEnv) {
 
                 type_check_statements(pos, env);
                 type_check_statements(neg, env);
-            },
+            }
             WhileLoop(cond, body) => {
                 let cond_type = type_check_expr(cond, env);
                 assert!([ValueType::BoolType, ValueType::IntType].contains(&cond_type));

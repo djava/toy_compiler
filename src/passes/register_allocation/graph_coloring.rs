@@ -53,7 +53,8 @@ pub fn color_location_graph<'a>(graph: &'a UnGraph<Location, ()>) -> HashMap<&'a
     //       registers, and instead impose a constraint that there is
     //       only 1 reserved register per set.
 
-    let mut unavailable_colors: HashMap<NodeIndex, HashSet<i32>> = HashMap::with_capacity(graph.node_count());
+    let mut unavailable_colors: HashMap<NodeIndex, HashSet<i32>> =
+        HashMap::with_capacity(graph.node_count());
     let mut colors = HashMap::with_capacity(graph.node_count());
 
     for idx in graph.node_indices() {

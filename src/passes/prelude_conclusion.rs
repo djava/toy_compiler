@@ -13,7 +13,7 @@ impl X86Pass for PreludeConclusion {
             Instr::pushq(Arg::Reg(Register::rbp)),
             Instr::movq(Arg::Reg(Register::rsp), Arg::Reg(Register::rbp)),
             Instr::subq(Arg::Immediate(m.stack_size as _), Arg::Reg(Register::rsp)),
-            Instr::jmp(Identifier::from("user_entry"))
+            Instr::jmp(Identifier::from("user_entry")),
         ];
         let conclusion_instrs: [Instr; 3] = [
             Instr::addq(Arg::Immediate(m.stack_size as _), Arg::Reg(Register::rsp)),
@@ -30,7 +30,7 @@ impl X86Pass for PreludeConclusion {
 
         let exit_block = Block {
             label: Directive::Label(Identifier::from("exit")),
-            instrs: conclusion_instrs.to_vec()
+            instrs: conclusion_instrs.to_vec(),
         };
 
         m.blocks.push(main_block);

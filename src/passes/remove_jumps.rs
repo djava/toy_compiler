@@ -30,7 +30,7 @@ fn perform_operation(blocks: &mut Vec<Block>) {
 
                 if let Some(Instr::jmp(into_label)) = &blocks[into_idx.index()].instrs.last()
                     && into_label == from_label
-                    {
+                {
                     // Only now are we sure these blocks can be squashed
                     //  - This block's only source edge is source
                     //  - Source's last instruction jumps to this block

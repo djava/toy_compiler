@@ -2,9 +2,9 @@ use crate::ast;
 use peg::error::ParseError;
 use peg::str::LineCol;
 
-mod tokenizer;
 pub mod parse_tree;
 pub mod to_ast;
+mod tokenizer;
 
 pub use tokenizer::{Token, tokenize};
 

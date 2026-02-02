@@ -71,7 +71,8 @@ impl LivenessMap {
                 });
 
             let curr_block = block_graph.node_weight(curr_node).unwrap();
-            let (alive_afters, alive_before) = Self::get_alive_befores_and_after(&curr_block.instrs, input.clone());
+            let (alive_afters, alive_before) =
+                Self::get_alive_befores_and_after(&curr_block.instrs, input.clone());
 
             if alive_before_blocks[&curr_node] == alive_before {
                 final_alive_afters.insert(*curr_block, alive_afters);

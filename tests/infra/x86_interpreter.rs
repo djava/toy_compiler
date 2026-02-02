@@ -290,7 +290,9 @@ pub fn interpret_x86(m: &X86Program, inputs: &mut VecDeque<i64>, outputs: &mut V
                     .unwrap_or_else(|| panic!("Couldn't find label: {label:?}"));
                 curr_instr_iter = new_block.instrs.iter();
             }
-            Continuation::Exit => { break; }
+            Continuation::Exit => {
+                break;
+            }
         }
     }
 }

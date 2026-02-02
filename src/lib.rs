@@ -3,5 +3,5 @@ pub mod ir;
 pub mod parser;
 pub mod passes;
 pub mod pipeline;
-pub mod x86_ast;
 mod utils;
+pub mod x86_ast;

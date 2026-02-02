@@ -45,7 +45,7 @@ pub trait ASTtoIRPass {
 
 #[enum_dispatch(ASTtoIRPass)]
 pub enum ASTtoIR {
-    TranslateASTtoIR
+    TranslateASTtoIR,
 }
 
 #[enum_dispatch]
@@ -54,9 +54,7 @@ pub trait IRtoIRPass {
 }
 
 #[enum_dispatch(IRtoIRPass)]
-pub enum IRtoIR {
-
-}
+pub enum IRtoIR {}
 
 #[enum_dispatch]
 pub trait IRtoX86Pass {

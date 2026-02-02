@@ -50,15 +50,18 @@ fn partial_eval_statement(s: Statement, new_statements: &mut Vec<Statement>) {
 
                 new_statements.push(Statement::Conditional(cond, pos_pe, neg_pe));
             }
-        },
+        }
         Statement::WhileLoop(mut cond, body) => {
             partial_eval_expr(&mut cond);
             let mut body_pe = vec![];
-            body.into_iter().for_each(|s| partial_eval_statement(s, &mut body_pe));
+            body.into_iter()
+                .for_each(|s| partial_eval_statement(s, &mut body_pe));
 
             if let Expr::Constant(val) = cond {
                 if val.into() {
-                    println!("Contains an infinite loop - careful because I don't know if they'll respond to ctrl-c :)");
+                    println!(
+                        "Contains an infinite loop - careful because I don't know if they'll respond to ctrl-c :)"
+                    );
                 } else {
                     // Cond is always false - don't even generate the loop
                 }
@@ -103,7 +106,9 @@ fn partial_eval_expr(e: &mut Expr) {
         }
         StatementBlock(statements, expr) => {
             let mut new_statements = Vec::new();
-            statements.iter().for_each(|s| partial_eval_statement(s.clone(), &mut new_statements));
+            statements
+                .iter()
+                .for_each(|s| partial_eval_statement(s.clone(), &mut new_statements));
             *statements = new_statements;
             partial_eval_expr(expr);
         }

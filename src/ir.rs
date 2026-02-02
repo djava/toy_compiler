@@ -33,5 +33,5 @@ pub type BlockMap = IndexMap<Identifier, Block>;
 
 #[derive(Debug, Clone)]
 pub struct IRProgram {
-    pub blocks: BlockMap
+    pub blocks: BlockMap,
 }

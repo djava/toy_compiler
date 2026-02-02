@@ -1,6 +1,6 @@
 use std::collections::HashMap;
-use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::Arc;
+use std::sync::atomic::{AtomicU64, Ordering};
 
 pub type TypeEnv = HashMap<Identifier, ValueType>;
 
@@ -9,7 +9,7 @@ pub enum ValueType {
     IntType,
     FunctionType(u16),
     BoolType,
-    NoneType
+    NoneType,
 }
 
 impl From<&Value> for ValueType {
@@ -26,7 +26,7 @@ impl From<&Value> for ValueType {
 pub enum Value {
     I64(i64),
     Bool(bool),
-    None
+    None,
 }
 
 impl Into<i64> for Value {
@@ -34,7 +34,7 @@ impl Into<i64> for Value {
         match self {
             Value::I64(val) => val,
             Value::Bool(val) => val as _,
-            Value::None => panic!("Cannot convert Value::None into i64")
+            Value::None => panic!("Cannot convert Value::None into i64"),
         }
     }
 }
@@ -44,7 +44,7 @@ impl Into<bool> for Value {
         match self {
             Value::I64(val) => val != 0,
             Value::Bool(val) => val,
-            Value::None => panic!("Cannot convert Value::None into i64")
+            Value::None => panic!("Cannot convert Value::None into i64"),
         }
     }
 }
@@ -54,7 +54,7 @@ impl From<&Value> for i64 {
         match value {
             Value::I64(val) => *val,
             Value::Bool(val) => *val as _,
-            Value::None => panic!("Cannot convert Value::None into i64")
+            Value::None => panic!("Cannot convert Value::None into i64"),
         }
     }
 }
@@ -70,42 +70,36 @@ pub enum BinaryOperator {
     Greater,
     GreaterEquals,
     Less,
-    LessEquals
+    LessEquals,
 }
 
 impl BinaryOperator {
     pub fn type_of(&self, l: &ValueType, r: &ValueType) -> Option<ValueType> {
-        use ValueType::*;
         use BinaryOperator::*;
+        use ValueType::*;
 
         match (l, r) {
-            (IntType, IntType) => {
-                match self {
-                    Add => Some(IntType),
-                    Subtract => Some(IntType),
-                    Equals => Some(BoolType),
-                    NotEquals => Some(BoolType),
-                    Greater => Some(BoolType),
-                    GreaterEquals => Some(BoolType),
-                    Less => Some(BoolType),
-                    LessEquals => Some(BoolType),
-                    _ => None
-                }
+            (IntType, IntType) => match self {
+                Add => Some(IntType),
+                Subtract => Some(IntType),
+                Equals => Some(BoolType),
+                NotEquals => Some(BoolType),
+                Greater => Some(BoolType),
+                GreaterEquals => Some(BoolType),
+                Less => Some(BoolType),
+                LessEquals => Some(BoolType),
+                _ => None,
             },
-            (BoolType, BoolType) => {
-                match self { 
-                    And => Some(BoolType),
-                    Or => Some(BoolType),
-                    Equals => Some(BoolType),
-                    NotEquals => Some(BoolType),
-                    _ => None
-                }
+            (BoolType, BoolType) => match self {
+                And => Some(BoolType),
+                Or => Some(BoolType),
+                Equals => Some(BoolType),
+                NotEquals => Some(BoolType),
+                _ => None,
             },
-            (_, _) => None
+            (_, _) => None,
         }
-
     }
-
 }
 
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -117,22 +111,20 @@ pub enum UnaryOperator {
 
 impl UnaryOperator {
     pub fn type_of(&self, v: &ValueType) -> Option<ValueType> {
-        use ValueType::*;
         use UnaryOperator::*;
+        use ValueType::*;
 
         match v {
-            IntType => {
-                match self {
-                    Plus => Some(IntType),
-                    Minus => Some(IntType),
-                    _ => None,
-                }
+            IntType => match self {
+                Plus => Some(IntType),
+                Minus => Some(IntType),
+                _ => None,
             },
             BoolType => match self {
                 Not => Some(BoolType),
                 _ => None,
             },
-            _ => None
+            _ => None,
         }
     }
 }
@@ -140,7 +132,7 @@ impl UnaryOperator {
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum Identifier {
     Ephemeral(u64),
-    Named(Arc<str>)
+    Named(Arc<str>),
 }
 
 impl Identifier {
@@ -175,11 +167,11 @@ pub enum Statement {
     Assign(Identifier, Expr),
     Expr(Expr),
     Conditional(Expr, Vec<Statement>, Vec<Statement>),
-    WhileLoop(Expr, Vec<Statement>)
+    WhileLoop(Expr, Vec<Statement>),
 }
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct Module {
     pub body: Vec<Statement>,
-    pub types: TypeEnv
+    pub types: TypeEnv,
 }

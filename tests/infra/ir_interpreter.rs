@@ -15,13 +15,10 @@ enum Continuation {
     Exit,
 }
 
-fn interpret_atom(
-    atom: &Atom,
-    env: &mut ValueEnv,
-) -> Value {
+fn interpret_atom(atom: &Atom, env: &mut ValueEnv) -> Value {
     match atom {
         Atom::Constant(value) => *value,
-        Atom::Variable(id) => env[id]
+        Atom::Variable(id) => env[id],
     }
 }
 
@@ -42,7 +39,7 @@ fn interpret_expr(
             let r_val = interpret_atom(&r_atom, env);
 
             op.try_eval(&l_val, &r_val).unwrap()
-        },
+        }
         Expr::Call(func_name, args) => {
             if func_name == &Identifier::from("print_int") {
                 if args.len() != 1 {
@@ -70,7 +67,6 @@ fn interpret_expr(
                 panic!("Unknown function name")
             }
         }
-
     }
 }
 
@@ -103,7 +99,6 @@ fn interpret_statement(
     }
 }
 
-
 fn interpret_block(
     block: &Block,
     inputs: &mut VecDeque<i64>,
@@ -125,7 +120,10 @@ pub fn interpret_irprogram(p: &IRProgram, inputs: &mut VecDeque<i64>, outputs: &
     let mut env = ValueEnv::new();
     dbg!(p);
 
-    let mut block_idx = p.blocks.get_index_of(&Identifier::from("user_entry")).unwrap();
+    let mut block_idx = p
+        .blocks
+        .get_index_of(&Identifier::from("user_entry"))
+        .unwrap();
     loop {
         println!("===Executing: {:?}", p.blocks.get_index(block_idx));
         match p

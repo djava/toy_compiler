@@ -1,8 +1,8 @@
 mod dataflow_analysis;
 mod graph_coloring;
 
-use std::mem::size_of;
 use std::collections::HashMap;
+use std::mem::size_of;
 
 use crate::{
     ast::Identifier,
@@ -61,7 +61,7 @@ impl X86Pass for RegisterAllocation {
             });
 
             let len = user_exit.instrs.len();
-            user_exit.instrs.splice((len-2)..=(len-2), callee_popqs);
+            user_exit.instrs.splice((len - 2)..=(len - 2), callee_popqs);
         }
 
         let used_stack = -callee_offset + stack_var_size;

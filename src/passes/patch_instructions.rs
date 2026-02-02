@@ -50,7 +50,7 @@ impl X86Pass for PatchInstructions {
                     // Trival mov to itself, don't keep this instruction
                 }
 
-                Instr::cmpq(s, imm @Arg::Immediate(_)) =>{
+                Instr::cmpq(s, imm @ Arg::Immediate(_)) => {
                     // Second arg of cmpq can't be an immediate
                     new_instrs.push(Instr::movq(imm.clone(), Arg::Reg(Register::rax)));
                     new_instrs.push(Instr::cmpq(s.clone(), Arg::Reg(Register::rax)));
