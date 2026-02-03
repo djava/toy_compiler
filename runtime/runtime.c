@@ -6,6 +6,22 @@
 
 // To do: we need to account for the "any" type. -Jeremy
 
+// Fromspace is our heap which is conceptually an array of 64 bit data
+// unless meta information tells us more about about their contents.
+int64_t* __gc_fromspace_begin;
+int64_t* __gc_fromspace_end;
+
+// The free pointer should always point to the next free memory
+// location. While the mutator (user program) is running this
+// should always be pointing into fromspace.
+int64_t* __gc_free_ptr;
+
+// The root stack is an array of pointers into the heap.  During calls
+// to the collector only pointers between the roostack_ptr and
+// rootstack_begin are considered as live roots.
+int64_t** __gc_rootstack_begin;
+int64_t** __gc_rootstack_end;
+
 // Often misunderstood: static global variables in C are not
 // accessible to code outside of the module.
 // No one besides the collector ever needs to know tospace exists.
@@ -116,7 +132,7 @@ int64_t* to_ptr(int64_t* p) {
 
 
 // initialize the state of the collector so that allocations can occur
-void initialize(uint64_t rootstack_size, uint64_t heap_size)
+void __gc_initialize(uint64_t rootstack_size, uint64_t heap_size)
 {
   // 1. Check to make sure that our assumptions about the world are correct.
   assert(sizeof(int64_t) == sizeof(int64_t*));
@@ -124,7 +140,7 @@ void initialize(uint64_t rootstack_size, uint64_t heap_size)
   assert((rootstack_size % sizeof(int64_t)) == 0);
 
   // 2. Allocate memory (You should always check if malloc gave you memory)
-  if (!(fromspace_begin = malloc(heap_size))) {
+  if (!(__gc_fromspace_begin = malloc(heap_size))) {
     printf("Failed to malloc %" PRIu64 " byte fromspace\n", heap_size);
     exit(EXIT_FAILURE);
   }
@@ -134,19 +150,19 @@ void initialize(uint64_t rootstack_size, uint64_t heap_size)
     exit(EXIT_FAILURE);
   }
 
-  if (!(rootstack_begin = malloc(rootstack_size))) {
+  if (!(__gc_rootstack_begin = malloc(rootstack_size))) {
     printf("Failed to malloc %" PRIu64 " byte rootstack", rootstack_size);
     exit(EXIT_FAILURE);
   }
 
   // 2.5 Calculate the ends memory we are using.
   // Note: the pointers are for a half open interval [begin, end)
-  fromspace_end = fromspace_begin + (heap_size / sizeof(int64_t));
+  __gc_fromspace_end = __gc_fromspace_begin + (heap_size / sizeof(int64_t));
   tospace_end = tospace_begin + (heap_size / sizeof(int64_t));
-  rootstack_end = rootstack_begin + (rootstack_size / sizeof(int64_t));
+  __gc_rootstack_end = __gc_rootstack_begin + (rootstack_size / sizeof(int64_t));
 
   // 3 Initialize the global free pointer
-  free_ptr = fromspace_begin;
+  __gc_free_ptr = __gc_fromspace_begin;
 
   // Useful for debugging
   initialized = 1;
@@ -168,8 +184,8 @@ void validate_vector(int64_t** scan_addr) {
         int64_t* ptr = (int64_t*) data[i];
         if (is_ptr(ptr)) {
           int64_t* real_ptr = to_ptr(ptr);
-          assert(real_ptr < fromspace_end);
-          assert(real_ptr >= fromspace_begin);
+          assert(real_ptr < __gc_fromspace_end);
+          assert(real_ptr >= __gc_fromspace_begin);
         }
       }
     }
@@ -185,16 +201,16 @@ void collect(int64_t** rootstack_ptr, uint64_t bytes_requested)
 
   // 1. Check our assumptions about the world
   assert(initialized);
-  assert(rootstack_ptr >= rootstack_begin);
-  assert(rootstack_ptr < rootstack_end);
+  assert(rootstack_ptr >= __gc_rootstack_begin);
+  assert(rootstack_ptr < __gc_rootstack_end);
 
 #ifndef NDEBUG
   // All pointers in the rootstack point to fromspace
-  for (unsigned int i = 0; rootstack_begin + i < rootstack_ptr; i++){
-    int64_t* root = rootstack_begin[i];
+  for (unsigned int i = 0; __gc_rootstack_begin + i < rootstack_ptr; i++){
+    int64_t* root = __gc_rootstack_begin[i];
     if (is_ptr(root)) {
       int64_t* a_root = to_ptr(root);
-      assert(fromspace_begin <= a_root && a_root < fromspace_end);
+      assert(__gc_fromspace_begin <= a_root && a_root < __gc_fromspace_end);
     }
   }
 #endif
@@ -203,7 +219,7 @@ void collect(int64_t** rootstack_ptr, uint64_t bytes_requested)
   cheney(rootstack_ptr);
 
   // 3. Check if collection freed enough space in order to allocate
-  if (sizeof(int64_t) * (fromspace_end - free_ptr) < bytes_requested){
+  if (sizeof(int64_t) * (__gc_fromspace_end - __gc_free_ptr) < bytes_requested){
     //printf("resizing the heap\n");
     /*
        If there is not enough room left for the bytes_requested,
@@ -226,9 +242,9 @@ void collect(int64_t** rootstack_ptr, uint64_t bytes_requested)
        in reality.
     */
 
-    unsigned long occupied_bytes = (free_ptr - fromspace_begin) * sizeof(int64_t);
+    unsigned long occupied_bytes = (__gc_free_ptr - __gc_fromspace_begin) * sizeof(int64_t);
     unsigned long needed_bytes = occupied_bytes + bytes_requested;
-    unsigned long old_len = fromspace_end - fromspace_begin;
+    unsigned long old_len = __gc_fromspace_end - __gc_fromspace_begin;
     unsigned long old_bytes = old_len * sizeof(int64_t);
     unsigned long new_bytes = old_bytes;
 
@@ -270,22 +286,22 @@ void collect(int64_t** rootstack_ptr, uint64_t bytes_requested)
     tospace_end = tospace_begin + new_bytes / (sizeof(int64_t));
   }
 
-  assert(free_ptr < fromspace_end);
-  assert(free_ptr >= fromspace_begin);
+  assert(__gc_free_ptr < __gc_fromspace_end);
+  assert(__gc_free_ptr >= __gc_fromspace_begin);
 #ifndef NDEBUG
   // All pointers in the rootstack point to fromspace
-  for (unsigned long i = 0; rootstack_begin + i < rootstack_ptr; i++){
-    int64_t* root = rootstack_begin[i];
+  for (unsigned long i = 0; __gc_rootstack_begin + i < rootstack_ptr; i++){
+    int64_t* root = __gc_rootstack_begin[i];
     if (is_ptr(root)) {
       int64_t* a_root = to_ptr(root);
-      assert(fromspace_begin <= a_root && a_root < fromspace_end);
+      assert(__gc_fromspace_begin <= a_root && a_root < __gc_fromspace_end);
     }
   }
   // All pointers in fromspace point to fromspace
   /*printf("validating pointers in fromspace [%p, %p)\n",
     fromspace_begin, fromspace_end);*/
-  int64_t* scan_ptr = fromspace_begin;
-  while (scan_ptr != free_ptr){
+  int64_t* scan_ptr = __gc_fromspace_begin;
+  while (scan_ptr != __gc_free_ptr){
     validate_vector(&scan_ptr);
 #if 0 // this sanity test appears to be broken
     int64_t tag = *scan_ptr;
@@ -402,10 +418,10 @@ void cheney(int64_t** rootstack_ptr)
 {
   // printf("cheney: starting copy, rootstack=%p\n", rootstack_ptr);
   int64_t* scan_ptr = tospace_begin;
-  free_ptr = tospace_begin;
+  __gc_free_ptr = tospace_begin;
 
   /* traverse the root set to create the initial queue */
-  for (int64_t** root_loc = rootstack_begin;
+  for (int64_t** root_loc = __gc_rootstack_begin;
        root_loc != rootstack_ptr;
        ++root_loc) {
     /*
@@ -421,7 +437,7 @@ void cheney(int64_t** rootstack_ptr)
      This will end up being a breadth first search of the pointers in
      from space.
   */
-  while (scan_ptr != free_ptr) {
+  while (scan_ptr != __gc_free_ptr) {
     process_vector(&scan_ptr);
 #if 0
     /*
@@ -468,10 +484,10 @@ void cheney(int64_t** rootstack_ptr)
   /* swap the tospace and fromspace */
   int64_t* tmp_begin = tospace_begin;
   int64_t* tmp_end = tospace_end;
-  tospace_begin = fromspace_begin;
-  tospace_end = fromspace_end;
-  fromspace_begin = tmp_begin;
-  fromspace_end = tmp_end;
+  tospace_begin = __gc_fromspace_begin;
+  tospace_end = __gc_fromspace_end;
+  __gc_fromspace_begin = tmp_begin;
+  __gc_fromspace_end = tmp_end;
   //printf("cheney: finished copy\n");
 }
 
@@ -564,7 +580,7 @@ void copy_vector(int64_t** vector_ptr_loc)
     // set up some structure to the world.
 
     // The new vector is going to be where the free_ptr currently points.
-    int64_t* new_vector_ptr = free_ptr;
+    int64_t* new_vector_ptr = __gc_free_ptr;
 #if 0
       printf("\tto address: %p\n", new_vector_ptr);
 #endif
@@ -582,7 +598,7 @@ void copy_vector(int64_t** vector_ptr_loc)
       new_vector_ptr[i] = old_vector_ptr[i];
     }
     // the free ptr can be updated to point to the next free ptr.
-    free_ptr = free_ptr + length + 1;
+    __gc_free_ptr = __gc_free_ptr + length + 1;
     
     // We need to set the forwarding pointer in the old_vector
     old_vector_ptr[0] = (int64_t) new_vector_ptr;
@@ -675,8 +691,8 @@ void print_any(int64_t any) {
 
 void print_heap(int64_t** rootstack_ptr)
 {
-  printf("rootstack len = %ld\n", rootstack_ptr - rootstack_begin);
-  for (int64_t** root_loc = rootstack_begin;
+  printf("rootstack len = %ld\n", rootstack_ptr - __gc_rootstack_begin);
+  for (int64_t** root_loc = __gc_rootstack_begin;
        root_loc != rootstack_ptr;
        ++root_loc) {
     if (is_ptr(*root_loc)) {

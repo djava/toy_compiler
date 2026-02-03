@@ -75,6 +75,7 @@ fn generate_for_statement(
 
             vec![ir::Statement::Goto(cond_label)]
         }
+        ast::Statement::AssignSubscript(_identifier, _, _expr) => todo!(),
     }
 }
 
@@ -122,6 +123,8 @@ fn generate_for_effect(
         }
         ast::Expr::Tuple(_exprs) => todo!(),
         ast::Expr::Subscript(_expr, _value) => todo!(),
+        ast::Expr::Allocate(_, _value_type) => todo!(),
+        ast::Expr::GlobalSymbol(_) => todo!(),
     }
 }
 
@@ -201,6 +204,8 @@ fn generate_for_assign(
         }
         ast::Expr::Tuple(_) => todo!(),
         ast::Expr::Subscript(_, _) => todo!(),
+        ast::Expr::Allocate(_, _value_type) => todo!(),
+        ast::Expr::GlobalSymbol(_) => todo!(),
     }
 }
 
@@ -273,6 +278,8 @@ fn generate_for_predicate(
         }
         ast::Expr::Tuple(_) => todo!(),
         ast::Expr::Subscript(_, _) => todo!(),
+        ast::Expr::Allocate(_, _value_type) => todo!(),
+        ast::Expr::GlobalSymbol(_) => todo!(),
     }
 }
 

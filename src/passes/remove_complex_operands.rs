@@ -102,6 +102,22 @@ fn rco_statement(s: &Statement, new_body: &mut Vec<Statement>) {
 
             new_body.push(Statement::WhileLoop(cond_statement_block, new_loop_body));
         }
+        Statement::AssignSubscript(id, idx, expr) => {
+            let transform = rco_expr(&expr, false);
+
+            // Take all the ephemeral transforms that happen
+            // inside the expression and add them before this
+            // statement
+            let ephemeral_assign_stmts = transform
+                .ephemeral_assigns
+                .iter()
+                .map(|(id, expr)| Statement::Assign(id.clone(), expr.clone()));
+            new_body.extend(ephemeral_assign_stmts);
+
+            // Add the updated version of this statement with
+            // the new expression to the body
+            new_body.push(Statement::AssignSubscript(id.clone(), *idx, transform.new_expr));
+        },
     }
 }
 
@@ -297,15 +313,19 @@ fn rco_expr(e: &Expr, needs_atomicity: bool) -> ExprTransformation {
                 Expr::Tuple(new_elems)
             };
 
-            ExprTransformation { new_expr, ephemeral_assigns }
-        },
+            ExprTransformation {
+                new_expr,
+                ephemeral_assigns,
+            }
+        }
         Expr::Subscript(tup, index_val) => {
             let mut ephemeral_assigns = vec![];
 
-            let tup_transform  = rco_expr(&*tup, true);
+            let tup_transform = rco_expr(&*tup, true);
             ephemeral_assigns.extend(tup_transform.ephemeral_assigns);
-            
-            let new_subscript = Expr::Subscript(Box::new(tup_transform.new_expr), index_val.clone());
+
+            let new_subscript =
+                Expr::Subscript(Box::new(tup_transform.new_expr), index_val.clone());
 
             let new_expr = if needs_atomicity {
                 let id = Identifier::new_ephemeral();
@@ -315,7 +335,17 @@ fn rco_expr(e: &Expr, needs_atomicity: bool) -> ExprTransformation {
                 new_subscript
             };
 
-            ExprTransformation { new_expr, ephemeral_assigns }
+            ExprTransformation {
+                new_expr,
+                ephemeral_assigns,
+            }
+        }
+        Expr::GlobalSymbol(_) => ExprTransformation {
+            new_expr: e.clone(),
+            ephemeral_assigns: vec![],
         },
+        Expr::Allocate(_, _) => {
+            panic!("This pass should've happened before any Allocate's were injected")
+        }
     }
 }

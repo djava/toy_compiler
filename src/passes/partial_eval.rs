@@ -69,6 +69,11 @@ fn partial_eval_statement(s: Statement, new_statements: &mut Vec<Statement>) {
                 new_statements.push(Statement::WhileLoop(cond, body_pe));
             }
         }
+        Statement::AssignSubscript(identifier, idx, mut expr) => {
+            partial_eval_expr(&mut expr);
+
+            new_statements.push(Statement::AssignSubscript(identifier, idx, expr));
+        },
     }
 }
 
@@ -132,9 +137,9 @@ fn partial_eval_expr(e: &mut Expr) {
             }
         }
         Tuple(elems) => elems.iter_mut().for_each(partial_eval_expr),
-        Subscript(tup, index_val) => {
+        Subscript(tup, idx) => {
             partial_eval_expr(tup.as_mut());
-            if let Tuple(elems) = &**tup && let Value::I64(idx) = index_val {
+            if let Tuple(elems) = &**tup {
                 if let Constant(elem_val) = &elems[*idx as usize] {
                     *e = Constant(elem_val.clone());
                 }
@@ -142,6 +147,8 @@ fn partial_eval_expr(e: &mut Expr) {
                 panic!("Subscript had wrong argument types");
             }
         },
+        GlobalSymbol(_) => {}
+        Allocate(_, _) => panic!("This pass should've happened before any Allocate calls are injected")
     }
 }
 

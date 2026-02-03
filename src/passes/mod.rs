@@ -24,6 +24,8 @@ pub mod remove_jumps;
 pub use remove_jumps::RemoveJumps;
 pub mod type_check;
 pub use type_check::TypeCheck;
+pub mod inject_allocations;
+pub use inject_allocations::InjectAllocations;
 
 #[enum_dispatch]
 pub trait ASTPass {

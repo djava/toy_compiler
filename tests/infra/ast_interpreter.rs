@@ -73,6 +73,8 @@ fn interpret_expr(
         }
         Tuple(_exprs) => todo!(),
         Subscript(_expr, _value) => todo!(),
+        Allocate(_, _value_type) => todo!(),
+        GlobalSymbol(_) => todo!(),
     }
 }
 
@@ -150,6 +152,7 @@ fn interpret_statement(
                 );
             }
         }
+        Statement::AssignSubscript(_identifier, _, _expr) => todo!(),
     };
 }
 

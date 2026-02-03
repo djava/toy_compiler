@@ -10,7 +10,22 @@ pub enum ValueType {
     FunctionType(Vec<ValueType>),
     BoolType,
     TupleType(Vec<ValueType>),
+    PointerType(Box<ValueType>),
     NoneType,
+}
+
+impl ValueType {
+    fn ptr_at(self, idx: &i64) -> ValueType {
+        if let ValueType::TupleType(elems) = self {
+            if *idx >= elems.len() as i64 {
+                panic!("Called ValueType::index() out of bounds")
+            }
+
+            elems[*idx as usize].clone()
+        } else {
+            panic!("Called ValueType::index() on non-tuple")
+        }
+    }
 }
 
 impl From<&Value> for ValueType {
@@ -185,12 +200,15 @@ pub enum Expr {
     Ternary(Box<Expr>, Box<Expr>, Box<Expr>),
     StatementBlock(Vec<Statement>, Box<Expr>),
     Tuple(Vec<Expr>),
-    Subscript(Box<Expr>, Value),
+    Subscript(Box<Expr>, i64),
+    Allocate(usize, ValueType),
+    GlobalSymbol(Arc<str>)
 }
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum Statement {
     Assign(Identifier, Expr),
+    AssignSubscript(Identifier, i64, Expr),
     Expr(Expr),
     Conditional(Expr, Vec<Statement>, Vec<Statement>),
     WhileLoop(Expr, Vec<Statement>),

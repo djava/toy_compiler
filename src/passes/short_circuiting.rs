@@ -13,6 +13,7 @@ impl ASTPass for ShortCircuiting {
 fn shortcircuit_statement(s: &mut Statement) {
     match s {
         Statement::Assign(_, expr)
+        | Statement::AssignSubscript(_, _, expr)
         | Statement::Expr(expr)
         | Statement::Conditional(expr, _, _)
         | Statement::WhileLoop(expr, _) => shortcircuit_expr(expr),
@@ -48,6 +49,8 @@ fn shortcircuit_expr(e: &mut Expr) {
         Expr::Subscript(tup, _idx) => {
             shortcircuit_expr(tup);
         },
+        Expr::Allocate(_, _) => {},
+        Expr::GlobalSymbol(_) => {},
     }
 
     // Apply transformation, only applies to expressions with And/Or
