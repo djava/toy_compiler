@@ -83,17 +83,17 @@ fn partial_eval_expr(e: &mut Expr) {
             partial_eval_expr(&mut *left);
             partial_eval_expr(&mut *right);
 
-            if let Constant(l_val) = **left
-                && let Constant(r_val) = **right
+            if let Constant(l_val) = &**left
+                && let Constant(r_val) = &**right
             {
-                *e = Constant(op.eval(&l_val, &r_val))
+                *e = Constant(op.eval(l_val, r_val))
             }
         }
         UnaryOp(op, expr) => {
             // Try and evaluate the operand recursively, then if its
             // constant we can evaluate the whole expression
             partial_eval_expr(&mut *expr);
-            if let Constant(val) = **expr {
+            if let Constant(val) = &**expr {
                 *e = Constant(op.eval(&val));
             }
         }
@@ -123,7 +123,7 @@ fn partial_eval_expr(e: &mut Expr) {
             partial_eval_expr(&mut *pos);
             partial_eval_expr(&mut *neg);
 
-            if let Constant(val) = **cond {
+            if let Constant(val) = cond.as_ref() {
                 if val.into() {
                     *e = (**pos).clone();
                 } else {
@@ -131,6 +131,17 @@ fn partial_eval_expr(e: &mut Expr) {
                 }
             }
         }
+        Tuple(elems) => elems.iter_mut().for_each(partial_eval_expr),
+        Subscript(tup, index_val) => {
+            partial_eval_expr(tup.as_mut());
+            if let Tuple(elems) = &**tup && let Value::I64(idx) = index_val {
+                if let Constant(elem_val) = &elems[*idx as usize] {
+                    *e = Constant(elem_val.clone());
+                }
+            } else {
+                panic!("Subscript had wrong argument types");
+            }
+        },
     }
 }
 

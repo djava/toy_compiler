@@ -17,8 +17,8 @@ enum Continuation {
 
 fn interpret_atom(atom: &Atom, env: &mut ValueEnv) -> Value {
     match atom {
-        Atom::Constant(value) => *value,
-        Atom::Variable(id) => env[id],
+        Atom::Constant(value) => value.clone(),
+        Atom::Variable(id) => env[id].clone(),
     }
 }
 
@@ -29,7 +29,7 @@ fn interpret_expr(
     env: &mut ValueEnv,
 ) -> Value {
     match expr {
-        Expr::Atom(atom) => interpret_atom(atom, env),
+        Expr::Atom(atom) => interpret_atom(atom, env).clone(),
         Expr::UnaryOp(op, atom) => {
             let val = interpret_atom(&atom, env);
             op.try_eval(&val).unwrap()
@@ -47,7 +47,7 @@ fn interpret_expr(
                 }
 
                 if let Value::I64(val) = interpret_atom(&args[0], env) {
-                    outputs.push_back(val);
+                    outputs.push_back(val.clone());
                 } else {
                     panic!("Wrong argument type to print_int()");
                 }

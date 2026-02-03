@@ -26,25 +26,51 @@ fn type_check_expr(e: &Expr, env: &mut TypeEnv) -> ValueType {
             assert_eq!(exp_type, ValueType::IntType);
             ValueType::IntType
         }
-        Id(id) => *env
+        Id(id) => env
             .get(id)
-            .expect(format!("Unknown Identifier: {id:?}").as_str()),
+            .expect(format!("Unknown Identifier: {id:?}").as_str())
+            .clone(),
         Constant(v) => ValueType::from(v),
-        Call(id, _args) => {
-            // TODO: Lookup function name to check arg types
-            match id {
-                Identifier::Named(name) => {
-                    if name.as_ref() == "read_int" {
-                        ValueType::IntType
-                    } else if name.as_ref() == "print_int" {
-                        ValueType::NoneType
-                    } else {
-                        unimplemented!("Unknown function name")
-                    }
+        Call(id, args) => match id {
+            Identifier::Named(name) => {
+                if name.as_ref() == "read_int" {
+                    assert!(
+                        args.is_empty(),
+                        "Passed {} of args to {name}, expected 0",
+                        args.len()
+                    );
+                    ValueType::IntType
+                } else if name.as_ref() == "print_int" {
+                    assert_eq!(
+                        args.len(),
+                        1,
+                        "Passed {} args to {name}, expected 1",
+                        args.len()
+                    );
+                    assert_eq!(
+                        type_check_expr(&args[0], env),
+                        ValueType::IntType,
+                        "Passed wrong arg type to {name}, expected I64"
+                    );
+                    ValueType::NoneType
+                } else if name.as_ref() == "len" {
+                    assert_eq!(
+                        args.len(),
+                        1,
+                        "Passed {} args to {name}, expected 1",
+                        args.len()
+                    );
+                    assert!(
+                        matches!(type_check_expr(&args[0], env), ValueType::TupleType(_)),
+                        "Passed wrong arg type to {name}, expected tuple"
+                    );
+                    ValueType::IntType
+                } else {
+                    unimplemented!("Unknown function name")
                 }
-                _ => unimplemented!("Unknown function name"),
             }
-        }
+            _ => unimplemented!("Unknown function name"),
+        },
         Ternary(cond, pos, neg) => {
             let cond_type = type_check_expr(&*cond, env);
             assert!([ValueType::BoolType, ValueType::IntType].contains(&cond_type));
@@ -62,6 +88,23 @@ fn type_check_expr(e: &Expr, env: &mut TypeEnv) -> ValueType {
             type_check_statements(statements, env);
 
             type_check_expr(expr, env)
+        }
+        Tuple(elements) => {
+            let element_types: Vec<_> = elements.iter().map(|e| type_check_expr(e, env)).collect();
+
+            ValueType::TupleType(element_types)
+        }
+        Subscript(tup, index) => {
+            if let ValueType::TupleType(elems) = type_check_expr(tup, env) {
+                if let Value::I64(idx) = index {
+                    assert!(*idx < elems.len() as i64, "Indexed tuple out of bounds");
+                    elems[*idx as usize].clone()
+                } else {
+                    panic!("Used non-i64 value as subscripting index")
+                }
+            } else {
+                panic!("Subscripted a non-tuple")
+            }
         }
     }
 }

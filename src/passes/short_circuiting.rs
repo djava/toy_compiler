@@ -42,6 +42,12 @@ fn shortcircuit_expr(e: &mut Expr) {
             shortcircuit_expr(&mut *e);
         }
         Expr::Constant(_) | Expr::Id(_) => {}
+        Expr::Tuple(elems) => {
+            elems.iter_mut().for_each(shortcircuit_expr);
+        },
+        Expr::Subscript(tup, _idx) => {
+            shortcircuit_expr(tup);
+        },
     }
 
     // Apply transformation, only applies to expressions with And/Or

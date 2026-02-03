@@ -105,7 +105,6 @@ fn generate_for_effect(
             let neg_label = new_block(neg_ir, blocks);
             generate_for_predicate(cond, pos_label, neg_label, blocks)
         }
-
         ast::Expr::StatementBlock(statements, expr) => {
             let mut ret = generate_for_effect(expr, cont, blocks);
             for s in statements.iter().rev() {
@@ -114,7 +113,6 @@ fn generate_for_effect(
 
             ret
         }
-
         ast::Expr::Constant(_)
         | ast::Expr::BinaryOp(_, _, _)
         | ast::Expr::UnaryOp(_, _)
@@ -122,6 +120,8 @@ fn generate_for_effect(
             // No side effects, disregard this expression
             cont
         }
+        ast::Expr::Tuple(_exprs) => todo!(),
+        ast::Expr::Subscript(_expr, _value) => todo!(),
     }
 }
 
@@ -135,7 +135,7 @@ fn generate_for_assign(
         ast::Expr::Constant(value) => {
             let mut ret = vec![ir::Statement::Assign(
                 dest_id,
-                ir::Expr::Atom(ir::Atom::Constant(*value)),
+                ir::Expr::Atom(ir::Atom::Constant(value.clone())),
             )];
             ret.extend(cont);
             ret
@@ -199,6 +199,8 @@ fn generate_for_assign(
             }
             ret
         }
+        ast::Expr::Tuple(_) => todo!(),
+        ast::Expr::Subscript(_, _) => todo!(),
     }
 }
 
@@ -222,7 +224,7 @@ fn generate_for_predicate(
             )]
         }
         ast::Expr::Constant(val) => {
-            if (*val).into() {
+            if val.into() {
                 blocks[&pos_label].statements.clone()
             } else {
                 blocks[&neg_label].statements.clone()
@@ -269,12 +271,14 @@ fn generate_for_predicate(
                 neg_label,
             )]
         }
+        ast::Expr::Tuple(_) => todo!(),
+        ast::Expr::Subscript(_, _) => todo!(),
     }
 }
 
 fn expr_to_atom(e: &ast::Expr) -> ir::Atom {
     match e {
-        ast::Expr::Constant(value) => ir::Atom::Constant(*value),
+        ast::Expr::Constant(value) => ir::Atom::Constant(value.clone()),
         ast::Expr::Id(id) => ir::Atom::Variable(id.clone()),
         _ => panic!("Expr `{e:?}` cannot be converted to atom"),
     }

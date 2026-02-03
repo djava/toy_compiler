@@ -286,5 +286,6 @@ fn try_binop_to_cc(op: BinaryOperator) -> Option<x86::Comparison> {
         | BinaryOperator::Subtract
         | BinaryOperator::And
         | BinaryOperator::Or => None,
+        BinaryOperator::Is => todo!(),
     }
 }

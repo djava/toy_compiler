@@ -4,11 +4,12 @@ use std::sync::atomic::{AtomicU64, Ordering};
 
 pub type TypeEnv = HashMap<Identifier, ValueType>;
 
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum ValueType {
     IntType,
-    FunctionType(u16),
+    FunctionType(Vec<ValueType>),
     BoolType,
+    TupleType(Vec<ValueType>),
     NoneType,
 }
 
@@ -17,15 +18,17 @@ impl From<&Value> for ValueType {
         match value {
             Value::I64(_) => Self::IntType,
             Value::Bool(_) => Self::BoolType,
+            Value::Tuple(elems) => Self::TupleType(elems.iter().map(ValueType::from).collect()),
             Value::None => Self::NoneType,
         }
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum Value {
     I64(i64),
     Bool(bool),
+    Tuple(Vec<Value>),
     None,
 }
 
@@ -34,6 +37,7 @@ impl Into<i64> for Value {
         match self {
             Value::I64(val) => val,
             Value::Bool(val) => val as _,
+            Value::Tuple(_) => panic!("Cannot convert Value::Pointer into i64"),
             Value::None => panic!("Cannot convert Value::None into i64"),
         }
     }
@@ -44,7 +48,19 @@ impl Into<bool> for Value {
         match self {
             Value::I64(val) => val != 0,
             Value::Bool(val) => val,
-            Value::None => panic!("Cannot convert Value::None into i64"),
+            Value::Tuple(elems) => !elems.is_empty(),
+            Value::None => panic!("Cannot convert Value::None into bool"),
+        }
+    }
+}
+
+impl Into<bool> for &Value {
+    fn into(self) -> bool {
+        match self {
+            Value::I64(val) => *val != 0,
+            Value::Bool(val) => *val,
+            Value::Tuple(elems) => !elems.is_empty(),
+            Value::None => panic!("Cannot convert Value::None into bool"),
         }
     }
 }
@@ -54,6 +70,7 @@ impl From<&Value> for i64 {
         match value {
             Value::I64(val) => *val,
             Value::Bool(val) => *val as _,
+            Value::Tuple(_) => panic!("Cannot convert Value::Tuple into i64"),
             Value::None => panic!("Cannot convert Value::None into i64"),
         }
     }
@@ -71,6 +88,7 @@ pub enum BinaryOperator {
     GreaterEquals,
     Less,
     LessEquals,
+    Is,
 }
 
 impl BinaryOperator {
@@ -97,6 +115,12 @@ impl BinaryOperator {
                 NotEquals => Some(BoolType),
                 _ => None,
             },
+            (TupleType(_), TupleType(_)) => match self {
+                Equals => Some(BoolType),
+                NotEquals => Some(BoolType),
+                Is => Some(BoolType),
+                _ => None
+            }
             (_, _) => None,
         }
     }
@@ -160,6 +184,8 @@ pub enum Expr {
     Id(Identifier),
     Ternary(Box<Expr>, Box<Expr>, Box<Expr>),
     StatementBlock(Vec<Statement>, Box<Expr>),
+    Tuple(Vec<Expr>),
+    Subscript(Box<Expr>, Value),
 }
 
 #[derive(Debug, Clone, PartialEq)]

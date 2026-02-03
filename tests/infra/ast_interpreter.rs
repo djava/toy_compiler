@@ -27,7 +27,7 @@ fn interpret_expr(
                 None
             }
         }
-        Constant(v) => Some((*v).into()),
+        Constant(v) => Some(v.clone()),
         Call(name, args) => {
             if name == &Identifier::from("read_int") && args.is_empty() {
                 Some(Value::I64(inputs.pop_front().expect("Ran out of inputs")))
@@ -41,10 +41,11 @@ fn interpret_expr(
             }
         }
         Id(id) => {
-            let val = *env
+            let val = env
                 .get(id)
-                .expect(format!("Unknown variable name: {id:?}").as_str());
-            Some(val.into())
+                .expect(format!("Unknown variable name: {id:?}").as_str())
+                .clone();
+            Some(val)
         }
         Ternary(cond, pos, neg) => {
             if let Some(Value::Bool(cond_val)) = interpret_expr(&*cond, inputs, outputs, env) {
@@ -70,6 +71,8 @@ fn interpret_expr(
 
             interpret_expr(expr, inputs, outputs, env)
         }
+        Tuple(_exprs) => todo!(),
+        Subscript(_expr, _value) => todo!(),
     }
 }
 

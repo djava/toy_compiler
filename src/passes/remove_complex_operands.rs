@@ -277,5 +277,45 @@ fn rco_expr(e: &Expr, needs_atomicity: bool) -> ExprTransformation {
                 ephemeral_assigns,
             }
         }
+        Expr::Tuple(elems) => {
+            let mut ephemeral_assigns = vec![];
+            let mut new_elems = vec![];
+
+            // Each arg must be transformed, and all the ephermal
+            // assignments must be inserted before this call happens
+            for elem in elems {
+                let elem_transform = rco_expr(&*elem, true);
+                ephemeral_assigns.extend(elem_transform.ephemeral_assigns);
+                new_elems.push(elem_transform.new_expr);
+            }
+
+            let new_expr = if needs_atomicity {
+                let id = Identifier::new_ephemeral();
+                ephemeral_assigns.push((id.clone(), Expr::Tuple(new_elems)));
+                Expr::Id(id)
+            } else {
+                Expr::Tuple(new_elems)
+            };
+
+            ExprTransformation { new_expr, ephemeral_assigns }
+        },
+        Expr::Subscript(tup, index_val) => {
+            let mut ephemeral_assigns = vec![];
+
+            let tup_transform  = rco_expr(&*tup, true);
+            ephemeral_assigns.extend(tup_transform.ephemeral_assigns);
+            
+            let new_subscript = Expr::Subscript(Box::new(tup_transform.new_expr), index_val.clone());
+
+            let new_expr = if needs_atomicity {
+                let id = Identifier::new_ephemeral();
+                ephemeral_assigns.push((id.clone(), new_subscript));
+                Expr::Id(id)
+            } else {
+                new_subscript
+            };
+
+            ExprTransformation { new_expr, ephemeral_assigns }
+        },
     }
 }
