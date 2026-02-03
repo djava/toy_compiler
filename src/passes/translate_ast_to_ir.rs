@@ -319,6 +319,7 @@ fn expr_to_atom(e: &ast::Expr) -> ir::Atom {
     match e {
         ast::Expr::Constant(value) => ir::Atom::Constant(value.clone()),
         ast::Expr::Id(id) => ir::Atom::Variable(id.clone()),
+        ast::Expr::GlobalSymbol(name) => ir::Atom::GlobalSymbol(name.clone()),
         _ => panic!("Expr `{e:?}` cannot be converted to atom"),
     }
 }

@@ -192,7 +192,7 @@ void validate_vector(int64_t** scan_addr) {
   }
 }
 
-void collect(int64_t** rootstack_ptr, uint64_t bytes_requested)
+void __gc_collect(int64_t** rootstack_ptr, uint64_t bytes_requested)
 {
 #if 0
   printf("collecting, need %" PRIu64 "\n", bytes_requested);

@@ -91,11 +91,19 @@ pub fn type_check_ast_expr(e: &ast::Expr, env: &mut ast::TypeEnv) -> ValueType {
                         "Passed wrong arg type to {name}, expected tuple"
                     );
                     ValueType::IntType
+                } else if name.as_ref() == "__gc_collect" {
+                    assert_eq!(args.len(), 1, "Passed {} args to {name}, expected 1", args.len());
+                    assert!(
+                        matches!(type_check_ast_expr(&args[0], env), ValueType::IntType),
+                        "Passed wrong arg type to {name}, expected int"
+                    );
+
+                    ValueType::NoneType
                 } else {
-                    unimplemented!("Unknown function name")
+                    unimplemented!("Unknown function name: {name}")
                 }
             }
-            _ => unimplemented!("Unknown function name"),
+            _ => unimplemented!("Unknown function id: {id:?}"),
         },
         Ternary(cond, pos, neg) => {
             let cond_type = type_check_ast_expr(&*cond, env);

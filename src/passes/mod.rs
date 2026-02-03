@@ -38,6 +38,7 @@ pub enum ASTtoAST {
     ShortCircuiting,
     PartialEval,
     RemoveComplexOperands,
+    InjectAllocations,
 }
 
 #[enum_dispatch]

@@ -117,11 +117,11 @@ fn translate_allocation(dest: AssignDest, bytes: usize, value_type: ValueType) -
     // Bump allocator pointer, write tag. pointer is in r11
     let mut ret = vec![
         Instr::movq(
-            x86::Arg::Global(Arc::from("__gc_freeptr")),
+            x86::Arg::Global(Arc::from("__gc_free_ptr")),
             x86::Arg::Reg(Register::r11),
         ),
         Instr::addq(
-            x86::Arg::Immediate(8 + (bytes * 8) as i64),
+            x86::Arg::Immediate(bytes as i64),
             x86::Arg::Global(Arc::from("__gc_free_ptr")),
         ),
         Instr::movq(x86::Arg::Immediate(tag), x86::Arg::Deref(Register::r11, 0)),
