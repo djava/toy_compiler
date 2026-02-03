@@ -122,7 +122,7 @@ pub fn type_check_ast_expr(e: &ast::Expr, env: &mut ast::TypeEnv) -> ValueType {
         }
         Subscript(tup, idx) => {
             if let ValueType::TupleType(elems) = type_check_ast_expr(tup, env) {
-                assert!(*idx < elems.len() as i64, "Indexed tuple out of bounds");
+                assert!(*idx >= 0 && *idx < elems.len() as i64, "Indexed tuple out of bounds");
                 elems[*idx as usize].clone()
             } else {
                 panic!("Subscripted a non-tuple")

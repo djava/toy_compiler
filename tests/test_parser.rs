@@ -715,9 +715,9 @@ fn test_parser_if_simple() {
         expected_tokens: vec![
             Token::If,
             Token::Bool(true),
-            Token::OpenBracket,
+            Token::OpenCurly,
             Token::Int(1),
-            Token::CloseBracket,
+            Token::CloseCurly,
         ],
         expected_parse_tree: pt::Module {
             statements: vec![pt::Statement::If(
@@ -747,14 +747,14 @@ else { 2 }",
         expected_tokens: vec![
             Token::If,
             Token::Bool(true),
-            Token::OpenBracket,
+            Token::OpenCurly,
             Token::Int(1),
-            Token::CloseBracket,
+            Token::CloseCurly,
             Token::Newline,
             Token::Else,
-            Token::OpenBracket,
+            Token::OpenCurly,
             Token::Int(2),
-            Token::CloseBracket,
+            Token::CloseCurly,
         ],
         expected_parse_tree: pt::Module {
             statements: vec![
@@ -790,21 +790,21 @@ else { 3 }",
         expected_tokens: vec![
             Token::If,
             Token::Bool(true),
-            Token::OpenBracket,
+            Token::OpenCurly,
             Token::Int(1),
-            Token::CloseBracket,
+            Token::CloseCurly,
             Token::Newline,
             Token::Else,
             Token::If,
             Token::Bool(false),
-            Token::OpenBracket,
+            Token::OpenCurly,
             Token::Int(2),
-            Token::CloseBracket,
+            Token::CloseCurly,
             Token::Newline,
             Token::Else,
-            Token::OpenBracket,
+            Token::OpenCurly,
             Token::Int(3),
-            Token::CloseBracket,
+            Token::CloseCurly,
         ],
         expected_parse_tree: pt::Module {
             statements: vec![
@@ -850,12 +850,12 @@ fn test_parser_if_with_complex_condition() {
             Token::Identifier("x"),
             Token::DoubleEquals,
             Token::Int(1),
-            Token::OpenBracket,
+            Token::OpenCurly,
             Token::Identifier("print"),
             Token::OpenParen,
             Token::Identifier("x"),
             Token::CloseParen,
-            Token::CloseBracket,
+            Token::CloseCurly,
         ],
         expected_parse_tree: pt::Module {
             statements: vec![pt::Statement::If(
@@ -899,7 +899,7 @@ fn test_parser_if_multiline_body() {
         expected_tokens: vec![
             Token::If,
             Token::Bool(true),
-            Token::OpenBracket,
+            Token::OpenCurly,
             Token::Identifier("x"),
             Token::Equals,
             Token::Int(1),
@@ -910,7 +910,7 @@ fn test_parser_if_multiline_body() {
             Token::OpenParen,
             Token::Identifier("x"),
             Token::CloseParen,
-            Token::CloseBracket,
+            Token::CloseCurly,
         ],
         expected_parse_tree: pt::Module {
             statements: vec![pt::Statement::If(
@@ -949,8 +949,8 @@ fn test_parser_if_empty_body() {
         expected_tokens: vec![
             Token::If,
             Token::Bool(true),
-            Token::OpenBracket,
-            Token::CloseBracket,
+            Token::OpenCurly,
+            Token::CloseCurly,
         ],
         expected_parse_tree: pt::Module {
             statements: vec![pt::Statement::If(pt::Expr::Bool(true), vec![])],
@@ -980,41 +980,41 @@ else { 5 }",
             Token::Identifier("x"),
             Token::DoubleEquals,
             Token::Int(1),
-            Token::OpenBracket,
+            Token::OpenCurly,
             Token::Int(1),
-            Token::CloseBracket,
+            Token::CloseCurly,
             Token::Newline,
             Token::Else,
             Token::If,
             Token::Identifier("x"),
             Token::DoubleEquals,
             Token::Int(2),
-            Token::OpenBracket,
+            Token::OpenCurly,
             Token::Int(2),
-            Token::CloseBracket,
+            Token::CloseCurly,
             Token::Newline,
             Token::Else,
             Token::If,
             Token::Identifier("x"),
             Token::DoubleEquals,
             Token::Int(3),
-            Token::OpenBracket,
+            Token::OpenCurly,
             Token::Int(3),
-            Token::CloseBracket,
+            Token::CloseCurly,
             Token::Newline,
             Token::Else,
             Token::If,
             Token::Identifier("x"),
             Token::DoubleEquals,
             Token::Int(4),
-            Token::OpenBracket,
+            Token::OpenCurly,
             Token::Int(4),
-            Token::CloseBracket,
+            Token::CloseCurly,
             Token::Newline,
             Token::Else,
-            Token::OpenBracket,
+            Token::OpenCurly,
             Token::Int(5),
-            Token::CloseBracket,
+            Token::CloseCurly,
         ],
         expected_parse_tree: pt::Module {
             statements: vec![
@@ -1111,13 +1111,13 @@ fn test_parser_if_else_single_line() {
         expected_tokens: vec![
             Token::If,
             Token::Bool(true),
-            Token::OpenBracket,
+            Token::OpenCurly,
             Token::Int(1),
-            Token::CloseBracket,
+            Token::CloseCurly,
             Token::Else,
-            Token::OpenBracket,
+            Token::OpenCurly,
             Token::Int(2),
-            Token::CloseBracket,
+            Token::CloseCurly,
         ],
         expected_parse_tree: pt::Module {
             statements: vec![
@@ -1151,19 +1151,19 @@ fn test_parser_if_else_if_else_single_line() {
         expected_tokens: vec![
             Token::If,
             Token::Bool(true),
-            Token::OpenBracket,
+            Token::OpenCurly,
             Token::Int(1),
-            Token::CloseBracket,
+            Token::CloseCurly,
             Token::Else,
             Token::If,
             Token::Bool(false),
-            Token::OpenBracket,
+            Token::OpenCurly,
             Token::Int(2),
-            Token::CloseBracket,
+            Token::CloseCurly,
             Token::Else,
-            Token::OpenBracket,
+            Token::OpenCurly,
             Token::Int(3),
-            Token::CloseBracket,
+            Token::CloseCurly,
         ],
         expected_parse_tree: pt::Module {
             statements: vec![
@@ -1194,6 +1194,769 @@ fn test_parser_if_else_if_else_single_line() {
                     )))],
                 )],
             )],
+            types: HashMap::new(),
+        },
+    };
+    tc.run();
+}
+
+#[test]
+fn test_parser_tuple_pair() {
+    let tc = ParserTestCase {
+        input_str: r"(1, 2)",
+        expected_tokens: vec![
+            Token::OpenParen,
+            Token::Int(1),
+            Token::Comma,
+            Token::Int(2),
+            Token::CloseParen,
+        ],
+        expected_parse_tree: pt::Module {
+            statements: vec![pt::Statement::Expr(pt::Expr::Tuple(vec![
+                pt::Expr::Int(1),
+                pt::Expr::Int(2),
+            ]))],
+        },
+        expected_ast: ast::Module {
+            body: vec![ast::Statement::Expr(ast::Expr::Tuple(vec![
+                ast::Expr::Constant(ast::Value::I64(1)),
+                ast::Expr::Constant(ast::Value::I64(2)),
+            ]))],
+            types: HashMap::new(),
+        },
+    };
+    tc.run();
+}
+
+#[test]
+fn test_parser_tuple_single_trailing_comma() {
+    let tc = ParserTestCase {
+        input_str: r"(42,)",
+        expected_tokens: vec![
+            Token::OpenParen,
+            Token::Int(42),
+            Token::Comma,
+            Token::CloseParen,
+        ],
+        expected_parse_tree: pt::Module {
+            statements: vec![pt::Statement::Expr(pt::Expr::Tuple(vec![
+                pt::Expr::Int(42),
+            ]))],
+        },
+        expected_ast: ast::Module {
+            body: vec![ast::Statement::Expr(ast::Expr::Tuple(vec![
+                ast::Expr::Constant(ast::Value::I64(42)),
+            ]))],
+            types: HashMap::new(),
+        },
+    };
+    tc.run();
+}
+
+#[test]
+fn test_parser_tuple_assign() {
+    let tc = ParserTestCase {
+        input_str: r"x = (1 + 2, read_int(), true)",
+        expected_tokens: vec![
+            Token::Identifier("x"),
+            Token::Equals,
+            Token::OpenParen,
+            Token::Int(1),
+            Token::Plus,
+            Token::Int(2),
+            Token::Comma,
+            Token::Identifier("read_int"),
+            Token::OpenParen,
+            Token::CloseParen,
+            Token::Comma,
+            Token::Bool(true),
+            Token::CloseParen,
+        ],
+        expected_parse_tree: pt::Module {
+            statements: vec![pt::Statement::Assign(
+                "x",
+                pt::Expr::Tuple(vec![
+                    pt::Expr::Binary(
+                        Box::new(pt::Expr::Int(1)),
+                        pt::Operator::Plus,
+                        Box::new(pt::Expr::Int(2)),
+                    ),
+                    pt::Expr::Call("read_int", vec![]),
+                    pt::Expr::Bool(true),
+                ]),
+            )],
+        },
+        expected_ast: ast::Module {
+            body: vec![ast::Statement::Assign(
+                ast::AssignDest::Id(ast::Identifier::from("x")),
+                ast::Expr::Tuple(vec![
+                    ast::Expr::BinaryOp(
+                        Box::new(ast::Expr::Constant(ast::Value::I64(1))),
+                        ast::BinaryOperator::Add,
+                        Box::new(ast::Expr::Constant(ast::Value::I64(2))),
+                    ),
+                    ast::Expr::Call(ast::Identifier::from("read_int"), vec![]),
+                    ast::Expr::Constant(ast::Value::Bool(true)),
+                ]),
+            )],
+            types: HashMap::new(),
+        },
+    };
+    tc.run();
+}
+
+#[test]
+fn test_parser_tuple_nested() {
+    let tc = ParserTestCase {
+        input_str: r"((1, 2), (3, 4))",
+        expected_tokens: vec![
+            Token::OpenParen,
+            Token::OpenParen,
+            Token::Int(1),
+            Token::Comma,
+            Token::Int(2),
+            Token::CloseParen,
+            Token::Comma,
+            Token::OpenParen,
+            Token::Int(3),
+            Token::Comma,
+            Token::Int(4),
+            Token::CloseParen,
+            Token::CloseParen,
+        ],
+        expected_parse_tree: pt::Module {
+            statements: vec![pt::Statement::Expr(pt::Expr::Tuple(vec![
+                pt::Expr::Tuple(vec![pt::Expr::Int(1), pt::Expr::Int(2)]),
+                pt::Expr::Tuple(vec![pt::Expr::Int(3), pt::Expr::Int(4)]),
+            ]))],
+        },
+        expected_ast: ast::Module {
+            body: vec![ast::Statement::Expr(ast::Expr::Tuple(vec![
+                ast::Expr::Tuple(vec![
+                    ast::Expr::Constant(ast::Value::I64(1)),
+                    ast::Expr::Constant(ast::Value::I64(2)),
+                ]),
+                ast::Expr::Tuple(vec![
+                    ast::Expr::Constant(ast::Value::I64(3)),
+                    ast::Expr::Constant(ast::Value::I64(4)),
+                ]),
+            ]))],
+            types: HashMap::new(),
+        },
+    };
+    tc.run();
+}
+
+#[test]
+fn test_parser_tuple_trailing_comma_multi() {
+    let tc = ParserTestCase {
+        input_str: r"(1, 2,)",
+        expected_tokens: vec![
+            Token::OpenParen,
+            Token::Int(1),
+            Token::Comma,
+            Token::Int(2),
+            Token::Comma,
+            Token::CloseParen,
+        ],
+        expected_parse_tree: pt::Module {
+            statements: vec![pt::Statement::Expr(pt::Expr::Tuple(vec![
+                pt::Expr::Int(1),
+                pt::Expr::Int(2),
+            ]))],
+        },
+        expected_ast: ast::Module {
+            body: vec![ast::Statement::Expr(ast::Expr::Tuple(vec![
+                ast::Expr::Constant(ast::Value::I64(1)),
+                ast::Expr::Constant(ast::Value::I64(2)),
+            ]))],
+            types: HashMap::new(),
+        },
+    };
+    tc.run();
+}
+
+#[test]
+fn test_parser_tuple_in_call() {
+    // print((1, 2)) is one tuple argument, not two int arguments
+    let tc = ParserTestCase {
+        input_str: r"print((1, 2))",
+        expected_tokens: vec![
+            Token::Identifier("print"),
+            Token::OpenParen,
+            Token::OpenParen,
+            Token::Int(1),
+            Token::Comma,
+            Token::Int(2),
+            Token::CloseParen,
+            Token::CloseParen,
+        ],
+        expected_parse_tree: pt::Module {
+            statements: vec![pt::Statement::Expr(pt::Expr::Call(
+                "print",
+                vec![pt::Expr::Tuple(vec![pt::Expr::Int(1), pt::Expr::Int(2)])],
+            ))],
+        },
+        expected_ast: ast::Module {
+            body: vec![ast::Statement::Expr(ast::Expr::Call(
+                ast::Identifier::from("print"),
+                vec![ast::Expr::Tuple(vec![
+                    ast::Expr::Constant(ast::Value::I64(1)),
+                    ast::Expr::Constant(ast::Value::I64(2)),
+                ])],
+            ))],
+            types: HashMap::new(),
+        },
+    };
+    tc.run();
+}
+
+// ── Subscript expression tests ──────────────────────────────────────────
+
+#[test]
+fn test_parser_subscript_simple() {
+    let tc = ParserTestCase {
+        input_str: r"x[0]",
+        expected_tokens: vec![
+            Token::Identifier("x"),
+            Token::OpenBracket,
+            Token::Int(0),
+            Token::CloseBracket,
+        ],
+        expected_parse_tree: pt::Module {
+            statements: vec![pt::Statement::Expr(pt::Expr::Subscript(
+                Box::new(pt::Expr::Id("x")),
+                0,
+            ))],
+        },
+        expected_ast: ast::Module {
+            body: vec![ast::Statement::Expr(ast::Expr::Subscript(
+                Box::new(ast::Expr::Id(ast::Identifier::from("x"))),
+                0,
+            ))],
+            types: HashMap::new(),
+        },
+    };
+    tc.run();
+}
+
+#[test]
+fn test_parser_subscript_nonzero_index() {
+    let tc = ParserTestCase {
+        input_str: r"myvar[2]",
+        expected_tokens: vec![
+            Token::Identifier("myvar"),
+            Token::OpenBracket,
+            Token::Int(2),
+            Token::CloseBracket,
+        ],
+        expected_parse_tree: pt::Module {
+            statements: vec![pt::Statement::Expr(pt::Expr::Subscript(
+                Box::new(pt::Expr::Id("myvar")),
+                2,
+            ))],
+        },
+        expected_ast: ast::Module {
+            body: vec![ast::Statement::Expr(ast::Expr::Subscript(
+                Box::new(ast::Expr::Id(ast::Identifier::from("myvar"))),
+                2,
+            ))],
+            types: HashMap::new(),
+        },
+    };
+    tc.run();
+}
+
+#[test]
+fn test_parser_subscript_negative_index() {
+    let tc = ParserTestCase {
+        input_str: r"x[-1]",
+        expected_tokens: vec![
+            Token::Identifier("x"),
+            Token::OpenBracket,
+            Token::Int(-1),
+            Token::CloseBracket,
+        ],
+        expected_parse_tree: pt::Module {
+            statements: vec![pt::Statement::Expr(pt::Expr::Subscript(
+                Box::new(pt::Expr::Id("x")),
+                -1,
+            ))],
+        },
+        expected_ast: ast::Module {
+            body: vec![ast::Statement::Expr(ast::Expr::Subscript(
+                Box::new(ast::Expr::Id(ast::Identifier::from("x"))),
+                -1,
+            ))],
+            types: HashMap::new(),
+        },
+    };
+    tc.run();
+}
+
+#[test]
+fn test_parser_subscript_chained() {
+    // x[0][1] should be left-associative: Subscript(Subscript(x, 0), 1)
+    let tc = ParserTestCase {
+        input_str: r"x[0][1]",
+        expected_tokens: vec![
+            Token::Identifier("x"),
+            Token::OpenBracket,
+            Token::Int(0),
+            Token::CloseBracket,
+            Token::OpenBracket,
+            Token::Int(1),
+            Token::CloseBracket,
+        ],
+        expected_parse_tree: pt::Module {
+            statements: vec![pt::Statement::Expr(pt::Expr::Subscript(
+                Box::new(pt::Expr::Subscript(
+                    Box::new(pt::Expr::Id("x")),
+                    0,
+                )),
+                1,
+            ))],
+        },
+        expected_ast: ast::Module {
+            body: vec![ast::Statement::Expr(ast::Expr::Subscript(
+                Box::new(ast::Expr::Subscript(
+                    Box::new(ast::Expr::Id(ast::Identifier::from("x"))),
+                    0,
+                )),
+                1,
+            ))],
+            types: HashMap::new(),
+        },
+    };
+    tc.run();
+}
+
+#[test]
+fn test_parser_subscript_on_call() {
+    // foo()[0] — subscript on a function call result
+    let tc = ParserTestCase {
+        input_str: r"foo()[0]",
+        expected_tokens: vec![
+            Token::Identifier("foo"),
+            Token::OpenParen,
+            Token::CloseParen,
+            Token::OpenBracket,
+            Token::Int(0),
+            Token::CloseBracket,
+        ],
+        expected_parse_tree: pt::Module {
+            statements: vec![pt::Statement::Expr(pt::Expr::Subscript(
+                Box::new(pt::Expr::Call("foo", vec![])),
+                0,
+            ))],
+        },
+        expected_ast: ast::Module {
+            body: vec![ast::Statement::Expr(ast::Expr::Subscript(
+                Box::new(ast::Expr::Call(ast::Identifier::from("foo"), vec![])),
+                0,
+            ))],
+            types: HashMap::new(),
+        },
+    };
+    tc.run();
+}
+
+#[test]
+fn test_parser_subscript_in_binop() {
+    // x[0] + 1 — subscript has higher precedence than binary ops
+    let tc = ParserTestCase {
+        input_str: r"x[0] + 1",
+        expected_tokens: vec![
+            Token::Identifier("x"),
+            Token::OpenBracket,
+            Token::Int(0),
+            Token::CloseBracket,
+            Token::Plus,
+            Token::Int(1),
+        ],
+        expected_parse_tree: pt::Module {
+            statements: vec![pt::Statement::Expr(pt::Expr::Binary(
+                Box::new(pt::Expr::Subscript(
+                    Box::new(pt::Expr::Id("x")),
+                    0,
+                )),
+                pt::Operator::Plus,
+                Box::new(pt::Expr::Int(1)),
+            ))],
+        },
+        expected_ast: ast::Module {
+            body: vec![ast::Statement::Expr(ast::Expr::BinaryOp(
+                Box::new(ast::Expr::Subscript(
+                    Box::new(ast::Expr::Id(ast::Identifier::from("x"))),
+                    0,
+                )),
+                ast::BinaryOperator::Add,
+                Box::new(ast::Expr::Constant(ast::Value::I64(1))),
+            ))],
+            types: HashMap::new(),
+        },
+    };
+    tc.run();
+}
+
+#[test]
+fn test_parser_subscript_on_parens_tuple() {
+    // ((1, 2))[0] — subscript on a parenthesized tuple
+    let tc = ParserTestCase {
+        input_str: r"((1, 2))[0]",
+        expected_tokens: vec![
+            Token::OpenParen,
+            Token::OpenParen,
+            Token::Int(1),
+            Token::Comma,
+            Token::Int(2),
+            Token::CloseParen,
+            Token::CloseParen,
+            Token::OpenBracket,
+            Token::Int(0),
+            Token::CloseBracket,
+        ],
+        expected_parse_tree: pt::Module {
+            statements: vec![pt::Statement::Expr(pt::Expr::Subscript(
+                Box::new(pt::Expr::Parens(Box::new(pt::Expr::Tuple(vec![
+                    pt::Expr::Int(1),
+                    pt::Expr::Int(2),
+                ])))),
+                0,
+            ))],
+        },
+        expected_ast: ast::Module {
+            body: vec![ast::Statement::Expr(ast::Expr::Subscript(
+                Box::new(ast::Expr::Tuple(vec![
+                    ast::Expr::Constant(ast::Value::I64(1)),
+                    ast::Expr::Constant(ast::Value::I64(2)),
+                ])),
+                0,
+            ))],
+            types: HashMap::new(),
+        },
+    };
+    tc.run();
+}
+
+#[test]
+fn test_parser_subscript_in_ternary_condition() {
+    // x[0] ? 1 : 2 — subscript in a ternary condition
+    let tc = ParserTestCase {
+        input_str: r"x[0] ? 1 : 2",
+        expected_tokens: vec![
+            Token::Identifier("x"),
+            Token::OpenBracket,
+            Token::Int(0),
+            Token::CloseBracket,
+            Token::QuestionMark,
+            Token::Int(1),
+            Token::Colon,
+            Token::Int(2),
+        ],
+        expected_parse_tree: pt::Module {
+            statements: vec![pt::Statement::Expr(pt::Expr::Ternary(
+                Box::new(pt::Expr::Subscript(
+                    Box::new(pt::Expr::Id("x")),
+                    0,
+                )),
+                Box::new(pt::Expr::Int(1)),
+                Box::new(pt::Expr::Int(2)),
+            ))],
+        },
+        expected_ast: ast::Module {
+            body: vec![ast::Statement::Expr(ast::Expr::Ternary(
+                Box::new(ast::Expr::Subscript(
+                    Box::new(ast::Expr::Id(ast::Identifier::from("x"))),
+                    0,
+                )),
+                Box::new(ast::Expr::Constant(ast::Value::I64(1))),
+                Box::new(ast::Expr::Constant(ast::Value::I64(2))),
+            ))],
+            types: HashMap::new(),
+        },
+    };
+    tc.run();
+}
+
+// ── SubscriptAssign statement tests ─────────────────────────────────────
+
+#[test]
+fn test_parser_subscript_assign_simple() {
+    let tc = ParserTestCase {
+        input_str: r"x[0] = 1",
+        expected_tokens: vec![
+            Token::Identifier("x"),
+            Token::OpenBracket,
+            Token::Int(0),
+            Token::CloseBracket,
+            Token::Equals,
+            Token::Int(1),
+        ],
+        expected_parse_tree: pt::Module {
+            statements: vec![pt::Statement::SubscriptAssign("x", 0, pt::Expr::Int(1))],
+        },
+        expected_ast: ast::Module {
+            body: vec![ast::Statement::Assign(
+                ast::AssignDest::Subscript(ast::Identifier::from("x"), 0),
+                ast::Expr::Constant(ast::Value::I64(1)),
+            )],
+            types: HashMap::new(),
+        },
+    };
+    tc.run();
+}
+
+#[test]
+fn test_parser_subscript_assign_nonzero_index() {
+    let tc = ParserTestCase {
+        input_str: r"tup[3] = 42",
+        expected_tokens: vec![
+            Token::Identifier("tup"),
+            Token::OpenBracket,
+            Token::Int(3),
+            Token::CloseBracket,
+            Token::Equals,
+            Token::Int(42),
+        ],
+        expected_parse_tree: pt::Module {
+            statements: vec![pt::Statement::SubscriptAssign("tup", 3, pt::Expr::Int(42))],
+        },
+        expected_ast: ast::Module {
+            body: vec![ast::Statement::Assign(
+                ast::AssignDest::Subscript(ast::Identifier::from("tup"), 3),
+                ast::Expr::Constant(ast::Value::I64(42)),
+            )],
+            types: HashMap::new(),
+        },
+    };
+    tc.run();
+}
+
+#[test]
+fn test_parser_subscript_assign_complex_expr() {
+    // x[1] = y + 1
+    let tc = ParserTestCase {
+        input_str: r"x[1] = y + 1",
+        expected_tokens: vec![
+            Token::Identifier("x"),
+            Token::OpenBracket,
+            Token::Int(1),
+            Token::CloseBracket,
+            Token::Equals,
+            Token::Identifier("y"),
+            Token::Plus,
+            Token::Int(1),
+        ],
+        expected_parse_tree: pt::Module {
+            statements: vec![pt::Statement::SubscriptAssign(
+                "x",
+                1,
+                pt::Expr::Binary(
+                    Box::new(pt::Expr::Id("y")),
+                    pt::Operator::Plus,
+                    Box::new(pt::Expr::Int(1)),
+                ),
+            )],
+        },
+        expected_ast: ast::Module {
+            body: vec![ast::Statement::Assign(
+                ast::AssignDest::Subscript(ast::Identifier::from("x"), 1),
+                ast::Expr::BinaryOp(
+                    Box::new(ast::Expr::Id(ast::Identifier::from("y"))),
+                    ast::BinaryOperator::Add,
+                    Box::new(ast::Expr::Constant(ast::Value::I64(1))),
+                ),
+            )],
+            types: HashMap::new(),
+        },
+    };
+    tc.run();
+}
+
+#[test]
+fn test_parser_subscript_assign_tuple_value() {
+    // x[0] = (1, 2) — assign a tuple to a subscript
+    let tc = ParserTestCase {
+        input_str: r"x[0] = (1, 2)",
+        expected_tokens: vec![
+            Token::Identifier("x"),
+            Token::OpenBracket,
+            Token::Int(0),
+            Token::CloseBracket,
+            Token::Equals,
+            Token::OpenParen,
+            Token::Int(1),
+            Token::Comma,
+            Token::Int(2),
+            Token::CloseParen,
+        ],
+        expected_parse_tree: pt::Module {
+            statements: vec![pt::Statement::SubscriptAssign(
+                "x",
+                0,
+                pt::Expr::Tuple(vec![pt::Expr::Int(1), pt::Expr::Int(2)]),
+            )],
+        },
+        expected_ast: ast::Module {
+            body: vec![ast::Statement::Assign(
+                ast::AssignDest::Subscript(ast::Identifier::from("x"), 0),
+                ast::Expr::Tuple(vec![
+                    ast::Expr::Constant(ast::Value::I64(1)),
+                    ast::Expr::Constant(ast::Value::I64(2)),
+                ]),
+            )],
+            types: HashMap::new(),
+        },
+    };
+    tc.run();
+}
+
+#[test]
+fn test_parser_subscript_assign_negative_index() {
+    let tc = ParserTestCase {
+        input_str: r"x[-1] = 99",
+        expected_tokens: vec![
+            Token::Identifier("x"),
+            Token::OpenBracket,
+            Token::Int(-1),
+            Token::CloseBracket,
+            Token::Equals,
+            Token::Int(99),
+        ],
+        expected_parse_tree: pt::Module {
+            statements: vec![pt::Statement::SubscriptAssign("x", -1, pt::Expr::Int(99))],
+        },
+        expected_ast: ast::Module {
+            body: vec![ast::Statement::Assign(
+                ast::AssignDest::Subscript(ast::Identifier::from("x"), -1),
+                ast::Expr::Constant(ast::Value::I64(99)),
+            )],
+            types: HashMap::new(),
+        },
+    };
+    tc.run();
+}
+
+#[test]
+fn test_parser_subscript_assign_in_if_body() {
+    let tc = ParserTestCase {
+        input_str: r"if true { x[0] = 1 }",
+        expected_tokens: vec![
+            Token::If,
+            Token::Bool(true),
+            Token::OpenCurly,
+            Token::Identifier("x"),
+            Token::OpenBracket,
+            Token::Int(0),
+            Token::CloseBracket,
+            Token::Equals,
+            Token::Int(1),
+            Token::CloseCurly,
+        ],
+        expected_parse_tree: pt::Module {
+            statements: vec![pt::Statement::If(
+                pt::Expr::Bool(true),
+                vec![pt::Statement::SubscriptAssign("x", 0, pt::Expr::Int(1))],
+            )],
+        },
+        expected_ast: ast::Module {
+            body: vec![ast::Statement::Conditional(
+                ast::Expr::Constant(ast::Value::Bool(true)),
+                vec![ast::Statement::Assign(
+                    ast::AssignDest::Subscript(ast::Identifier::from("x"), 0),
+                    ast::Expr::Constant(ast::Value::I64(1)),
+                )],
+                vec![],
+            )],
+            types: HashMap::new(),
+        },
+    };
+    tc.run();
+}
+
+#[test]
+fn test_parser_subscript_assign_with_subscript_expr_rhs() {
+    // x[0] = y[1] — subscript on both sides
+    let tc = ParserTestCase {
+        input_str: r"x[0] = y[1]",
+        expected_tokens: vec![
+            Token::Identifier("x"),
+            Token::OpenBracket,
+            Token::Int(0),
+            Token::CloseBracket,
+            Token::Equals,
+            Token::Identifier("y"),
+            Token::OpenBracket,
+            Token::Int(1),
+            Token::CloseBracket,
+        ],
+        expected_parse_tree: pt::Module {
+            statements: vec![pt::Statement::SubscriptAssign(
+                "x",
+                0,
+                pt::Expr::Subscript(Box::new(pt::Expr::Id("y")), 1),
+            )],
+        },
+        expected_ast: ast::Module {
+            body: vec![ast::Statement::Assign(
+                ast::AssignDest::Subscript(ast::Identifier::from("x"), 0),
+                ast::Expr::Subscript(
+                    Box::new(ast::Expr::Id(ast::Identifier::from("y"))),
+                    1,
+                ),
+            )],
+            types: HashMap::new(),
+        },
+    };
+    tc.run();
+}
+
+#[test]
+fn test_parser_subscript_assign_multiline() {
+    // Subscript assign alongside other statements
+    let tc = ParserTestCase {
+        input_str: r"x = (1, 2)
+x[0] = 42",
+        expected_tokens: vec![
+            Token::Identifier("x"),
+            Token::Equals,
+            Token::OpenParen,
+            Token::Int(1),
+            Token::Comma,
+            Token::Int(2),
+            Token::CloseParen,
+            Token::Newline,
+            Token::Identifier("x"),
+            Token::OpenBracket,
+            Token::Int(0),
+            Token::CloseBracket,
+            Token::Equals,
+            Token::Int(42),
+        ],
+        expected_parse_tree: pt::Module {
+            statements: vec![
+                pt::Statement::Assign(
+                    "x",
+                    pt::Expr::Tuple(vec![pt::Expr::Int(1), pt::Expr::Int(2)]),
+                ),
+                pt::Statement::SubscriptAssign("x", 0, pt::Expr::Int(42)),
+            ],
+        },
+        expected_ast: ast::Module {
+            body: vec![
+                ast::Statement::Assign(
+                    ast::AssignDest::Id(ast::Identifier::from("x")),
+                    ast::Expr::Tuple(vec![
+                        ast::Expr::Constant(ast::Value::I64(1)),
+                        ast::Expr::Constant(ast::Value::I64(2)),
+                    ]),
+                ),
+                ast::Statement::Assign(
+                    ast::AssignDest::Subscript(ast::Identifier::from("x"), 0),
+                    ast::Expr::Constant(ast::Value::I64(42)),
+                ),
+            ],
             types: HashMap::new(),
         },
     };

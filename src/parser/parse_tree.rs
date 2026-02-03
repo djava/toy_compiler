@@ -14,6 +14,7 @@ pub enum Operator {
     Less,
     LessEquals,
     Not,
+    Is,
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -26,12 +27,15 @@ pub enum Expr<'a> {
     Binary(Box<Expr<'a>>, Operator, Box<Expr<'a>>),
     Call(&'a str, Vec<Expr<'a>>),
     Ternary(Box<Expr<'a>>, Box<Expr<'a>>, Box<Expr<'a>>),
+    Tuple(Vec<Expr<'a>>),
+    Subscript(Box<Expr<'a>>, i64)
 }
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum Statement<'a> {
     Expr(Expr<'a>),
     Assign(&'a str, Expr<'a>),
+    SubscriptAssign(&'a str, i64, Expr<'a>),
     If(Expr<'a>, Vec<Statement<'a>>),
     ElseIf(Expr<'a>, Vec<Statement<'a>>),
     Else(Vec<Statement<'a>>),
@@ -55,7 +59,7 @@ parser! {
         rule operator() -> Operator =
             op:[Token::Minus | Token::Plus | Token::And | Token::Or | Token::Not |
                 Token::DoubleEquals | Token::NotEquals | Token::Greater |
-                Token::GreaterEquals | Token::Less | Token::LessEquals] {
+                Token::GreaterEquals | Token::Less | Token::LessEquals | Token::Is] {
                 match op {
                     Token::Minus         => Operator::Minus,
                     Token::Plus          => Operator::Plus,
@@ -68,22 +72,34 @@ parser! {
                     Token::Less          => Operator::Less,
                     Token::LessEquals    => Operator::LessEquals,
                     Token::Not           => Operator::Not,
+                    Token::Is            => Operator::Is,
                     _ => unreachable!()
                 }
             }
+
+        // Trailing comma is mandatory for one elem but optional for multiple
+        rule tuple_elements() -> Vec<Expr<'t>> =
+            elems:((s:(expr() **<2,50> [Token::Comma]) [Token::Comma]? { s }) / (e:expr() [Token::Comma] { vec![e] }))  { elems }
+
+        rule tuple() -> Expr<'t> =
+            [Token::OpenParen] args:tuple_elements() [Token::CloseParen] { Expr::Tuple(args) }
 
         rule expr() -> Expr<'t> =
             // Lowest-precendence, right-associative ternary expression
             cond:precedence_expr() [Token::QuestionMark] pos:expr() [Token::Colon] neg:expr() {
                 Expr::Ternary(Box::new(cond), Box::new(pos), Box::new(neg))
             }
+            / tuple()
             / precedence_expr()
 
         rule precedence_expr() -> Expr<'t> = precedence!{
-            // Lowest Precendence: Binary Operators, left-associative
+            // Lowest Precendence: Infix Operators, left-associative
             l:(@) op:operator() r:@ { Expr::Binary(Box::new(l), op, Box::new(r)) }
             --
-            // Middle: Unary operators
+            // Postfix operators
+            e:@ [Token::OpenBracket] [Token::Int(idx)] [Token::CloseBracket] { Expr::Subscript(Box::new(e), idx) }
+            --
+            // Prefix operators
             op:operator() val:@ { Expr::Unary(op, Box::new(val)) }
             --
             // Highest: Atoms
@@ -97,10 +113,14 @@ parser! {
         pub rule assign() -> Statement<'t> =
             [Token::Identifier(id)] [Token::Equals] e:expr() { Statement::Assign(id, e) }
 
+        pub rule subscript_assign() -> Statement<'t> =
+            [Token::Identifier(id)] [Token::OpenBracket] [Token::Int(idx)] [Token::CloseBracket] [Token::Equals] e:expr()
+            { Statement::SubscriptAssign(id, idx, e) }
+
         pub rule statement_body() -> Vec<Statement<'t>> =
-            [Token::OpenBracket] [Token::Newline]*
+            [Token::OpenCurly] [Token::Newline]*
             ss:(if_chain() / (s:simple_statement() { vec![s] })) ** ([Token::Newline]+)
-            [Token::Newline]* [Token::CloseBracket] {
+            [Token::Newline]* [Token::CloseCurly] {
                 ss.into_iter().flatten().collect()
             }
 
@@ -135,7 +155,7 @@ parser! {
 
         /// Simple statements (not if-chains)
         pub rule simple_statement() -> Statement<'t> =
-            assign() / (e:expr() { Statement::Expr(e) }) / while_statement()
+            assign() / subscript_assign() / (e:expr() { Statement::Expr(e) }) / while_statement()
 
         /// For use inside statement bodies
         pub rule statement() -> Statement<'t> =

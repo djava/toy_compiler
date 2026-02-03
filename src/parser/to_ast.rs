@@ -34,6 +34,7 @@ fn to_ast_expr(pte: pt::Expr) -> ast::Expr {
                 pt::Operator::GreaterEquals => ast::BinaryOperator::GreaterEquals,
                 pt::Operator::Less => ast::BinaryOperator::Less,
                 pt::Operator::LessEquals => ast::BinaryOperator::LessEquals,
+                pt::Operator::Is => ast::BinaryOperator::Is,
                 pt::Operator::Not => {
                     panic!("pt::Operator::Not should never be in a Binary expression")
                 }
@@ -53,6 +54,12 @@ fn to_ast_expr(pte: pt::Expr) -> ast::Expr {
 
             ast::Expr::Ternary(Box::new(ast_cond), Box::new(ast_pos), Box::new(ast_neg))
         }
+        pt::Expr::Tuple(elems) => {
+            let ast_elems = elems.into_iter().map(to_ast_expr).collect();
+
+            ast::Expr::Tuple(ast_elems)
+        }
+        pt::Expr::Subscript(expr, idx) => ast::Expr::Subscript(Box::new(to_ast_expr(*expr)), idx),
     }
 }
 
@@ -63,6 +70,10 @@ pub fn to_ast_statement<'a>(
         Some(pt::Statement::Expr(pte)) => Some(ast::Statement::Expr(to_ast_expr(pte))),
         Some(pt::Statement::Assign(name, pte)) => Some(ast::Statement::Assign(
             ast::AssignDest::Id(ast::Identifier::from(name)),
+            to_ast_expr(pte),
+        )),
+        Some(pt::Statement::SubscriptAssign(name, idx, pte)) => Some(ast::Statement::Assign(
+            ast::AssignDest::Subscript(ast::Identifier::from(name), idx),
             to_ast_expr(pte),
         )),
         Some(pt::Statement::If(cond, body)) => {

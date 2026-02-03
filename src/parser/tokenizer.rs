@@ -24,11 +24,14 @@ pub enum Token<'a> {
     Or,
     If,
     Else,
-    OpenBracket,
-    CloseBracket,
+    OpenCurly,
+    CloseCurly,
     QuestionMark,
     Colon,
     While,
+    Is,
+    OpenBracket,
+    CloseBracket
 }
 
 parser! {
@@ -65,10 +68,13 @@ parser! {
         rule minus() -> Token<'input> = "-" { Token::Minus }
         rule comma() -> Token<'input> = "," { Token::Comma }
         rule newline() -> Token<'input> = "\n" { Token::Newline }
-        rule open_bracket() -> Token<'input> = "{" { Token::OpenBracket }
-        rule close_bracket() -> Token<'input> = "}" { Token::CloseBracket }
+        rule open_curly() -> Token<'input> = "{" { Token::OpenCurly }
+        rule close_curly() -> Token<'input> = "}" { Token::CloseCurly }
+        rule open_bracket() -> Token<'input> = "[" { Token::OpenBracket }
+        rule close_bracket() -> Token<'input> = "]" { Token::CloseBracket }
         rule question_mark() -> Token<'input> = "?" { Token::QuestionMark }
         rule colon() -> Token<'input> = ":" { Token::Colon }
+        rule is() -> Token<'input> = "is" { Token::Is }
 
         rule _if() -> Token<'input> = "if" { Token::If }
         rule _else() -> Token<'input> = "else" { Token::Else }
@@ -80,15 +86,16 @@ parser! {
 
         /// A word token requires trailing whitespace/EOF/puncutation
         rule word_token() -> Token<'input>
-            = t:(bool() / and_word() / or_word() / not_word() /
-                 _if() / _else() / _while() / int() / identifier()) &__ {t}
+            = t:(bool() / and_word() / or_word() / not_word() /_if() /
+                 _else() / _while() / is() / int() / identifier()) &__ {t}
 
         /// A punctuation token does not require trailing whitespace
         rule punctuation_token() -> Token<'input>
             = double_equals() / not_equals() / greater_equals() / less_equals() /
               greater() / less() / and_sym() / or_sym() / not_sym() / open_paren() /
               close_paren() / equals() / plus() / minus() / comma() / newline() /
-              open_bracket() / close_bracket() / question_mark() / colon()
+              open_curly() / close_curly() / open_bracket() / close_bracket() /
+              question_mark() / colon()
 
         rule token() -> Token<'input> = word_token() / punctuation_token()
 
