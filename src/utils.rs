@@ -53,7 +53,7 @@ pub fn type_check_ast_expr(e: &ast::Expr, env: &mut ast::TypeEnv) -> ValueType {
             ValueType::IntType
         }
         Id(id) => env
-            .get(id)
+            .get(&ast::AssignDest::Id(id.clone()))
             .expect(format!("Unknown Identifier: {id:?}").as_str())
             .clone(),
         Constant(v) => ValueType::from(v),
@@ -164,23 +164,6 @@ pub fn type_check_ast_statements(statements: &[ast::Statement], env: &mut ast::T
 
                 type_check_ast_statements(body, env);
             }
-            AssignSubscript(id, idx, expr) => {
-                let expr_type = type_check_ast_expr(expr, env);
-
-                let idx_type = {
-                    if let Some(id_type) = env.get(id) {
-                        if let ValueType::TupleType(elems) = id_type && *idx < elems.len() as i64 {
-                            &elems[*idx as usize]
-                        } else {
-                            panic!("Couldn't get type of element {id:?}[{idx}] to assign to")
-                        }
-                    } else {
-                        panic!("Unknown variable name: {id:?}")
-                    }
-                };
-
-                assert_eq!(idx_type, &expr_type);
-            },
         }
     }
 }

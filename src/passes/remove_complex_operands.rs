@@ -22,7 +22,7 @@ impl ASTPass for RemoveComplexOperands {
 
 fn rco_statement(s: &Statement, new_body: &mut Vec<Statement>) {
     match s {
-        Statement::Assign(id, expr) => {
+        Statement::Assign(dest, expr) => {
             let transform = rco_expr(&expr, false);
 
             // Take all the ephemeral transforms that happen
@@ -31,12 +31,12 @@ fn rco_statement(s: &Statement, new_body: &mut Vec<Statement>) {
             let ephemeral_assign_stmts = transform
                 .ephemeral_assigns
                 .iter()
-                .map(|(id, expr)| Statement::Assign(id.clone(), expr.clone()));
+                .map(|(id, expr)| Statement::Assign(AssignDest::Id(id.clone()), expr.clone()));
             new_body.extend(ephemeral_assign_stmts);
 
             // Add the updated version of this statement with
             // the new expression to the body
-            new_body.push(Statement::Assign(id.clone(), transform.new_expr));
+            new_body.push(Statement::Assign(dest.clone(), transform.new_expr));
         }
         Statement::Expr(expr) => {
             // The expression statement itself doesn't need to
@@ -51,7 +51,7 @@ fn rco_statement(s: &Statement, new_body: &mut Vec<Statement>) {
             let ephemeral_assign_stmts = transform
                 .ephemeral_assigns
                 .iter()
-                .map(|(id, expr)| Statement::Assign(id.clone(), expr.clone()));
+                .map(|(id, expr)| Statement::Assign(AssignDest::Id(id.clone()), expr.clone()));
             new_body.extend(ephemeral_assign_stmts);
 
             // Add the updated version of this statement with
@@ -65,7 +65,7 @@ fn rco_statement(s: &Statement, new_body: &mut Vec<Statement>) {
             let ephemeral_assign_stmts = cond_transform
                 .ephemeral_assigns
                 .iter()
-                .map(|(id, expr)| Statement::Assign(id.clone(), expr.clone()));
+                .map(|(id, expr)| Statement::Assign(AssignDest::Id(id.clone()), expr.clone()));
             new_body.extend(ephemeral_assign_stmts);
 
             let mut pos_new_body = Vec::new();
@@ -89,7 +89,7 @@ fn rco_statement(s: &Statement, new_body: &mut Vec<Statement>) {
             let ephemeral_assign_stmts = cond_transform
                 .ephemeral_assigns
                 .iter()
-                .map(|(id, expr)| Statement::Assign(id.clone(), expr.clone()));
+                .map(|(id, expr)| Statement::Assign(AssignDest::Id(id.clone()), expr.clone()));
             let cond_statement_block = Expr::StatementBlock(
                 ephemeral_assign_stmts.collect(),
                 Box::new(cond_transform.new_expr),
@@ -102,22 +102,6 @@ fn rco_statement(s: &Statement, new_body: &mut Vec<Statement>) {
 
             new_body.push(Statement::WhileLoop(cond_statement_block, new_loop_body));
         }
-        Statement::AssignSubscript(id, idx, expr) => {
-            let transform = rco_expr(&expr, false);
-
-            // Take all the ephemeral transforms that happen
-            // inside the expression and add them before this
-            // statement
-            let ephemeral_assign_stmts = transform
-                .ephemeral_assigns
-                .iter()
-                .map(|(id, expr)| Statement::Assign(id.clone(), expr.clone()));
-            new_body.extend(ephemeral_assign_stmts);
-
-            // Add the updated version of this statement with
-            // the new expression to the body
-            new_body.push(Statement::AssignSubscript(id.clone(), *idx, transform.new_expr));
-        },
     }
 }
 
@@ -230,7 +214,7 @@ fn rco_expr(e: &Expr, needs_atomicity: bool) -> ExprTransformation {
                     transformed_pos
                         .ephemeral_assigns
                         .into_iter()
-                        .map(|(dest_id, e)| Statement::Assign(dest_id, e))
+                        .map(|(dest_id, e)| Statement::Assign(AssignDest::Id(dest_id), e))
                         .collect(),
                     Box::new(transformed_pos.new_expr),
                 )
@@ -242,7 +226,7 @@ fn rco_expr(e: &Expr, needs_atomicity: bool) -> ExprTransformation {
                     transformed_neg
                         .ephemeral_assigns
                         .into_iter()
-                        .map(|(dest_id, e)| Statement::Assign(dest_id, e))
+                        .map(|(dest_id, e)| Statement::Assign(AssignDest::Id(dest_id), e))
                         .collect(),
                     Box::new(transformed_neg.new_expr),
                 )
@@ -281,7 +265,7 @@ fn rco_expr(e: &Expr, needs_atomicity: bool) -> ExprTransformation {
 
             let new_expr = if needs_atomicity {
                 let id = Identifier::new_ephemeral();
-                let ephemeral_assign = Statement::Assign(id.clone(), transformed_block);
+                let ephemeral_assign = Statement::Assign(AssignDest::Id(id.clone()), transformed_block);
 
                 Expr::StatementBlock(vec![ephemeral_assign], Box::new(Expr::Id(id)))
             } else {

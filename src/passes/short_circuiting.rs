@@ -13,7 +13,6 @@ impl ASTPass for ShortCircuiting {
 fn shortcircuit_statement(s: &mut Statement) {
     match s {
         Statement::Assign(_, expr)
-        | Statement::AssignSubscript(_, _, expr)
         | Statement::Expr(expr)
         | Statement::Conditional(expr, _, _)
         | Statement::WhileLoop(expr, _) => shortcircuit_expr(expr),

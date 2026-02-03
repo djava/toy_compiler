@@ -69,11 +69,6 @@ fn partial_eval_statement(s: Statement, new_statements: &mut Vec<Statement>) {
                 new_statements.push(Statement::WhileLoop(cond, body_pe));
             }
         }
-        Statement::AssignSubscript(identifier, idx, mut expr) => {
-            partial_eval_expr(&mut expr);
-
-            new_statements.push(Statement::AssignSubscript(identifier, idx, expr));
-        },
     }
 }
 

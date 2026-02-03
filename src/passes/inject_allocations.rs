@@ -35,7 +35,6 @@ fn replace_tuples_in_statement(statement: &mut Statement, type_env: &mut TypeEnv
             }
         }
         Statement::Assign(_, expr)
-        | Statement::AssignSubscript(_, _, expr)
         | Statement::Expr(expr) => replace_tuples_in_expr(expr, type_env),
     }
 }
@@ -104,7 +103,7 @@ fn get_initialize_tuple_expr(elems: &mut Vec<Expr>, tup_type: ValueType) -> Expr
     // must not include complex operands.
     let mut statements = vec![
         Statement::Assign(
-            cmp_ephemeral.clone(),
+            AssignDest::Id(cmp_ephemeral.clone()),
             Expr::BinaryOp(
                 Box::new(free_ptr),
                 BinaryOperator::Add,
@@ -121,14 +120,14 @@ fn get_initialize_tuple_expr(elems: &mut Vec<Expr>, tup_type: ValueType) -> Expr
             vec![Statement::Expr(collect(bytes))],
         ),
         Statement::Assign(
-            out_ephemeral.clone(),
+            AssignDest::Id(out_ephemeral.clone()),
             Expr::Allocate(bytes as usize, tup_type),
         ),
     ];
 
     statements.extend(
         elems.iter().enumerate().map(|(idx, e)| {
-            Statement::AssignSubscript(out_ephemeral.clone(), idx as i64, e.clone())
+            Statement::Assign(AssignDest::Subscript(out_ephemeral.clone(), idx as i64), e.clone())
         }),
     );
 

@@ -2,7 +2,7 @@ use std::collections::HashMap;
 use std::sync::Arc;
 use std::sync::atomic::{AtomicU64, Ordering};
 
-pub type TypeEnv = HashMap<Identifier, ValueType>;
+pub type TypeEnv = HashMap<AssignDest, ValueType>;
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum ValueType {
@@ -12,20 +12,6 @@ pub enum ValueType {
     TupleType(Vec<ValueType>),
     PointerType(Box<ValueType>),
     NoneType,
-}
-
-impl ValueType {
-    fn ptr_at(self, idx: &i64) -> ValueType {
-        if let ValueType::TupleType(elems) = self {
-            if *idx >= elems.len() as i64 {
-                panic!("Called ValueType::index() out of bounds")
-            }
-
-            elems[*idx as usize].clone()
-        } else {
-            panic!("Called ValueType::index() on non-tuple")
-        }
-    }
 }
 
 impl From<&Value> for ValueType {
@@ -205,10 +191,15 @@ pub enum Expr {
     GlobalSymbol(Arc<str>)
 }
 
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub enum AssignDest {
+    Id(Identifier),
+    Subscript(Identifier, i64)
+}
+
 #[derive(Debug, Clone, PartialEq)]
 pub enum Statement {
-    Assign(Identifier, Expr),
-    AssignSubscript(Identifier, i64, Expr),
+    Assign(AssignDest, Expr),
     Expr(Expr),
     Conditional(Expr, Vec<Statement>, Vec<Statement>),
     WhileLoop(Expr, Vec<Statement>),

@@ -62,7 +62,7 @@ pub fn to_ast_statement<'a>(
     match iter.next() {
         Some(pt::Statement::Expr(pte)) => Some(ast::Statement::Expr(to_ast_expr(pte))),
         Some(pt::Statement::Assign(name, pte)) => Some(ast::Statement::Assign(
-            ast::Identifier::from(name),
+            ast::AssignDest::Id(ast::Identifier::from(name)),
             to_ast_expr(pte),
         )),
         Some(pt::Statement::If(cond, body)) => {

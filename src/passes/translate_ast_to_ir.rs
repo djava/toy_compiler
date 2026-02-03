@@ -1,5 +1,5 @@
 use crate::{
-    ast,
+    ast::{self, AssignDest},
     ir::{self, BlockMap, Identifier, Value},
     passes::ASTtoIRPass,
 };
@@ -75,7 +75,6 @@ fn generate_for_statement(
 
             vec![ir::Statement::Goto(cond_label)]
         }
-        ast::Statement::AssignSubscript(_identifier, _, _expr) => todo!(),
     }
 }
 
@@ -130,7 +129,7 @@ fn generate_for_effect(
 
 fn generate_for_assign(
     e: &ast::Expr,
-    dest_id: Identifier,
+    dest_id: AssignDest,
     cont: Vec<ir::Statement>,
     blocks: &mut BlockMap,
 ) -> Vec<ir::Statement> {
@@ -217,8 +216,6 @@ fn generate_for_predicate(
 ) -> Vec<ir::Statement> {
     match cond {
         ast::Expr::BinaryOp(left, op, right) => {
-            // TODO: This should be type-checked?
-
             let l_atom = expr_to_atom(&*left);
             let r_atom = expr_to_atom(&*right);
 
