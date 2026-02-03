@@ -2,6 +2,7 @@ use std::{fmt::Display, sync::Arc};
 use bitfield_struct::bitfield;
 
 pub use crate::ast::Identifier;
+use crate::ast::TypeEnv;
 
 #[bitfield(u64, order = Lsb)]
 pub struct TupleTag {
@@ -136,11 +137,13 @@ pub struct Block {
     pub instrs: Vec<Instr>,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct X86Program {
     pub header: Vec<Directive>,
     pub blocks: Vec<Block>,
     pub(crate) stack_size: usize,
+    pub(crate) gc_stack_size: usize,
+    pub(crate) types: TypeEnv,
 }
 
 impl Display for Register {

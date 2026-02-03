@@ -20,6 +20,8 @@ impl IRtoX86Pass for TranslateIRtoX86 {
             header: vec![],
             blocks: x86_blocks,
             stack_size: 0,
+            gc_stack_size: 0,
+            types: m.types
         }
     }
 }

@@ -5,7 +5,9 @@ use petgraph::{
 };
 use std::collections::{HashMap, HashSet, VecDeque};
 
-use crate::{passes::register_allocation::Location, utils::x86_block_adj_graph, x86_ast::*};
+use crate::{
+    ast::{AssignDest, TypeEnv, ValueType}, passes::register_allocation::Location, utils::x86_block_adj_graph, x86_ast::*,
+};
 
 #[derive(Debug, Clone)]
 pub struct LivenessMap {
@@ -13,7 +15,8 @@ pub struct LivenessMap {
 }
 
 impl LivenessMap {
-    pub fn from_blocks(blocks: &[Block]) -> LivenessMap {
+    pub fn from_program(m: &X86Program) -> LivenessMap {
+        let blocks = &m.blocks;
         let block_adj_graph = x86_block_adj_graph(blocks);
 
         let alive_after_instrs = Self::analyze_dataflow(block_adj_graph);
@@ -37,7 +40,7 @@ impl LivenessMap {
         };
 
         let interference_graph =
-            LivenessMap::make_interference_graph(alive_after_instrs, &all_locations);
+            LivenessMap::make_interference_graph(alive_after_instrs, &all_locations, &m.types);
 
         Self { interference_graph }
     }
@@ -127,6 +130,7 @@ impl LivenessMap {
     fn make_interference_graph<'a>(
         alive_before_instrs: impl Iterator<Item = (&'a Instr, &'a HashSet<Location>)>,
         all_locations: &HashSet<Location>,
+        types: &TypeEnv,
     ) -> UnGraph<Location, ()> {
         let mut graph = UnGraph::new_undirected();
         let loc_to_node: HashMap<_, _> = all_locations
@@ -177,6 +181,28 @@ impl LivenessMap {
                             graph.add_edge(loc_to_node[&d], loc_to_node[v], ());
                         }
                     }
+                }
+            }
+        }
+
+
+        let callee_saved_graph_nodes: Vec<_> =
+            graph.node_indices().filter(|idx|{
+                let loc = graph.node_weight(*idx).unwrap();
+                matches!(loc, Location::Reg(r) if CALLEE_SAVED_REGISTERS.contains(&r))
+            }).collect();
+
+        // All tuple-typed locations need to have interference edges
+        // with all callee-saved registers - this will guarantee that
+        // they are spilled during any call to collect() so that they
+        // are visible to the GC.
+        for node_idx in graph.node_indices() {
+            let loc = graph.node_weight(node_idx).unwrap();
+            if let Location::Id(id) = loc
+                && let Some(ValueType::TupleType(_)) = types.get(&AssignDest::Id(id.clone()))
+            {
+                for r in &callee_saved_graph_nodes {
+                    graph.add_edge(*r, node_idx, ());
                 }
             }
         }

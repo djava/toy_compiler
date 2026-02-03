@@ -5,7 +5,7 @@ use std::collections::HashMap;
 use std::mem::size_of;
 
 use crate::{
-    ast::Identifier,
+    ast::{AssignDest, Identifier, TypeEnv, ValueType},
     passes::{X86Pass, register_allocation::graph_coloring::COLOR_TO_REG_STORAGE},
     x86_ast,
 };
@@ -17,9 +17,13 @@ pub struct RegisterAllocation;
 
 impl X86Pass for RegisterAllocation {
     fn run_pass(self, mut m: X86Program) -> X86Program {
-        let liveness = LivenessMap::from_blocks(&m.blocks);
+        let liveness = LivenessMap::from_program(&m);
 
-        let (id_to_storage, stack_var_size) = allocate_storage(&liveness);
+        let AllocateStorageResult {
+            id_to_storage,
+            stack_size,
+            gc_stack_size,
+        } = allocate_storage(&liveness, &m.types);
 
         let callee_saved_used: Vec<_> = id_to_storage
             .values()
@@ -64,18 +68,17 @@ impl X86Pass for RegisterAllocation {
             user_exit.instrs.splice((len - 2)..=(len - 2), callee_popqs);
         }
 
-        let used_stack = -callee_offset + stack_var_size;
+        let used_stack = -callee_offset + stack_size;
         let aligned_stack_size = if used_stack % STACK_ALIGNMENT == 0 {
             used_stack
         } else {
             used_stack + (STACK_ALIGNMENT - (used_stack % STACK_ALIGNMENT))
         };
 
-        X86Program {
-            header: vec![],
-            blocks: m.blocks,
-            stack_size: aligned_stack_size as _,
-        }
+        m.stack_size = aligned_stack_size as usize;
+        m.gc_stack_size = gc_stack_size as usize;
+
+        m
     }
 }
 
@@ -101,6 +104,7 @@ impl Location {
 #[derive(Debug, Clone, Copy, Hash, PartialEq, Eq)]
 enum Storage {
     Stack(i32),
+    GCStack(i32),
     Reg(Register),
 }
 
@@ -108,6 +112,7 @@ impl Storage {
     pub fn to_arg(self) -> Arg {
         match self {
             Storage::Stack(offset) => Arg::Deref(Register::rbp, offset),
+            Storage::GCStack(offset) => Arg::Deref(Register::r15, offset),
             Storage::Reg(reg) => Arg::Reg(reg),
         }
     }
@@ -150,8 +155,15 @@ fn run_for_block(
     }
 }
 
-fn allocate_storage<'a>(liveness: &'a LivenessMap) -> (HashMap<Identifier, Storage>, i32) {
+struct AllocateStorageResult {
+    id_to_storage: HashMap<Identifier, Storage>,
+    stack_size: i32,
+    gc_stack_size: i32,
+}
+
+fn allocate_storage<'a>(liveness: &'a LivenessMap, types: &TypeEnv) -> AllocateStorageResult {
     let mut curr_stack_offset = 0i32;
+    let mut curr_gc_stack_offset = 0i32;
 
     let graph_colors = color_location_graph(&liveness.interference_graph);
     let mut id_to_storage = HashMap::new();
@@ -165,15 +177,26 @@ fn allocate_storage<'a>(liveness: &'a LivenessMap) -> (HashMap<Identifier, Stora
             } else {
                 // Color hasn't been seen before - has to be past the end of
                 // the register colors because we prefill the map with
-                // register colors. Allocate it a new stack storage
-                curr_stack_offset -= 8;
-                let s = Storage::Stack(curr_stack_offset);
+                // register colors. Allocate it a new stack storage (or
+                // GC stack storage if its a tuple)
+                let s =
+                    if let Some(ValueType::TupleType(_)) = types.get(&AssignDest::Id(id.clone())) {
+                        let stg = Storage::GCStack(curr_gc_stack_offset);
+                        curr_gc_stack_offset += 8;
+                        stg
+                    } else {
+                        curr_stack_offset -= 8;
+                        Storage::Stack(curr_stack_offset)
+                    };
+
                 color_to_storage.insert(*color, s);
                 s
             };
 
             id_to_storage.insert(id.clone(), storage);
-        } else if let Location::Reg(r) = location && CALLEE_SAVED_REGISTERS.contains(r) {
+        } else if let Location::Reg(r) = location
+            && CALLEE_SAVED_REGISTERS.contains(r)
+        {
             // Silly hack to make the callee-saved registers work
             // properly if they're used but not assigned to a
             // variable... TODO: Fix this..
@@ -184,7 +207,12 @@ fn allocate_storage<'a>(liveness: &'a LivenessMap) -> (HashMap<Identifier, Stora
     // Offset is negative because stack grows down. We negate it to get
     // the stack size.
     let stack_size = -curr_stack_offset;
-    (id_to_storage, stack_size)
+    let gc_stack_size = curr_gc_stack_offset;
+    AllocateStorageResult {
+        id_to_storage,
+        stack_size,
+        gc_stack_size,
+    }
 }
 
 fn replace_arg_with_allocated(

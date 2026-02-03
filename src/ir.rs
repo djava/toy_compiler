@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use crate::ast::{AssignDest, ValueType};
+use crate::ast::{AssignDest, TypeEnv, ValueType};
 pub use crate::ast::{BinaryOperator, Identifier, UnaryOperator, Value};
 use indexmap::IndexMap;
 
@@ -40,4 +40,5 @@ pub type BlockMap = IndexMap<Identifier, Block>;
 #[derive(Debug, Clone)]
 pub struct IRProgram {
     pub blocks: BlockMap,
+    pub types: TypeEnv,
 }

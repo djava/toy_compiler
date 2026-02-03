@@ -26,7 +26,7 @@ impl ASTtoIRPass for TranslateASTtoIR {
         blocks.insert(Identifier::from("user_exit"), user_exit);
 
         blocks.reverse();
-        ir::IRProgram { blocks }
+        ir::IRProgram { blocks, types: m.types }
     }
 }
 
