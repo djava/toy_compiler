@@ -138,8 +138,6 @@ fn partial_eval_expr(e: &mut Expr) {
                 if let Constant(elem_val) = &elems[*idx as usize] {
                     *e = Constant(elem_val.clone());
                 }
-            } else {
-                panic!("Subscript had wrong argument types");
             }
         },
         GlobalSymbol(_) => {}
