@@ -16,10 +16,20 @@ struct Args {
     /// Enable optimization
     #[clap(short = 'O', long)]
     optimize: bool,
+
+    #[clap(long)]
+    emit_ast: bool,
+
+    #[clap(long)]
+    emit_ir: bool,
 }
 
 fn main() {
     let mut args = Args::parse();
+    
+    if args.emit_ast && args.emit_ir {
+        panic!("--emit-ast and --emit-ir are mutually exclusive")
+    }
 
     let mut input_buf = vec![];
     args.input
@@ -40,8 +50,20 @@ fn main() {
     } else {
         Pipeline::make_no_opt()
     };
-    let x86_program = pipeline.run(ast);
 
-    write!(args.output, "{x86_program}")
-        .expect(format!("Error on writing output file: `{}`", args.output.path()).as_str());
+    
+    if args.emit_ast {
+        let final_ast = pipeline.run_ast_only(ast);
+        write!(args.output, "{final_ast:#?}")
+            .expect(format!("Error on writing output file: `{}`", args.output.path()).as_str());
+    } else if args.emit_ir {
+        let ir_program = pipeline.run_up_to_ir_only(ast);
+        write!(args.output, "{ir_program:#?}")
+            .expect(format!("Error on writing output file: {}`", args.output.path()).as_str());
+    } else {
+        let x86_program = pipeline.run(ast);
+        write!(args.output, "{x86_program}")
+            .expect(format!("Error on writing output file: `{}`", args.output.path()).as_str());
+    }
+    
 }

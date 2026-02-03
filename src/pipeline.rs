@@ -1,4 +1,4 @@
-use crate::{ast, passes::*, x86_ast};
+use crate::{ast, ir, passes::*, x86_ast};
 
 pub struct Pipeline {
     pub ast_passes: Vec<ASTtoAST>,
@@ -32,10 +32,18 @@ impl Pipeline {
         final_x86
     }
 
-    pub fn run_ir_only(self, program: ast::Module) -> ast::Module {
+    pub fn run_ast_only(self, program: ast::Module) -> ast::Module {
         self.ast_passes
             .into_iter()
             .fold(program, |p, pass| pass.run_pass(p))
+    }
+
+    pub fn run_up_to_ir_only(self, program: ast::Module) -> ir::IRProgram {
+        let final_ast = self
+            .ast_passes
+            .into_iter()
+            .fold(program, |p, pass| pass.run_pass(p));
+        self.ast_to_ir_pass.run_pass(final_ast)
     }
 
     pub fn run_x86_only(self, program: x86_ast::X86Program) -> x86_ast::X86Program {
@@ -47,9 +55,12 @@ impl Pipeline {
     pub fn make_full() -> Self {
         Self {
             ast_passes: vec![
+                ASTtoAST::from(TypeCheck),
                 ASTtoAST::from(ShortCircuiting),
                 ASTtoAST::from(PartialEval),
                 ASTtoAST::from(RemoveComplexOperands),
+                ASTtoAST::from(TypeCheck),
+                ASTtoAST::from(InjectAllocations),
             ],
             ast_to_ir_pass: ASTtoIR::from(TranslateASTtoIR),
             ir_passes: vec![],
@@ -66,8 +77,11 @@ impl Pipeline {
     pub fn make_no_opt() -> Self {
         Self {
             ast_passes: vec![
+                ASTtoAST::from(TypeCheck),
                 ASTtoAST::from(ShortCircuiting),
                 ASTtoAST::from(RemoveComplexOperands),
+                ASTtoAST::from(TypeCheck),
+                ASTtoAST::from(InjectAllocations),
             ],
             ast_to_ir_pass: ASTtoIR::from(TranslateASTtoIR),
             ir_passes: vec![],
