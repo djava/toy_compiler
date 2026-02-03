@@ -122,6 +122,9 @@ pub enum Instr {
     movzbq(ByteReg, Arg),
     jmp(Identifier),
     jmpcc(Comparison, Identifier),
+    sarq(Arg, Arg),
+    salq(Arg, Arg),
+    andq(Arg, Arg)
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
@@ -237,6 +240,9 @@ impl Display for Instr {
             Instr::movzbq(arg, arg1) => write!(f, "movzbq {arg}, {arg1}"),
             Instr::jmp(label) => write!(f, "jmp {}", fmt_label(label)),
             Instr::jmpcc(cmp, label) => write!(f, "j{cmp} {}", fmt_label(label)),
+            Instr::sarq(arg, arg1) => write!(f, "sarq {arg}, {arg1}"),
+            Instr::salq(arg, arg1) => write!(f, "salq {arg}, {arg1}"),
+            Instr::andq(arg, arg1) => write!(f, "andq {arg}, {arg1}"),
         }
     }
 }

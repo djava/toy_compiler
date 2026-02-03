@@ -21,7 +21,7 @@ impl IRtoX86Pass for TranslateIRtoX86 {
             blocks: x86_blocks,
             stack_size: 0,
             gc_stack_size: 0,
-            types: m.types
+            types: m.types,
         }
     }
 }
@@ -93,7 +93,10 @@ fn translate_subscript(dest: AssignDest, atom: ir::Atom, idx: i64) -> Vec<Instr>
 
     ret.extend([
         Instr::movq(atom_to_arg(atom), x86::Arg::Reg(Register::rax)),
-        Instr::movq(x86::Arg::Deref(Register::rax, 8 + (8 * idx) as i32), assigndest_to_arg(dest))
+        Instr::movq(
+            x86::Arg::Deref(Register::rax, 8 + (8 * idx) as i32),
+            assigndest_to_arg(dest),
+        ),
     ]);
 
     ret
@@ -402,6 +405,33 @@ fn translate_unary_plus(dest: AssignDest, atom: ir::Atom) -> Vec<Instr> {
     }
 }
 
+const SPECIAL_FUNCTIONS: [(&'static str, usize, fn(Vec<ir::Atom>, Option<AssignDest>) -> Vec<Instr>); 2] = [
+    ("__gc_collect", 1, |mut args, _dest| {
+        assert!(_dest.is_none());
+        vec![
+            Instr::movq(x86::Arg::Reg(Register::r15), x86::Arg::Reg(Register::rdi)),
+            Instr::movq(atom_to_arg(args.remove(0)), x86::Arg::Reg(Register::rsi)),
+            Instr::callq(Identifier::from("__gc_collect"), 2),
+        ]
+    }),
+    ("len", 1, |mut args, dest_opt| {
+        if let Some(dest) = dest_opt {
+            vec![
+                Instr::movq(atom_to_arg(args.remove(0)), x86::Arg::Reg(Register::rax)),
+                Instr::movq(x86::Arg::Deref(Register::rax, 0), x86::Arg::Reg(Register::rax)),
+                // Shift and mask out the length field of the tuple tag
+                Instr::sarq(x86::Arg::Immediate(1), x86::Arg::Reg(Register::rax)),
+                Instr::andq(x86::Arg::Immediate(0x03Fi64), x86::Arg::Reg(Register::rax)),
+                Instr::movq(x86::Arg::Reg(Register::rax), assigndest_to_arg(dest)),
+            ]
+        } else {
+            // No dest - no-op
+            vec![]
+        }
+    }
+    ),
+];
+
 fn translate_call(
     dest_opt: Option<AssignDest>,
     func_id: Identifier,
@@ -409,6 +439,15 @@ fn translate_call(
 ) -> Vec<Instr> {
     if args.len() > 6 {
         unimplemented!("Only register arg passing is implemented, max of 6 args");
+    }
+
+    for (name, num_args, instr_fn) in SPECIAL_FUNCTIONS {
+        if func_id == Identifier::from(name) {
+            if args.len() != num_args {
+                panic!("Wrong number of args to special function `{name}` (Expected {num_args}, Got {}", args.len());
+            }
+            return instr_fn(args, dest_opt);
+        }
     }
 
     // As per the calling convention, the first 6 args are passed in registers, in this order

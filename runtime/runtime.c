@@ -194,7 +194,7 @@ void validate_vector(int64_t** scan_addr) {
 
 void __gc_collect(int64_t** rootstack_ptr, uint64_t bytes_requested)
 {
-#if 0
+#if 1
   printf("collecting, need %" PRIu64 "\n", bytes_requested);
   print_heap(rootstack_ptr);
 #endif
@@ -220,7 +220,7 @@ void __gc_collect(int64_t** rootstack_ptr, uint64_t bytes_requested)
 
   // 3. Check if collection freed enough space in order to allocate
   if (sizeof(int64_t) * (__gc_fromspace_end - __gc_free_ptr) < bytes_requested){
-    //printf("resizing the heap\n");
+    printf("resizing the heap\n");
     /*
        If there is not enough room left for the bytes_requested,
        allocate larger tospace and fromspace.

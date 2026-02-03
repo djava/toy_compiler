@@ -137,7 +137,10 @@ fn run_for_block(
             | Instr::subq(s, d)
             | Instr::movq(s, d)
             | Instr::xorq(s, d)
-            | Instr::cmpq(s, d) => {
+            | Instr::cmpq(s, d)
+            | Instr::andq(s, d)
+            | Instr::sarq(s, d)
+            | Instr::salq(s, d) => {
                 replace_arg_with_allocated(s, id_to_storage, stack_offset);
                 replace_arg_with_allocated(d, id_to_storage, stack_offset);
             }

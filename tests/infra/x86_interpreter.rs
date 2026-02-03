@@ -1,7 +1,11 @@
 use std::collections::VecDeque;
 
 use crate::infra::ValueEnv;
-use cs4999_compiler::{ast::{AssignDest, Value}, ir::Identifier, x86_ast::*};
+use cs4999_compiler::{
+    ast::{AssignDest, Value},
+    ir::Identifier,
+    x86_ast::*,
+};
 
 #[derive(Debug, Default)]
 struct Eflags {
@@ -50,7 +54,8 @@ impl X86Env {
                 self.regs[*n as usize] = value;
             }
             Arg::Variable(id) => {
-                self.vars.insert(AssignDest::Id(id.clone()), Value::I64(value));
+                self.vars
+                    .insert(AssignDest::Id(id.clone()), Value::I64(value));
             }
             Arg::Deref(reg, offset) => {
                 let base = self.regs[*reg as usize];
@@ -263,6 +268,14 @@ fn run_instr(
             } else {
                 Continuation::Next
             }
+        }
+        Instr::sarq(s, d) => {
+            env.write_arg(d, env.read_arg(d) >> env.read_arg(s));
+            Continuation::Next
+        }
+        Instr::salq(s, d) => {
+            env.write_arg(d, env.read_arg(d) << env.read_arg(s));
+            Continuation::Next
         }
     }
 }

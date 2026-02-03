@@ -8,4 +8,6 @@ TODO:
 - Refactor tests
 - Multiplication/division
 - Extract constants
-- Extract syntax trees into module + do "shared" ones for Identifier/AssignDest/etc
+- Extract syntax trees into module + do "shared" ones for
+  Identifier/AssignDest/etc
+- PatchInstructions for sarq/salq to have imm in first arg(?)

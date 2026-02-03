@@ -6,7 +6,10 @@ use petgraph::{
 use std::collections::{HashMap, HashSet, VecDeque};
 
 use crate::{
-    ast::{AssignDest, TypeEnv, ValueType}, passes::register_allocation::Location, utils::x86_block_adj_graph, x86_ast::*,
+    ast::{AssignDest, TypeEnv, ValueType},
+    passes::register_allocation::Location,
+    utils::x86_block_adj_graph,
+    x86_ast::*,
 };
 
 #[derive(Debug, Clone)]
@@ -147,6 +150,11 @@ impl LivenessMap {
                 // If instruction is movq, for each v in L_after, if v
                 // is neither s nor d, add edge (d, v)
                 for v in l_after {
+                    if !loc_to_node.contains_key(v) {
+                        panic!(
+                            "Couldn't find location node for {v:?} - most likely, it is read but never written to"
+                        );
+                    }
                     if v != &s && v != &d {
                         graph.add_edge(loc_to_node[&d], loc_to_node[v], ());
                     }
@@ -185,12 +193,13 @@ impl LivenessMap {
             }
         }
 
-
-        let callee_saved_graph_nodes: Vec<_> =
-            graph.node_indices().filter(|idx|{
+        let callee_saved_graph_nodes: Vec<_> = graph
+            .node_indices()
+            .filter(|idx| {
                 let loc = graph.node_weight(*idx).unwrap();
                 matches!(loc, Location::Reg(r) if CALLEE_SAVED_REGISTERS.contains(&r))
-            }).collect();
+            })
+            .collect();
 
         // All tuple-typed locations need to have interference edges
         // with all callee-saved registers - this will guarantee that
@@ -214,7 +223,13 @@ impl LivenessMap {
 fn locs_read(i: &Instr) -> Vec<Location> {
     let mut locations = Vec::new();
     match i {
-        Instr::addq(s, d) | Instr::subq(s, d) | Instr::xorq(s, d) | Instr::cmpq(s, d) => {
+        Instr::addq(s, d)
+        | Instr::subq(s, d)
+        | Instr::xorq(s, d)
+        | Instr::cmpq(s, d)
+        | Instr::andq(s, d)
+        | Instr::salq(s, d)
+        | Instr::sarq(s, d) => {
             locations = [s, d]
                 .into_iter()
                 .filter_map(Location::try_from_arg)
@@ -267,7 +282,10 @@ fn locs_written(i: &Instr) -> Vec<Location> {
         | Instr::movq(_, r)
         | Instr::movzbq(_, r)
         | Instr::popq(r)
-        | Instr::xorq(_, r) => {
+        | Instr::xorq(_, r) 
+        | Instr::andq(_, r)
+        | Instr::sarq(_, r)
+        | Instr::salq(_, r) => {
             if let Some(loc) = Location::try_from_arg(r) {
                 locations.push(loc);
             }
@@ -277,7 +295,7 @@ fn locs_written(i: &Instr) -> Vec<Location> {
                 locations.push(loc);
             }
         }
-        Instr::callq(_, _) => {
+        Instr::callq(func_id, _) => {
             const CALLER_SAVED_REGISTERS: [Register; 9] = [
                 Register::rax,
                 Register::rcx,
@@ -291,6 +309,12 @@ fn locs_written(i: &Instr) -> Vec<Location> {
             ];
 
             locations.extend(CALLER_SAVED_REGISTERS.iter().map(|r| Location::Reg(*r)));
+
+            // Consider r15 to be written by a call to __gc_collect()
+            // because it might do the GC copy and change the gc stack ptr
+            if let Identifier::Named(name) = func_id && &**name == "__gc_collect" {
+                locations.push(Location::Reg(Register::r15));
+            }
         }
         Instr::pushq(_) | Instr::retq | Instr::cmpq(_, _) | Instr::jmp(_) | Instr::jmpcc(_, _) => {}
     };
