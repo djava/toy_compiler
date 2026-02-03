@@ -48,11 +48,6 @@ pub(super) fn reg_to_color(r: &Register) -> i32 {
 }
 
 pub fn color_location_graph<'a>(graph: &'a UnGraph<Location, ()>) -> HashMap<&'a Location, i32> {
-    // TODO: A more performant register allocator graph coloring system
-    //       could avoid using the negative numbers to hide reserved
-    //       registers, and instead impose a constraint that there is
-    //       only 1 reserved register per set.
-
     let mut unavailable_colors: HashMap<NodeIndex, HashSet<i32>> =
         HashMap::with_capacity(graph.node_count());
     let mut colors = HashMap::with_capacity(graph.node_count());

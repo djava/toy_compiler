@@ -19,16 +19,16 @@ impl X86Pass for RegisterAllocation {
     fn run_pass(self, mut m: X86Program) -> X86Program {
         let liveness = LivenessMap::from_blocks(&m.blocks);
 
-        let (location_to_storage, stack_var_size) = allocate_storage(&liveness);
+        let (id_to_storage, stack_var_size) = allocate_storage(&liveness);
 
-        let callee_saved_used: Vec<_> = location_to_storage
+        let callee_saved_used: Vec<_> = id_to_storage
             .values()
             .filter(|stg| matches!(stg, Storage::Reg(reg) if CALLEE_SAVED_REGISTERS.contains(reg)))
             .collect();
         let callee_offset = -((callee_saved_used.len() * size_of::<i64>()) as i32);
 
         for b in m.blocks.iter_mut() {
-            run_for_block(&mut b.instrs, &location_to_storage, callee_offset);
+            run_for_block(&mut b.instrs, &id_to_storage, callee_offset);
         }
 
         if let Some(user_entry) = m
@@ -123,35 +123,21 @@ impl Storage {
 
 fn run_for_block(
     instrs: &mut Vec<Instr>,
-    location_to_storage: &HashMap<&Location, Storage>,
+    id_to_storage: &HashMap<Identifier, Storage>,
     stack_offset: i32,
 ) {
     for i in instrs.iter_mut() {
         match i {
-            Instr::addq(s, d) | Instr::subq(s, d) | Instr::movq(s, d) | Instr::xorq(s, d) => {
-                for arg in [s, d] {
-                    if let Some(loc) = Location::try_from_arg(arg)
-                        && let Some(storage) = location_to_storage.get(&loc)
-                    {
-                        *arg = storage.with_stack_offset(stack_offset).to_arg();
-                    }
-                }
-            }
-            Instr::cmpq(s, d) => {
-                for arg in [s, d] {
-                    if let Some(loc) = Location::try_from_arg(arg)
-                        && let Some(storage) = location_to_storage.get(&loc)
-                    {
-                        *arg = storage.with_stack_offset(stack_offset).to_arg();
-                    }
-                }
+            Instr::addq(s, d)
+            | Instr::subq(s, d)
+            | Instr::movq(s, d)
+            | Instr::xorq(s, d)
+            | Instr::cmpq(s, d) => {
+                replace_arg_with_allocated(s, id_to_storage, stack_offset);
+                replace_arg_with_allocated(d, id_to_storage, stack_offset);
             }
             Instr::negq(a) | Instr::pushq(a) | Instr::popq(a) | Instr::movzbq(_, a) => {
-                if let Some(loc) = Location::try_from_arg(a)
-                    && let Some(storage) = location_to_storage.get(&loc)
-                {
-                    *a = storage.with_stack_offset(stack_offset).to_arg();
-                }
+                replace_arg_with_allocated(a, id_to_storage, stack_offset);
             }
             Instr::callq(_, _)
             | Instr::retq
@@ -164,32 +150,62 @@ fn run_for_block(
     }
 }
 
-fn allocate_storage<'a>(liveness: &'a LivenessMap) -> (HashMap<&'a Location, Storage>, i32) {
+fn allocate_storage<'a>(liveness: &'a LivenessMap) -> (HashMap<Identifier, Storage>, i32) {
     let mut curr_stack_offset = 0i32;
 
     let graph_colors = color_location_graph(&liveness.interference_graph);
-    let mut location_to_storage = HashMap::new();
+    let mut id_to_storage = HashMap::new();
     let mut color_to_storage = HashMap::from(COLOR_TO_REG_STORAGE);
 
     for (location, color) in &graph_colors {
-        let storage = if let Some(storage) = color_to_storage.get(color) {
-            // If this color was already allocated a storage, use that
-            *storage
-        } else {
-            // Color hasn't been seen before - has to be past the end of
-            // the register colors because we prefill the map with
-            // register colors. Allocate it a new stack storage
-            curr_stack_offset -= 8;
-            let s = Storage::Stack(curr_stack_offset);
-            color_to_storage.insert(*color, s);
-            s
-        };
+        if let Location::Id(id) = location {
+            let storage = if let Some(storage) = color_to_storage.get(color) {
+                // If this color was already allocated a storage, use that
+                *storage
+            } else {
+                // Color hasn't been seen before - has to be past the end of
+                // the register colors because we prefill the map with
+                // register colors. Allocate it a new stack storage
+                curr_stack_offset -= 8;
+                let s = Storage::Stack(curr_stack_offset);
+                color_to_storage.insert(*color, s);
+                s
+            };
 
-        location_to_storage.insert(*location, storage);
+            id_to_storage.insert(id.clone(), storage);
+        } else if let Location::Reg(r) = location && CALLEE_SAVED_REGISTERS.contains(r) {
+            // Silly hack to make the callee-saved registers work
+            // properly if they're used but not assigned to a
+            // variable... TODO: Fix this..
+            id_to_storage.insert(Identifier::new_ephemeral(), Storage::Reg(*r));
+        }
     }
 
     // Offset is negative because stack grows down. We negate it to get
     // the stack size.
     let stack_size = -curr_stack_offset;
-    (location_to_storage, stack_size)
+    (id_to_storage, stack_size)
+}
+
+fn replace_arg_with_allocated(
+    arg: &mut Arg,
+    id_to_stg: &HashMap<Identifier, Storage>,
+    stack_offset: i32,
+) {
+    match arg {
+        Arg::Variable(id) => {
+            if let Some(storage) = id_to_stg.get(id) {
+                *arg = storage.with_stack_offset(stack_offset).to_arg()
+            } else {
+                panic!("No storage found for variable: {id:?}");
+            }
+        }
+        Arg::Immediate(_) | Arg::Reg(_) | Arg::ByteReg(_) | Arg::Global(_) | Arg::Deref(_, _) => {
+            // All of these argument forms should've been *unchanged* by
+            // register allocation, as they all refer to absolute
+            // things. They do *participate* in regalloc for graph
+            // coloring purposes, but they should NOT have been
+            // reassigned to a different location
+        }
+    }
 }
