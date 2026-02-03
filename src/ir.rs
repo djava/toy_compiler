@@ -1,3 +1,6 @@
+use std::sync::Arc;
+
+use crate::ast::AssignDest;
 pub use crate::ast::{BinaryOperator, Identifier, UnaryOperator, Value};
 use indexmap::IndexMap;
 
@@ -5,6 +8,7 @@ use indexmap::IndexMap;
 pub enum Atom {
     Constant(Value),
     Variable(Identifier),
+    GlobalSymbol(Arc<str>)
 }
 
 #[derive(Debug, Clone)]
@@ -13,12 +17,14 @@ pub enum Expr {
     UnaryOp(UnaryOperator, Atom),
     BinaryOp(Atom, BinaryOperator, Atom),
     Call(Identifier, Vec<Atom>),
+    Allocate(usize),
+    Subscript(Atom, i64)
 }
 
 #[derive(Debug, Clone)]
 pub enum Statement {
     Expr(Expr),
-    Assign(Identifier, Expr),
+    Assign(AssignDest, Expr),
     Return(Atom),
     Goto(Identifier),
     If(Expr, Identifier, Identifier),

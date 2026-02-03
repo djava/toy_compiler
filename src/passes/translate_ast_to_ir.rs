@@ -116,27 +116,32 @@ fn generate_for_effect(
         ast::Expr::Constant(_)
         | ast::Expr::BinaryOp(_, _, _)
         | ast::Expr::UnaryOp(_, _)
+        | ast::Expr::Subscript(_, _)
+        | ast::Expr::GlobalSymbol(_)
         | ast::Expr::Id(_) => {
             // No side effects, disregard this expression
             cont
         }
-        ast::Expr::Tuple(_exprs) => todo!(),
-        ast::Expr::Subscript(_expr, _value) => todo!(),
-        ast::Expr::Allocate(_, _value_type) => todo!(),
-        ast::Expr::GlobalSymbol(_) => todo!(),
+
+        ast::Expr::Allocate(_, _value_type) => panic!(
+            "Having an allocate in a non-assign context is probably a bug in inject_allocation?"
+        ),
+        ast::Expr::Tuple(_exprs) => {
+            panic!("All tuple ast-exprs should have been removed by inject_allocation")
+        }
     }
 }
 
 fn generate_for_assign(
     e: &ast::Expr,
-    dest_id: AssignDest,
+    dest: AssignDest,
     cont: Vec<ir::Statement>,
     blocks: &mut BlockMap,
 ) -> Vec<ir::Statement> {
     match e {
         ast::Expr::Constant(value) => {
             let mut ret = vec![ir::Statement::Assign(
-                dest_id,
+                dest,
                 ir::Expr::Atom(ir::Atom::Constant(value.clone())),
             )];
             ret.extend(cont);
@@ -147,7 +152,7 @@ fn generate_for_assign(
             let r_atom = expr_to_atom(&*right);
 
             let mut ret = vec![ir::Statement::Assign(
-                dest_id,
+                dest,
                 ir::Expr::BinaryOp(l_atom, *op, r_atom),
             )];
             ret.extend(cont);
@@ -156,7 +161,7 @@ fn generate_for_assign(
         ast::Expr::UnaryOp(op, expr) => {
             let atom = expr_to_atom(&*expr);
 
-            let mut ret = vec![ir::Statement::Assign(dest_id, ir::Expr::UnaryOp(*op, atom))];
+            let mut ret = vec![ir::Statement::Assign(dest, ir::Expr::UnaryOp(*op, atom))];
             ret.extend(cont);
             ret
         }
@@ -164,7 +169,7 @@ fn generate_for_assign(
             let args = exprs.iter().map(expr_to_atom).collect();
 
             let mut ret = vec![ir::Statement::Assign(
-                dest_id,
+                dest,
                 ir::Expr::Call(func.clone(), args),
             )];
             ret.extend(cont);
@@ -172,7 +177,7 @@ fn generate_for_assign(
         }
         ast::Expr::Id(src_id) => {
             let mut ret = vec![ir::Statement::Assign(
-                dest_id,
+                dest,
                 ir::Expr::Atom(ir::Atom::Variable(src_id.clone())),
             )];
             ret.extend(cont);
@@ -183,28 +188,47 @@ fn generate_for_assign(
 
             let pos_ir = generate_for_assign(
                 pos,
-                dest_id.clone(),
+                dest.clone(),
                 vec![ir::Statement::Goto(cont_label.clone())],
                 blocks,
             );
             let neg_ir =
-                generate_for_assign(neg, dest_id, vec![ir::Statement::Goto(cont_label)], blocks);
+                generate_for_assign(neg, dest, vec![ir::Statement::Goto(cont_label)], blocks);
 
             let pos_label = new_block(pos_ir, blocks);
             let neg_label = new_block(neg_ir, blocks);
             generate_for_predicate(&*cond, pos_label, neg_label, blocks)
         }
         ast::Expr::StatementBlock(statements, expr) => {
-            let mut ret = generate_for_assign(expr, dest_id, cont, blocks);
+            let mut ret = generate_for_assign(expr, dest, cont, blocks);
             for s in statements.iter().rev() {
                 ret = generate_for_statement(s, ret, blocks);
             }
             ret
         }
-        ast::Expr::Tuple(_) => todo!(),
-        ast::Expr::Subscript(_, _) => todo!(),
-        ast::Expr::Allocate(_, _value_type) => todo!(),
-        ast::Expr::GlobalSymbol(_) => todo!(),
+        ast::Expr::Subscript(tup, idx) => {
+            let mut ret = vec![ir::Statement::Assign(
+                dest,
+                ir::Expr::Subscript(expr_to_atom(tup), *idx),
+            )];
+            ret.extend(cont);
+
+            ret
+        }
+        ast::Expr::Allocate(bytes, _value_type) => {
+            let mut ret = vec![ir::Statement::Assign(dest, ir::Expr::Allocate(*bytes))];
+            ret.extend(cont);
+            ret
+        }
+        ast::Expr::GlobalSymbol(name) => {
+            let mut ret = vec![ir::Statement::Assign(
+                dest,
+                ir::Expr::Atom(ir::Atom::GlobalSymbol(name.clone())),
+            )];
+            ret.extend(cont);
+            ret
+        }
+        ast::Expr::Tuple(_) => panic!("All tuples should've been removed by inject_allocations"),
     }
 }
 
@@ -233,7 +257,6 @@ fn generate_for_predicate(
             }
         }
         ast::Expr::UnaryOp(op, val) => {
-            // TODO: This should be type-checked?
             vec![ir::Statement::If(
                 ir::Expr::UnaryOp(*op, expr_to_atom(&*val)),
                 neg_label,
@@ -273,10 +296,22 @@ fn generate_for_predicate(
                 neg_label,
             )]
         }
-        ast::Expr::Tuple(_) => todo!(),
-        ast::Expr::Subscript(_, _) => todo!(),
-        ast::Expr::Allocate(_, _value_type) => todo!(),
-        ast::Expr::GlobalSymbol(_) => todo!(),
+        ast::Expr::Subscript(tup, idx) => {
+            vec![ir::Statement::If(
+                ir::Expr::Subscript(expr_to_atom(&*tup), *idx),
+                pos_label,
+                neg_label,
+            )]
+        }
+        ast::Expr::GlobalSymbol(name) => {
+            vec![ir::Statement::If(
+                ir::Expr::Atom(ir::Atom::GlobalSymbol(name.clone())),
+                pos_label,
+                neg_label,
+            )]
+        }
+        ast::Expr::Allocate(_, _value_type) => panic!("Allocate is not a valid predicate"),
+        ast::Expr::Tuple(_) => panic!("A tuple is not a valid predicate"),
     }
 }
 

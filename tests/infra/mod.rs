@@ -1,6 +1,6 @@
 #![allow(dead_code)]
 
-use cs4999_compiler::ast::{self, Identifier, Value, ValueType};
+use cs4999_compiler::ast::{self, AssignDest, Identifier, Value, ValueEnv, ValueType};
 use std::collections::HashMap;
 
 pub mod ast_interpreter;
@@ -9,8 +9,7 @@ pub mod x86_interpreter;
 
 mod interpreter_utils;
 
-type ValueEnv = HashMap<Identifier, Value>;
-type TypeEnv = HashMap<Identifier, ValueType>;
+type ValueEnv = HashMap<AssignDest, Value>;
 
 pub fn ast_read_int() -> ast::Expr {
     ast::Expr::Call(Identifier::from("read_int"), vec![])
