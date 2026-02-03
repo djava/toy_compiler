@@ -185,7 +185,7 @@ fn test_patch_instructions_simple_assignment() {
     execute_test_case(TestCase {
         ast: Module {
             body: vec![
-                Statement::Assign(Identifier::from("x"), Expr::Constant(Value::I64(1000))),
+                Statement::Assign(AssignDest::Id(Identifier::from("x")), Expr::Constant(Value::I64(1000))),
                 Statement::Expr(Expr::Call(
                     Identifier::from("print_int"),
                     vec![Expr::Id(Identifier::from("x"))],
@@ -203,7 +203,7 @@ fn test_patch_instructions_simple_assignment_imm64() {
     execute_test_case(TestCase {
         ast: Module {
             body: vec![
-                Statement::Assign(Identifier::from("x"), Expr::Constant(Value::I64(i64::MAX))),
+                Statement::Assign(AssignDest::Id(Identifier::from("x")), Expr::Constant(Value::I64(i64::MAX))),
                 Statement::Expr(Expr::Call(
                     Identifier::from("print_int"),
                     vec![Expr::Id(Identifier::from("x"))],
@@ -231,7 +231,7 @@ fn test_patch_instructions_complex_assignment() {
         ast: Module {
             body: vec![
                 Statement::Assign(
-                    Identifier::from("foofoo"),
+                    AssignDest::Id(Identifier::from("foofoo")),
                     Expr::BinaryOp(
                         Box::new(Expr::BinaryOp(
                             Box::new(Expr::Call(Identifier::from("read_int"), vec![])),
@@ -310,11 +310,11 @@ fn test_patch_instructions_cascading_assigns() {
         ast: Module {
             body: vec![
                 Statement::Assign(
-                    Identifier::from("foo"),
+                    AssignDest::Id(Identifier::from("foo")),
                     Expr::Call(Identifier::from("read_int"), vec![]),
                 ),
                 Statement::Assign(
-                    Identifier::from("bar"),
+                    AssignDest::Id(Identifier::from("bar")),
                     Expr::BinaryOp(
                         Box::new(Expr::Call(Identifier::from("read_int"), vec![])),
                         BinaryOperator::Add,
@@ -322,7 +322,7 @@ fn test_patch_instructions_cascading_assigns() {
                     ),
                 ),
                 Statement::Assign(
-                    Identifier::from("baz"),
+                    AssignDest::Id(Identifier::from("baz")),
                     Expr::BinaryOp(
                         Box::new(Expr::Call(Identifier::from("read_int"), vec![])),
                         BinaryOperator::Add,
@@ -330,7 +330,7 @@ fn test_patch_instructions_cascading_assigns() {
                     ),
                 ),
                 Statement::Assign(
-                    Identifier::from("bop"),
+                    AssignDest::Id(Identifier::from("bop")),
                     Expr::BinaryOp(
                         Box::new(Expr::BinaryOp(
                             Box::new(Expr::Id(Identifier::from("foo"))),

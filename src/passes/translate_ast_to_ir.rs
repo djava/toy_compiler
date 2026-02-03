@@ -215,8 +215,8 @@ fn generate_for_assign(
 
             ret
         }
-        ast::Expr::Allocate(bytes, _value_type) => {
-            let mut ret = vec![ir::Statement::Assign(dest, ir::Expr::Allocate(*bytes))];
+        ast::Expr::Allocate(bytes, value_type) => {
+            let mut ret = vec![ir::Statement::Assign(dest, ir::Expr::Allocate(*bytes, value_type.clone()))];
             ret.extend(cont);
             ret
         }

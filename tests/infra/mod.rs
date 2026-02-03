@@ -1,6 +1,6 @@
 #![allow(dead_code)]
 
-use cs4999_compiler::ast::{self, AssignDest, Identifier, Value, ValueEnv, ValueType};
+use cs4999_compiler::ast::{self, AssignDest, Identifier, Value};
 use std::collections::HashMap;
 
 pub mod ast_interpreter;

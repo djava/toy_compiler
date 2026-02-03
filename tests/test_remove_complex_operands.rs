@@ -159,7 +159,7 @@ fn test_remove_complex_operands_simple_assignment() {
     execute_test_case(TestCase {
         ast: Module {
             body: vec![
-                Statement::Assign(Identifier::from("x"), Expr::Constant(Value::I64(1000))),
+                Statement::Assign(AssignDest::Id(Identifier::from("x")), Expr::Constant(Value::I64(1000))),
                 Statement::Expr(Expr::Call(
                     Identifier::from("print_int"),
                     vec![Expr::Id(Identifier::from("x"))],
@@ -187,7 +187,7 @@ fn test_remove_complex_operands_complex_assignment() {
         ast: Module {
             body: vec![
                 Statement::Assign(
-                    Identifier::from("foofoo"),
+                    AssignDest::Id(Identifier::from("foofoo")),
                     Expr::BinaryOp(
                         Box::new(Expr::BinaryOp(
                             Box::new(Expr::Call(Identifier::from("read_int"), vec![])),
@@ -266,11 +266,11 @@ fn test_remove_complex_operands_cascading_assigns() {
         ast: Module {
             body: vec![
                 Statement::Assign(
-                    Identifier::from("foo"),
+                    AssignDest::Id(Identifier::from("foo")),
                     Expr::Call(Identifier::from("read_int"), vec![]),
                 ),
                 Statement::Assign(
-                    Identifier::from("bar"),
+                    AssignDest::Id(Identifier::from("bar")),
                     Expr::BinaryOp(
                         Box::new(Expr::Call(Identifier::from("read_int"), vec![])),
                         BinaryOperator::Add,
@@ -278,7 +278,7 @@ fn test_remove_complex_operands_cascading_assigns() {
                     ),
                 ),
                 Statement::Assign(
-                    Identifier::from("baz"),
+                    AssignDest::Id(Identifier::from("baz")),
                     Expr::BinaryOp(
                         Box::new(Expr::Call(Identifier::from("read_int"), vec![])),
                         BinaryOperator::Add,
@@ -286,7 +286,7 @@ fn test_remove_complex_operands_cascading_assigns() {
                     ),
                 ),
                 Statement::Assign(
-                    Identifier::from("bop"),
+                    AssignDest::Id(Identifier::from("bop")),
                     Expr::BinaryOp(
                         Box::new(Expr::BinaryOp(
                             Box::new(Expr::Id(Identifier::from("foo"))),
@@ -323,7 +323,7 @@ fn test_remove_complex_operands_while_loop_simple() {
     execute_test_case(TestCase {
         ast: Module {
             body: vec![
-                Statement::Assign(Identifier::from("x"), Expr::Constant(Value::I64(5))),
+                Statement::Assign(AssignDest::Id(Identifier::from("x")), Expr::Constant(Value::I64(5))),
                 Statement::WhileLoop(
                     Expr::BinaryOp(
                         Box::new(Expr::Id(Identifier::from("x"))),
@@ -336,7 +336,7 @@ fn test_remove_complex_operands_while_loop_simple() {
                             vec![Expr::Id(Identifier::from("x"))],
                         )),
                         Statement::Assign(
-                            Identifier::from("x"),
+                            AssignDest::Id(Identifier::from("x")),
                             Expr::BinaryOp(
                                 Box::new(Expr::Id(Identifier::from("x"))),
                                 BinaryOperator::Subtract,
@@ -364,7 +364,7 @@ fn test_remove_complex_operands_while_loop_complex_condition() {
     execute_test_case(TestCase {
         ast: Module {
             body: vec![
-                Statement::Assign(Identifier::from("x"), Expr::Constant(Value::I64(10))),
+                Statement::Assign(AssignDest::Id(Identifier::from("x")), Expr::Constant(Value::I64(10))),
                 Statement::WhileLoop(
                     Expr::BinaryOp(
                         Box::new(Expr::BinaryOp(
@@ -381,7 +381,7 @@ fn test_remove_complex_operands_while_loop_complex_condition() {
                             vec![Expr::Id(Identifier::from("x"))],
                         )),
                         Statement::Assign(
-                            Identifier::from("x"),
+                            AssignDest::Id(Identifier::from("x")),
                             Expr::BinaryOp(
                                 Box::new(Expr::Id(Identifier::from("x"))),
                                 BinaryOperator::Subtract,
@@ -408,7 +408,7 @@ fn test_remove_complex_operands_while_loop_complex_body() {
     execute_test_case(TestCase {
         ast: Module {
             body: vec![
-                Statement::Assign(Identifier::from("i"), Expr::Constant(Value::I64(3))),
+                Statement::Assign(AssignDest::Id(Identifier::from("i")), Expr::Constant(Value::I64(3))),
                 Statement::WhileLoop(
                     Expr::BinaryOp(
                         Box::new(Expr::Id(Identifier::from("i"))),
@@ -433,7 +433,7 @@ fn test_remove_complex_operands_while_loop_complex_body() {
                             )],
                         )),
                         Statement::Assign(
-                            Identifier::from("i"),
+                            AssignDest::Id(Identifier::from("i")),
                             Expr::BinaryOp(
                                 Box::new(Expr::Id(Identifier::from("i"))),
                                 BinaryOperator::Subtract,

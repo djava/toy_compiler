@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use crate::ast::AssignDest;
+use crate::ast::{AssignDest, ValueType};
 pub use crate::ast::{BinaryOperator, Identifier, UnaryOperator, Value};
 use indexmap::IndexMap;
 
@@ -17,7 +17,7 @@ pub enum Expr {
     UnaryOp(UnaryOperator, Atom),
     BinaryOp(Atom, BinaryOperator, Atom),
     Call(Identifier, Vec<Atom>),
-    Allocate(usize),
+    Allocate(usize, ValueType),
     Subscript(Atom, i64)
 }
 

@@ -51,7 +51,6 @@ fn assert_statement_no_and_or(s: &Statement) {
             assert_expr_no_and_or(&expr);
             body.iter().for_each(assert_statement_no_and_or);
         }
-        Statement::AssignSubscript(_, _, expr) => assert_expr_no_and_or(expr),
     }
 }
 

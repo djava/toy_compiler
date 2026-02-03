@@ -181,7 +181,7 @@ fn test_register_allocation_simple_assignment() {
     execute_test_case(TestCase {
         ast: Module {
             body: vec![
-                Statement::Assign(Identifier::from("x"), Expr::Constant(Value::I64(1000))),
+                Statement::Assign(AssignDest::Id(Identifier::from("x")), Expr::Constant(Value::I64(1000))),
                 Statement::Expr(Expr::Call(
                     Identifier::from("print_int"),
                     vec![Expr::Id(Identifier::from("x"))],
@@ -209,7 +209,7 @@ fn test_register_allocation_complex_assignment() {
         ast: Module {
             body: vec![
                 Statement::Assign(
-                    Identifier::from("foofoo"),
+                    AssignDest::Id(Identifier::from("foofoo")),
                     Expr::BinaryOp(
                         Box::new(Expr::BinaryOp(
                             Box::new(Expr::Call(Identifier::from("read_int"), vec![])),
@@ -288,11 +288,11 @@ fn test_register_allocation_cascading_assigns() {
         ast: Module {
             body: vec![
                 Statement::Assign(
-                    Identifier::from("finger"),
+                    AssignDest::Id(Identifier::from("finger")),
                     Expr::Call(Identifier::from("read_int"), vec![]),
                 ),
                 Statement::Assign(
-                    Identifier::from("bar"),
+                    AssignDest::Id(Identifier::from("bar")),
                     Expr::BinaryOp(
                         Box::new(Expr::Call(Identifier::from("read_int"), vec![])),
                         BinaryOperator::Add,
@@ -300,7 +300,7 @@ fn test_register_allocation_cascading_assigns() {
                     ),
                 ),
                 Statement::Assign(
-                    Identifier::from("baz"),
+                    AssignDest::Id(Identifier::from("baz")),
                     Expr::BinaryOp(
                         Box::new(Expr::Call(Identifier::from("read_int"), vec![])),
                         BinaryOperator::Add,
@@ -308,7 +308,7 @@ fn test_register_allocation_cascading_assigns() {
                     ),
                 ),
                 Statement::Assign(
-                    Identifier::from("bop"),
+                    AssignDest::Id(Identifier::from("bop")),
                     Expr::BinaryOp(
                         Box::new(Expr::BinaryOp(
                             Box::new(Expr::Id(Identifier::from("finger"))),
@@ -374,29 +374,29 @@ fn test_register_allocation_force_spills() {
 fn test_register_allocation_force_spills_constants() {
     execute_test_case(TestCase {
         ast: Module { body: vec![
-            Statement::Assign(Identifier::from("x1"), Expr::Constant(Value::I64(1))),
-            Statement::Assign(Identifier::from("x2"), Expr::Constant(Value::I64(1))),
-            Statement::Assign(Identifier::from("x3"), Expr::Constant(Value::I64(1))),
-            Statement::Assign(Identifier::from("x4"), Expr::Constant(Value::I64(1))),
-            Statement::Assign(Identifier::from("x5"), Expr::Constant(Value::I64(1))),
-            Statement::Assign(Identifier::from("x6"), Expr::Constant(Value::I64(1))),
-            Statement::Assign(Identifier::from("x7"), Expr::Constant(Value::I64(1))),
-            Statement::Assign(Identifier::from("x8"), Expr::Constant(Value::I64(1))),
-            Statement::Assign(Identifier::from("x9"), Expr::Constant(Value::I64(1))),
-            Statement::Assign(Identifier::from("x10"), Expr::Constant(Value::I64(1))),
-            Statement::Assign(Identifier::from("x11"), Expr::Constant(Value::I64(1))),
-            Statement::Assign(Identifier::from("x12"), Expr::Constant(Value::I64(1))),
-            Statement::Assign(Identifier::from("x13"), Expr::Constant(Value::I64(1))),
-            Statement::Assign(Identifier::from("x14"), Expr::Constant(Value::I64(1))),
-            Statement::Assign(Identifier::from("x15"), Expr::Constant(Value::I64(1))),
-            Statement::Assign(Identifier::from("x16"), Expr::Constant(Value::I64(1))),
-            Statement::Assign(Identifier::from("x17"), Expr::Constant(Value::I64(1))),
-            Statement::Assign(Identifier::from("x18"), Expr::Constant(Value::I64(1))),
-            Statement::Assign(Identifier::from("x19"), Expr::Constant(Value::I64(1))),
-            Statement::Assign(Identifier::from("x20"), Expr::Constant(Value::I64(1))),
-            Statement::Assign(Identifier::from("x21"), Expr::Constant(Value::I64(1))),
-            Statement::Assign(Identifier::from("x22"), Expr::Constant(Value::I64(1))),
-            Statement::Assign(Identifier::from("x23"), Expr::Constant(Value::I64(1))),
+            Statement::Assign(AssignDest::Id(Identifier::from("x1")), Expr::Constant(Value::I64(1))),
+            Statement::Assign(AssignDest::Id(Identifier::from("x2")), Expr::Constant(Value::I64(1))),
+            Statement::Assign(AssignDest::Id(Identifier::from("x3")), Expr::Constant(Value::I64(1))),
+            Statement::Assign(AssignDest::Id(Identifier::from("x4")), Expr::Constant(Value::I64(1))),
+            Statement::Assign(AssignDest::Id(Identifier::from("x5")), Expr::Constant(Value::I64(1))),
+            Statement::Assign(AssignDest::Id(Identifier::from("x6")), Expr::Constant(Value::I64(1))),
+            Statement::Assign(AssignDest::Id(Identifier::from("x7")), Expr::Constant(Value::I64(1))),
+            Statement::Assign(AssignDest::Id(Identifier::from("x8")), Expr::Constant(Value::I64(1))),
+            Statement::Assign(AssignDest::Id(Identifier::from("x9")), Expr::Constant(Value::I64(1))),
+            Statement::Assign(AssignDest::Id(Identifier::from("x10")), Expr::Constant(Value::I64(1))),
+            Statement::Assign(AssignDest::Id(Identifier::from("x11")), Expr::Constant(Value::I64(1))),
+            Statement::Assign(AssignDest::Id(Identifier::from("x12")), Expr::Constant(Value::I64(1))),
+            Statement::Assign(AssignDest::Id(Identifier::from("x13")), Expr::Constant(Value::I64(1))),
+            Statement::Assign(AssignDest::Id(Identifier::from("x14")), Expr::Constant(Value::I64(1))),
+            Statement::Assign(AssignDest::Id(Identifier::from("x15")), Expr::Constant(Value::I64(1))),
+            Statement::Assign(AssignDest::Id(Identifier::from("x16")), Expr::Constant(Value::I64(1))),
+            Statement::Assign(AssignDest::Id(Identifier::from("x17")), Expr::Constant(Value::I64(1))),
+            Statement::Assign(AssignDest::Id(Identifier::from("x18")), Expr::Constant(Value::I64(1))),
+            Statement::Assign(AssignDest::Id(Identifier::from("x19")), Expr::Constant(Value::I64(1))),
+            Statement::Assign(AssignDest::Id(Identifier::from("x20")), Expr::Constant(Value::I64(1))),
+            Statement::Assign(AssignDest::Id(Identifier::from("x21")), Expr::Constant(Value::I64(1))),
+            Statement::Assign(AssignDest::Id(Identifier::from("x22")), Expr::Constant(Value::I64(1))),
+            Statement::Assign(AssignDest::Id(Identifier::from("x23")), Expr::Constant(Value::I64(1))),
             Statement::Expr(Expr::Call(Identifier::from("print_int"), vec![
                          Expr::BinaryOp(Box::new(Expr::Id(Identifier::from("x1"))), BinaryOperator::Add,
                 Box::new(Expr::BinaryOp(Box::new(Expr::Id(Identifier::from("x2"))), BinaryOperator::Add,

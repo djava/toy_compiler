@@ -165,7 +165,7 @@ fn test_partial_eval_while_loop_simple() {
     execute_test_case(TestCase {
         ast: Module {
             body: vec![
-                Statement::Assign(Identifier::from("x"), Expr::Constant(Value::I64(5))),
+                Statement::Assign(AssignDest::Id(Identifier::from("x")), Expr::Constant(Value::I64(5))),
                 Statement::WhileLoop(
                     Expr::BinaryOp(
                         Box::new(Expr::Id(Identifier::from("x"))),
@@ -178,7 +178,7 @@ fn test_partial_eval_while_loop_simple() {
                             vec![Expr::Id(Identifier::from("x"))],
                         )),
                         Statement::Assign(
-                            Identifier::from("x"),
+                            AssignDest::Id(Identifier::from("x")),
                             Expr::BinaryOp(
                                 Box::new(Expr::Id(Identifier::from("x"))),
                                 BinaryOperator::Subtract,
@@ -233,7 +233,7 @@ fn test_partial_eval_while_loop_with_partial_eval_in_body() {
     execute_test_case(TestCase {
         ast: Module {
             body: vec![
-                Statement::Assign(Identifier::from("x"), Expr::Constant(Value::I64(3))),
+                Statement::Assign(AssignDest::Id(Identifier::from("x")), Expr::Constant(Value::I64(3))),
                 Statement::WhileLoop(
                     Expr::BinaryOp(
                         Box::new(Expr::Id(Identifier::from("x"))),
@@ -250,7 +250,7 @@ fn test_partial_eval_while_loop_with_partial_eval_in_body() {
                             )],
                         )),
                         Statement::Assign(
-                            Identifier::from("x"),
+                            AssignDest::Id(Identifier::from("x")),
                             Expr::BinaryOp(
                                 Box::new(Expr::Id(Identifier::from("x"))),
                                 BinaryOperator::Subtract,

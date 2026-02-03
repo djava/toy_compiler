@@ -178,7 +178,7 @@ fn test_parser_simple_assign() {
         },
         expected_ast: ast::Module {
             body: vec![ast::Statement::Assign(
-                ast::Identifier::from("x"),
+                ast::AssignDest::Id(ast::Identifier::from("x")),
                 ast::Expr::BinaryOp(
                     Box::new(ast::Expr::Constant(ast::Value::I64(1000))),
                     ast::BinaryOperator::Add,
@@ -371,7 +371,7 @@ fn test_parser_assign_to_call() {
         },
         expected_ast: ast::Module {
             body: vec![ast::Statement::Assign(
-                ast::Identifier::from("x"),
+                ast::AssignDest::Id(ast::Identifier::from("x")),
                 ast::Expr::Call(
                     ast::Identifier::from("Fffoo"),
                     vec![ast::Expr::Constant(ast::Value::I64(1))],
@@ -426,7 +426,7 @@ fn test_parser_multiline() {
         expected_ast: ast::Module {
             body: vec![
                 ast::Statement::Assign(
-                    ast::Identifier::from("x"),
+                    ast::AssignDest::Id(ast::Identifier::from("x")),
                     ast::Expr::Constant(ast::Value::I64(100)),
                 ),
                 ast::Statement::Expr(ast::Expr::Call(
@@ -434,7 +434,7 @@ fn test_parser_multiline() {
                     vec![ast::Expr::Constant(ast::Value::I64(1000))],
                 )),
                 ast::Statement::Assign(
-                    ast::Identifier::from("whatevn"),
+                    ast::AssignDest::Id(ast::Identifier::from("whatevn")),
                     ast::Expr::Id(ast::Identifier::from("x")),
                 ),
                 ast::Statement::Expr(ast::Expr::BinaryOp(
@@ -926,7 +926,7 @@ fn test_parser_if_multiline_body() {
                 ast::Expr::Constant(ast::Value::Bool(true)),
                 vec![
                     ast::Statement::Assign(
-                        ast::Identifier::from("x"),
+                        ast::AssignDest::Id(ast::Identifier::from("x")),
                         ast::Expr::Constant(ast::Value::I64(1)),
                     ),
                     ast::Statement::Expr(ast::Expr::Call(

@@ -1,7 +1,7 @@
 use std::collections::VecDeque;
 
 use cs4999_compiler::{
-    ast::{Identifier, Value},
+    ast::{AssignDest, Identifier, Value},
     ir::*,
 };
 
@@ -18,14 +18,14 @@ enum Continuation {
 fn interpret_atom(atom: &Atom, env: &mut ValueEnv) -> Value {
     match atom {
         Atom::Constant(value) => value.clone(),
-        Atom::Variable(id) => env[id].clone(),
+        Atom::Variable(id) => env[&AssignDest::Id(id.clone())].clone(),
         Atom::GlobalSymbol(_) => Value::I64(0), // I'm not sure about this but it's what the textbook code does
     }
 }
 
 fn subscript_tuple(tup: &Value, idx: i64) -> Value {
     if let Value::Tuple(elems) = tup {
-        elems[idx]
+        elems[idx as usize].clone()
     } else {
         panic!("Non-tuple value passed to subscript_tuple")
     }
@@ -76,8 +76,14 @@ fn interpret_expr(
                 panic!("Unknown function name")
             }
         }
-        Expr::Allocate(n) => Value::Tuple(vec![Value::None; *n]),
-        Expr::Subscript(atom, idx) => interpret_atom(atom, env),
+        Expr::Allocate(n, _) => Value::Tuple(vec![Value::None; *n]),
+        Expr::Subscript(atom, idx) => {
+            if let Value::Tuple(elems) = interpret_atom(atom, env) {
+                elems[*idx as usize].clone()
+            } else {
+                panic!("Subscripted non-tuple")
+            }
+        }
     }
 }
 

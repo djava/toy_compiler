@@ -1,7 +1,7 @@
 use std::collections::VecDeque;
 
 use crate::infra::ValueEnv;
-use cs4999_compiler::{ast::Value, ir::Identifier, x86_ast::*};
+use cs4999_compiler::{ast::{AssignDest, Value}, ir::Identifier, x86_ast::*};
 
 #[derive(Debug, Default)]
 struct Eflags {
@@ -50,7 +50,7 @@ impl X86Env {
                 self.regs[*n as usize] = value;
             }
             Arg::Variable(id) => {
-                self.vars.insert(id.clone(), Value::I64(value));
+                self.vars.insert(AssignDest::Id(id.clone()), Value::I64(value));
             }
             Arg::Deref(reg, offset) => {
                 let base = self.regs[*reg as usize];
@@ -88,6 +88,7 @@ impl X86Env {
                 }
             },
             Arg::Immediate(_) => panic!("Can't write to an intermediate"),
+            Arg::Global(_) => todo!("Add globals to env"),
         }
     }
 
@@ -96,7 +97,7 @@ impl X86Env {
             Arg::Reg(n) => self.regs[*n as usize],
             Arg::Variable(id) => self
                 .vars
-                .get(id)
+                .get(&AssignDest::Id(id.clone()))
                 .map(|val| i64::from(val))
                 .expect(format!("Unknown x86var identifier: {id:?}").as_str()),
             Arg::Deref(reg, offset) => {
@@ -136,6 +137,7 @@ impl X86Env {
                     (self.regs[Register::rdx as usize] & 0x0000_0000_0000_00FFu64 as i64) >> 0
                 }
             },
+            Arg::Global(_) => todo!("Add globals to env"),
         }
     }
 

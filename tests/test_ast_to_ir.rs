@@ -163,7 +163,7 @@ fn test_ast_to_ir_simple_assignment() {
     execute_test_case(TestCase {
         ast: Module {
             body: vec![
-                Statement::Assign(Identifier::from("x"), Expr::Constant(Value::I64(1000))),
+                Statement::Assign(AssignDest::Id(Identifier::from("x")), Expr::Constant(Value::I64(1000))),
                 Statement::Expr(Expr::Call(
                     Identifier::from("print_int"),
                     vec![Expr::Id(Identifier::from("x"))],
@@ -191,7 +191,7 @@ fn test_ast_to_ir_complex_assignment() {
         ast: Module {
             body: vec![
                 Statement::Assign(
-                    Identifier::from("foofoo"),
+                    AssignDest::Id(Identifier::from("foofoo")),
                     Expr::BinaryOp(
                         Box::new(Expr::BinaryOp(
                             Box::new(Expr::Call(Identifier::from("read_int"), vec![])),
@@ -270,11 +270,11 @@ fn test_ast_to_ir_cascading_assigns() {
         ast: Module {
             body: vec![
                 Statement::Assign(
-                    Identifier::from("foo"),
+                    AssignDest::Id(Identifier::from("foo")),
                     Expr::Call(Identifier::from("read_int"), vec![]),
                 ),
                 Statement::Assign(
-                    Identifier::from("bar"),
+                    AssignDest::Id(Identifier::from("bar")),
                     Expr::BinaryOp(
                         Box::new(Expr::Call(Identifier::from("read_int"), vec![])),
                         BinaryOperator::Add,
@@ -282,7 +282,7 @@ fn test_ast_to_ir_cascading_assigns() {
                     ),
                 ),
                 Statement::Assign(
-                    Identifier::from("baz"),
+                    AssignDest::Id(Identifier::from("baz")),
                     Expr::BinaryOp(
                         Box::new(Expr::Call(Identifier::from("read_int"), vec![])),
                         BinaryOperator::Add,
@@ -290,7 +290,7 @@ fn test_ast_to_ir_cascading_assigns() {
                     ),
                 ),
                 Statement::Assign(
-                    Identifier::from("bop"),
+                    AssignDest::Id(Identifier::from("bop")),
                     Expr::BinaryOp(
                         Box::new(Expr::BinaryOp(
                             Box::new(Expr::Id(Identifier::from("foo"))),
@@ -452,7 +452,7 @@ fn test_ast_to_ir_while_loop_simple() {
     execute_test_case(TestCase {
         ast: Module {
             body: vec![
-                Statement::Assign(Identifier::from("x"), Expr::Constant(Value::I64(5))),
+                Statement::Assign(AssignDest::Id(Identifier::from("x")), Expr::Constant(Value::I64(5))),
                 Statement::WhileLoop(
                     Expr::BinaryOp(
                         Box::new(Expr::Id(Identifier::from("x"))),
@@ -465,7 +465,7 @@ fn test_ast_to_ir_while_loop_simple() {
                             vec![Expr::Id(Identifier::from("x"))],
                         )),
                         Statement::Assign(
-                            Identifier::from("x"),
+                            AssignDest::Id(Identifier::from("x")),
                             Expr::BinaryOp(
                                 Box::new(Expr::Id(Identifier::from("x"))),
                                 BinaryOperator::Subtract,
@@ -492,7 +492,7 @@ fn test_ast_to_ir_while_loop_zero_iterations() {
     execute_test_case(TestCase {
         ast: Module {
             body: vec![
-                Statement::Assign(Identifier::from("x"), Expr::Constant(Value::I64(0))),
+                Statement::Assign(AssignDest::Id(Identifier::from("x")), Expr::Constant(Value::I64(0))),
                 Statement::WhileLoop(
                     Expr::BinaryOp(
                         Box::new(Expr::Id(Identifier::from("x"))),
@@ -528,8 +528,8 @@ fn test_ast_to_ir_while_loop_accumulator() {
     execute_test_case(TestCase {
         ast: Module {
             body: vec![
-                Statement::Assign(Identifier::from("sum"), Expr::Constant(Value::I64(0))),
-                Statement::Assign(Identifier::from("i"), Expr::Constant(Value::I64(1))),
+                Statement::Assign(AssignDest::Id(Identifier::from("sum")), Expr::Constant(Value::I64(0))),
+                Statement::Assign(AssignDest::Id(Identifier::from("i")), Expr::Constant(Value::I64(1))),
                 Statement::WhileLoop(
                     Expr::BinaryOp(
                         Box::new(Expr::Id(Identifier::from("i"))),
@@ -538,7 +538,7 @@ fn test_ast_to_ir_while_loop_accumulator() {
                     ),
                     vec![
                         Statement::Assign(
-                            Identifier::from("sum"),
+                            AssignDest::Id(Identifier::from("sum")),
                             Expr::BinaryOp(
                                 Box::new(Expr::Id(Identifier::from("sum"))),
                                 BinaryOperator::Add,
@@ -546,7 +546,7 @@ fn test_ast_to_ir_while_loop_accumulator() {
                             ),
                         ),
                         Statement::Assign(
-                            Identifier::from("i"),
+                            AssignDest::Id(Identifier::from("i")),
                             Expr::BinaryOp(
                                 Box::new(Expr::Id(Identifier::from("i"))),
                                 BinaryOperator::Add,
@@ -582,7 +582,7 @@ fn test_ast_to_ir_while_loop_nested() {
     execute_test_case(TestCase {
         ast: Module {
             body: vec![
-                Statement::Assign(Identifier::from("i"), Expr::Constant(Value::I64(0))),
+                Statement::Assign(AssignDest::Id(Identifier::from("i")), Expr::Constant(Value::I64(0))),
                 Statement::WhileLoop(
                     Expr::BinaryOp(
                         Box::new(Expr::Id(Identifier::from("i"))),
@@ -590,7 +590,7 @@ fn test_ast_to_ir_while_loop_nested() {
                         Box::new(Expr::Constant(Value::I64(2))),
                     ),
                     vec![
-                        Statement::Assign(Identifier::from("j"), Expr::Constant(Value::I64(0))),
+                        Statement::Assign(AssignDest::Id(Identifier::from("j")), Expr::Constant(Value::I64(0))),
                         Statement::WhileLoop(
                             Expr::BinaryOp(
                                 Box::new(Expr::Id(Identifier::from("j"))),
@@ -607,7 +607,7 @@ fn test_ast_to_ir_while_loop_nested() {
                                     vec![Expr::Id(Identifier::from("j"))],
                                 )),
                                 Statement::Assign(
-                                    Identifier::from("j"),
+                                    AssignDest::Id(Identifier::from("j")),
                                     Expr::BinaryOp(
                                         Box::new(Expr::Id(Identifier::from("j"))),
                                         BinaryOperator::Add,
@@ -617,7 +617,7 @@ fn test_ast_to_ir_while_loop_nested() {
                             ],
                         ),
                         Statement::Assign(
-                            Identifier::from("i"),
+                            AssignDest::Id(Identifier::from("i")),
                             Expr::BinaryOp(
                                 Box::new(Expr::Id(Identifier::from("i"))),
                                 BinaryOperator::Add,
@@ -648,7 +648,7 @@ fn test_ast_to_ir_while_loop_with_conditional() {
     execute_test_case(TestCase {
         ast: Module {
             body: vec![
-                Statement::Assign(Identifier::from("i"), Expr::Constant(Value::I64(0))),
+                Statement::Assign(AssignDest::Id(Identifier::from("i")), Expr::Constant(Value::I64(0))),
                 Statement::WhileLoop(
                     Expr::BinaryOp(
                         Box::new(Expr::Id(Identifier::from("i"))),
@@ -672,7 +672,7 @@ fn test_ast_to_ir_while_loop_with_conditional() {
                             ))],
                         ),
                         Statement::Assign(
-                            Identifier::from("i"),
+                            AssignDest::Id(Identifier::from("i")),
                             Expr::BinaryOp(
                                 Box::new(Expr::Id(Identifier::from("i"))),
                                 BinaryOperator::Add,

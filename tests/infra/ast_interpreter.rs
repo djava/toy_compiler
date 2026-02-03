@@ -42,7 +42,7 @@ fn interpret_expr(
         }
         Id(id) => {
             let val = env
-                .get(id)
+                .get(&AssignDest::Id(id.clone()))
                 .expect(format!("Unknown variable name: {id:?}").as_str())
                 .clone();
             Some(val)
@@ -152,7 +152,6 @@ fn interpret_statement(
                 );
             }
         }
-        Statement::AssignSubscript(_identifier, _, _expr) => todo!(),
     };
 }
 

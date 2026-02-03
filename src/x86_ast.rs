@@ -1,6 +1,18 @@
-use std::fmt::Display;
+use std::{fmt::Display, sync::Arc};
+use bitfield_struct::bitfield;
 
 pub use crate::ast::Identifier;
+
+#[bitfield(u64, order = Lsb)]
+pub struct TupleTag {
+    pub forwarding: bool,
+    #[bits(6)]
+    pub length: u8,
+    #[bits(50)]
+    pub pointer_mask: u64,
+    #[bits(7)]
+    __: u8
+}
 
 #[allow(non_camel_case_types)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -79,6 +91,7 @@ pub enum Arg {
     ByteReg(ByteReg),
     Deref(Register, i32),
     Variable(Identifier),
+    Global(Arc<str>)
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -179,6 +192,7 @@ impl Display for Arg {
                 Identifier::Named(name) => write!(f, "@{name}"),
                 Identifier::Ephemeral(id) => write!(f, "@EE#{id}"),
             },
+            Arg::Global(name) => write!(f, "{name}(%rip)"),
         }
     }
 }
