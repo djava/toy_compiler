@@ -6,6 +6,7 @@ use petgraph::{
 use std::collections::{HashMap, HashSet, VecDeque};
 
 use crate::{
+    constants::*,
     passes::register_allocation::Location,
     syntax_trees::{shared::*, x86::*},
     utils::x86_block_adj_graph,
@@ -245,22 +246,12 @@ fn locs_read(i: &Instr) -> Vec<Location> {
             }
         }
         Instr::callq(_, num_args) => {
-            const NUM_ARG_REGISTERS: u16 = 6;
-            const ARG_REGISTERS: [Register; NUM_ARG_REGISTERS as _] = [
-                Register::rdi,
-                Register::rsi,
-                Register::rdx,
-                Register::rcx,
-                Register::r8,
-                Register::r9,
-            ];
-
-            if *num_args >= NUM_ARG_REGISTERS {
+            if *num_args >= MAX_REGISTER_ARGS as u16 {
                 unimplemented!("Spilling args onto stack not implemented");
             }
 
             locations.extend(
-                ARG_REGISTERS
+                CALL_ARG_REGISTERS
                     .iter()
                     .take(*num_args as _)
                     .map(|r| Location::Reg(*r)),
@@ -312,7 +303,7 @@ fn locs_written(i: &Instr) -> Vec<Location> {
             // Consider r15 to be written by a call to __gc_collect()
             // because it might do the GC copy and change the gc stack ptr
             if let Identifier::Named(name) = func_id
-                && &**name == "__gc_collect"
+                && &**name == GC_COLLECT
             {
                 locations.push(Location::Reg(Register::r15));
             }

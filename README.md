@@ -6,5 +6,4 @@ using the provided Python infrastructure though.
 
 TODO:
 - Multiplication/division
-- Extract constants
 - PatchInstructions for sarq/salq to have imm in first arg(?)

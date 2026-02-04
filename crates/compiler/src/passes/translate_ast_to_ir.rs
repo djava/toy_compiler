@@ -1,4 +1,5 @@
 use crate::{
+    constants::*,
     passes::ASTtoIRPass,
     syntax_trees::{
         ast,
@@ -14,19 +15,19 @@ impl ASTtoIRPass for TranslateASTtoIR {
         let mut blocks = BlockMap::new();
 
         let mut main_body = ir::Block {
-            statements: vec![ir::Statement::Goto(Identifier::from("user_exit"))],
+            statements: vec![ir::Statement::Goto(Identifier::from(LABEL_USER_EXIT))],
         };
 
         for s in m.body.iter().rev() {
             main_body.statements = generate_for_statement(s, main_body.statements, &mut blocks);
         }
 
-        blocks.insert(Identifier::from("user_entry"), main_body);
+        blocks.insert(Identifier::from(LABEL_USER_ENTRY), main_body);
 
         let user_exit = ir::Block {
             statements: vec![ir::Statement::Return(ir::Atom::Constant(Value::I64(0)))],
         };
-        blocks.insert(Identifier::from("user_exit"), user_exit);
+        blocks.insert(Identifier::from(LABEL_USER_EXIT), user_exit);
 
         blocks.reverse();
         ir::IRProgram {

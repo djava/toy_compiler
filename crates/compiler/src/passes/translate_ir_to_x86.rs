@@ -1,6 +1,7 @@
 use std::sync::Arc;
 
 use crate::{
+    constants::*,
     passes::IRtoX86Pass,
     syntax_trees::{
         ir,
@@ -56,7 +57,7 @@ fn translate_statement(s: ir::Statement) -> Vec<Instr> {
         ir::Statement::Assign(dest_id, expr) => translate_assign(dest_id, expr),
         ir::Statement::Return(atom) => vec![
             Instr::movq(atom_to_arg(atom), x86::Arg::Reg(Register::rax)),
-            Instr::jmp(Identifier::from("exit")),
+            Instr::jmp(Identifier::from(LABEL_EXIT)),
         ],
         ir::Statement::Goto(label) => vec![Instr::jmp(label)],
         ir::Statement::If(cond, pos_label, neg_label) => {
@@ -96,7 +97,7 @@ fn translate_subscript(dest: AssignDest, atom: ir::Atom, idx: i64) -> Vec<Instr>
     ret.extend([
         Instr::movq(atom_to_arg(atom), x86::Arg::Reg(Register::rax)),
         Instr::movq(
-            x86::Arg::Deref(Register::rax, 8 + (8 * idx) as i32),
+            x86::Arg::Deref(Register::rax, (WORD_SIZE + (WORD_SIZE * idx)) as i32),
             assigndest_to_arg(dest),
         ),
     ]);
@@ -124,12 +125,12 @@ fn translate_allocation(dest: AssignDest, bytes: usize, value_type: ValueType) -
     // Bump allocator pointer, write tag. pointer is in r11
     let mut ret = vec![
         Instr::movq(
-            x86::Arg::Global(Arc::from("__gc_free_ptr")),
+            x86::Arg::Global(Arc::from(GC_FREE_PTR)),
             x86::Arg::Reg(Register::r11),
         ),
         Instr::addq(
             x86::Arg::Immediate(bytes as i64),
-            x86::Arg::Global(Arc::from("__gc_free_ptr")),
+            x86::Arg::Global(Arc::from(GC_FREE_PTR)),
         ),
         Instr::movq(x86::Arg::Immediate(tag), x86::Arg::Deref(Register::r11, 0)),
     ];
@@ -142,7 +143,7 @@ fn translate_allocation(dest: AssignDest, bytes: usize, value_type: ValueType) -
             ),
             Instr::movq(
                 x86::Arg::Reg(x86::Register::r11),
-                x86::Arg::Deref(Register::rax, (8 + (idx * 8)).try_into().unwrap()),
+                x86::Arg::Deref(Register::rax, (WORD_SIZE + (idx * WORD_SIZE)).try_into().unwrap()),
             ),
         ]);
     } else {
@@ -157,8 +158,8 @@ fn translate_allocation(dest: AssignDest, bytes: usize, value_type: ValueType) -
 
 fn make_tuple_tag(value_type: ValueType) -> u64 {
     if let ValueType::TupleType(elems) = value_type {
-        if elems.len() > 50 {
-            unimplemented!("The compiler has a max of 50 tuple elements")
+        if elems.len() > MAX_TUPLE_ELEMENTS {
+            unimplemented!("The compiler has a max of {MAX_TUPLE_ELEMENTS} tuple elements")
         }
 
         let pointer_mask = elems
@@ -225,7 +226,7 @@ fn translate_conditional(
                     Instr::movq(x86::Arg::Variable(var), x86::Arg::Reg(x86::Register::rax)),
                     Instr::cmpq(
                         x86::Arg::Immediate(0),
-                        x86::Arg::Deref(Register::rax, (8 + (8 * idx)) as i32),
+                        x86::Arg::Deref(Register::rax, (WORD_SIZE + (WORD_SIZE * idx)) as i32),
                     ),
                     Instr::jmpcc(x86::Comparison::NotEquals, pos_label),
                 ]
@@ -412,15 +413,15 @@ const SPECIAL_FUNCTIONS: [(
     usize,
     fn(Vec<ir::Atom>, Option<AssignDest>) -> Vec<Instr>,
 ); 2] = [
-    ("__gc_collect", 1, |mut args, _dest| {
+    (GC_COLLECT, 1, |mut args, _dest| {
         assert!(_dest.is_none());
         vec![
             Instr::movq(x86::Arg::Reg(Register::r15), x86::Arg::Reg(Register::rdi)),
             Instr::movq(atom_to_arg(args.remove(0)), x86::Arg::Reg(Register::rsi)),
-            Instr::callq(Identifier::from("__gc_collect"), 2),
+            Instr::callq(Identifier::from(GC_COLLECT), 2),
         ]
     }),
-    ("len", 1, |mut args, dest_opt| {
+    (FN_LEN, 1, |mut args, dest_opt| {
         if let Some(dest) = dest_opt {
             vec![
                 Instr::movq(atom_to_arg(args.remove(0)), x86::Arg::Reg(Register::rax)),
@@ -429,8 +430,8 @@ const SPECIAL_FUNCTIONS: [(
                     x86::Arg::Reg(Register::rax),
                 ),
                 // Shift and mask out the length field of the tuple tag
-                Instr::sarq(x86::Arg::Immediate(1), x86::Arg::Reg(Register::rax)),
-                Instr::andq(x86::Arg::Immediate(0x03Fi64), x86::Arg::Reg(Register::rax)),
+                Instr::sarq(x86::Arg::Immediate(TUPLE_LENGTH_TAG_SHIFT), x86::Arg::Reg(Register::rax)),
+                Instr::andq(x86::Arg::Immediate(TUPLE_LENGTH_TAG_MASK), x86::Arg::Reg(Register::rax)),
                 Instr::movq(x86::Arg::Reg(Register::rax), assigndest_to_arg(dest)),
             ]
         } else {
@@ -445,8 +446,8 @@ fn translate_call(
     func_id: Identifier,
     args: Vec<ir::Atom>,
 ) -> Vec<Instr> {
-    if args.len() > 6 {
-        unimplemented!("Only register arg passing is implemented, max of 6 args");
+    if args.len() > MAX_REGISTER_ARGS {
+        unimplemented!("Only register arg passing is implemented, max of {MAX_REGISTER_ARGS} args");
     }
 
     for (name, num_args, instr_fn) in SPECIAL_FUNCTIONS {
@@ -530,7 +531,7 @@ fn assigndest_to_arg(dest: AssignDest) -> x86::Arg {
         AssignDest::Subscript(_, offset) => {
             // Assumes that the id-ptr has already been moved into r11,
             // as is convention
-            x86::Arg::Deref(Register::r11, (8 + (offset * 8)).try_into().unwrap())
+            x86::Arg::Deref(Register::r11, (WORD_SIZE + (offset * WORD_SIZE)).try_into().unwrap())
         }
     }
 }

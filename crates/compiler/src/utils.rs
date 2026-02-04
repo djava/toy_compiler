@@ -1,9 +1,12 @@
 use std::collections::HashMap;
 
-use crate::syntax_trees::{
-    ast,
-    shared::*,
-    x86::{Block, Directive, Instr},
+use crate::{
+    constants::*,
+    syntax_trees::{
+        ast,
+        shared::*,
+        x86::{Block, Directive, Instr},
+    },
 };
 use petgraph::graph::DiGraph;
 
@@ -70,14 +73,14 @@ pub fn type_check_ast_expr(e: &ast::Expr, env: &mut TypeEnv) -> ValueType {
         Constant(v) => ValueType::from(v),
         Call(id, args) => match id {
             Identifier::Named(name) => {
-                if name.as_ref() == "read_int" {
+                if name.as_ref() == FN_READ_INT {
                     assert!(
                         args.is_empty(),
                         "Passed {} of args to {name}, expected 0",
                         args.len()
                     );
                     ValueType::IntType
-                } else if name.as_ref() == "print_int" {
+                } else if name.as_ref() == FN_PRINT_INT {
                     assert_eq!(
                         args.len(),
                         1,
@@ -90,7 +93,7 @@ pub fn type_check_ast_expr(e: &ast::Expr, env: &mut TypeEnv) -> ValueType {
                         "Passed wrong arg type to {name}, expected I64"
                     );
                     ValueType::NoneType
-                } else if name.as_ref() == "len" {
+                } else if name.as_ref() == FN_LEN {
                     assert_eq!(
                         args.len(),
                         1,
@@ -102,7 +105,7 @@ pub fn type_check_ast_expr(e: &ast::Expr, env: &mut TypeEnv) -> ValueType {
                         "Passed wrong arg type to {name}, expected tuple"
                     );
                     ValueType::IntType
-                } else if name.as_ref() == "__gc_collect" {
+                } else if name.as_ref() == GC_COLLECT {
                     assert_eq!(
                         args.len(),
                         1,

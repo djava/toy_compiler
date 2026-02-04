@@ -25,30 +25,6 @@ pub enum Register {
     r15 = 15u8,
 }
 
-pub const STACK_ALIGNMENT: i32 = 16;
-
-pub const CALLEE_SAVED_REGISTERS: [Register; 7] = [
-    Register::rsp,
-    Register::rbp,
-    Register::rbx,
-    Register::r12,
-    Register::r13,
-    Register::r14,
-    Register::r15,
-];
-
-pub const CALLER_SAVED_REGISTERS: [Register; 9] = [
-    Register::rax,
-    Register::rcx,
-    Register::rdx,
-    Register::rsi,
-    Register::rdi,
-    Register::r8,
-    Register::r9,
-    Register::r10,
-    Register::r11,
-];
-
 #[allow(non_camel_case_types)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum ByteReg {

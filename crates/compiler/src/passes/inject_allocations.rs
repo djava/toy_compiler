@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use crate::{syntax_trees::{shared::*, ast::*}, passes::ASTPass, utils::type_check_ast_expr};
+use crate::{constants::*, syntax_trees::{shared::*, ast::*}, passes::ASTPass, utils::type_check_ast_expr};
 
 pub struct InjectAllocations;
 
@@ -84,16 +84,16 @@ fn replace_tuples_in_expr(expr: &mut Expr, type_env: &mut TypeEnv) {
 }
 
 fn get_initialize_tuple_expr(elems: &mut Vec<Expr>, tup_type: ValueType) -> Expr {
-    let free_ptr = Expr::GlobalSymbol(Arc::from("__gc_free_ptr"));
-    let fromspace_end = Expr::GlobalSymbol(Arc::from("__gc_fromspace_end"));
+    let free_ptr = Expr::GlobalSymbol(Arc::from(GC_FREE_PTR));
+    let fromspace_end = Expr::GlobalSymbol(Arc::from(GC_FROMSPACE_END));
     let collect = |n| {
         Expr::Call(
-            Identifier::from("__gc_collect"),
+            Identifier::from(GC_COLLECT),
             vec![Expr::Constant(Value::I64(n))],
         )
     };
 
-    let bytes = 8 + (8 * elems.len()) as i64; // 8 byte tag + 8 bytes per element
+    let bytes = WORD_SIZE + WORD_SIZE * elems.len() as i64;
 
     let cmp_ephemeral = Identifier::new_ephemeral();
     let out_ephemeral = Identifier::new_ephemeral();

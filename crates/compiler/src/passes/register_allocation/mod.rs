@@ -5,6 +5,7 @@ use std::collections::HashMap;
 use std::mem::size_of;
 
 use crate::{
+    constants::*,
     passes::{X86Pass, register_allocation::graph_coloring::COLOR_TO_REG_STORAGE},
     syntax_trees::{shared::*, x86},
 };
@@ -37,7 +38,7 @@ impl X86Pass for RegisterAllocation {
         if let Some(user_entry) = m
             .blocks
             .iter_mut()
-            .find(|b| b.label == Directive::Label(Identifier::from("user_entry")))
+            .find(|b| b.label == Directive::Label(Identifier::from(LABEL_USER_ENTRY)))
         {
             let callee_pushqs = callee_saved_used.iter().filter_map(|loc| {
                 if let Storage::Reg(reg) = loc {
@@ -53,7 +54,7 @@ impl X86Pass for RegisterAllocation {
         if let Some(user_exit) = m
             .blocks
             .iter_mut()
-            .find(|b| b.label == Directive::Label(Identifier::from("user_exit")))
+            .find(|b| b.label == Directive::Label(Identifier::from(LABEL_USER_EXIT)))
         {
             let callee_popqs = callee_saved_used.iter().rev().filter_map(|loc| {
                 if let Storage::Reg(reg) = loc {
@@ -184,10 +185,10 @@ fn allocate_storage<'a>(liveness: &'a LivenessMap, types: &TypeEnv) -> AllocateS
                 let s =
                     if let Some(ValueType::TupleType(_)) = types.get(&AssignDest::Id(id.clone())) {
                         let stg = Storage::GCStack(curr_gc_stack_offset);
-                        curr_gc_stack_offset += 8;
+                        curr_gc_stack_offset += WORD_SIZE as i32;
                         stg
                     } else {
-                        curr_stack_offset -= 8;
+                        curr_stack_offset -= WORD_SIZE as i32;
                         Storage::Stack(curr_stack_offset)
                     };
 

@@ -1,4 +1,5 @@
 use crate::{
+    constants::*,
     passes::X86Pass,
     syntax_trees::{shared::*, x86::*},
 };
@@ -10,7 +11,7 @@ impl X86Pass for PatchInstructions {
         let main_instrs = &mut m
             .blocks
             .iter_mut()
-            .find(|block| block.label == Directive::Label(Identifier::from("user_entry")))
+            .find(|block| block.label == Directive::Label(Identifier::from(LABEL_USER_ENTRY)))
             .expect("Didn't find an entry function")
             .instrs;
 
