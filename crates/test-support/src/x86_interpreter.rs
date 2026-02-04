@@ -258,6 +258,10 @@ fn run_instr(
             env.write_arg(d, env.read_arg(d) - env.read_arg(s));
             Continuation::Next
         }
+        Instr::imulq(s, d) => {
+            env.write_arg(d, env.read_arg(d) * env.read_arg(s));
+            Continuation::Next
+        }
         Instr::negq(d) => {
             env.write_arg(d, -env.read_arg(d));
             Continuation::Next

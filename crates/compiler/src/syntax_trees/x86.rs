@@ -88,7 +88,8 @@ pub enum Instr {
     jmpcc(Comparison, Identifier),
     sarq(Arg, Arg),
     salq(Arg, Arg),
-    andq(Arg, Arg)
+    andq(Arg, Arg),
+    imulq(Arg, Arg),
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
@@ -207,6 +208,7 @@ impl Display for Instr {
             Instr::sarq(arg, arg1) => write!(f, "sarq {arg}, {arg1}"),
             Instr::salq(arg, arg1) => write!(f, "salq {arg}, {arg1}"),
             Instr::andq(arg, arg1) => write!(f, "andq {arg}, {arg1}"),
+            Instr::imulq(arg, arg1) => write!(f, "imulq {arg}, {arg1}"),
         }
     }
 }

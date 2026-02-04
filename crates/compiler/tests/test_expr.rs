@@ -33,3 +33,12 @@ fn test_expression_with_multiple_reads() {
         expected_outputs: VecDeque::from(vec![66]),
     });
 }
+
+#[test]
+fn test_multiply_expr() {
+    execute_test_case(TestCase {
+        input: "print_int((read_int() * read_int()) + (read_int() * read_int()))",
+        inputs: VecDeque::from([10, 20, 30, 40]),
+        expected_outputs: VecDeque::from([(10 * 20) + (30 * 40)]),
+    });
+}

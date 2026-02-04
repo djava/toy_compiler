@@ -15,6 +15,7 @@ pub enum Operator {
     LessEquals,
     Not,
     Is,
+    Asterisk
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -58,8 +59,8 @@ parser! {
 
         rule operator() -> Operator =
             op:[Token::Minus | Token::Plus | Token::And | Token::Or | Token::Not |
-                Token::DoubleEquals | Token::NotEquals | Token::Greater |
-                Token::GreaterEquals | Token::Less | Token::LessEquals | Token::Is] {
+                Token::DoubleEquals | Token::NotEquals | Token::Greater | Token::GreaterEquals
+                | Token::Less | Token::LessEquals | Token::Is | Token::Asterisk] {
                 match op {
                     Token::Minus         => Operator::Minus,
                     Token::Plus          => Operator::Plus,
@@ -73,6 +74,7 @@ parser! {
                     Token::LessEquals    => Operator::LessEquals,
                     Token::Not           => Operator::Not,
                     Token::Is            => Operator::Is,
+                    Token::Asterisk      => Operator::Asterisk,
                     _ => unreachable!()
                 }
             }

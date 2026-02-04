@@ -225,6 +225,7 @@ fn locs_read(i: &Instr) -> Vec<Location> {
     match i {
         Instr::addq(s, d)
         | Instr::subq(s, d)
+        | Instr::imulq(s, d)
         | Instr::xorq(s, d)
         | Instr::cmpq(s, d)
         | Instr::andq(s, d)
@@ -268,6 +269,7 @@ fn locs_written(i: &Instr) -> Vec<Location> {
     match i {
         Instr::addq(_, r)
         | Instr::subq(_, r)
+        | Instr::imulq(_, r)
         | Instr::negq(r)
         | Instr::movq(_, r)
         | Instr::movzbq(_, r)

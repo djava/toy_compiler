@@ -163,6 +163,7 @@ impl BinaryOperatorExt for BinaryOperator {
                     match self {
                         BinaryOperator::Add => Value::I64(l_val + r_val),
                         BinaryOperator::Subtract => Value::I64(l_val - r_val),
+                        BinaryOperator::Multiply => Value::I64(l_val * r_val),
                         BinaryOperator::Equals => Value::Bool(l_val == r_val),
                         BinaryOperator::NotEquals => Value::Bool(l_val != r_val),
                         BinaryOperator::Greater => Value::Bool(l_val > r_val),

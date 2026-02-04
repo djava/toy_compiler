@@ -80,6 +80,15 @@ impl X86Pass for PatchInstructions {
                     todo!("Non-constant shifts aren't implemented");
                 }
 
+                Instr::imulq(s, d) if !matches!(d, Arg::Reg(_)) => {
+                    // Dest of imulq must be a register, add a patch
+                    // through rax to make it so
+                    new_instrs.extend([
+                        Instr::imulq(s.clone(), Arg::Reg(Register::rax)),
+                        Instr::movq(Arg::Reg(Register::rax), d.clone())
+                    ]);
+                }
+
                 _ => new_instrs.push(i.clone()),
             }
         }

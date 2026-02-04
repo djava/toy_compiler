@@ -31,7 +31,8 @@ pub enum Token<'a> {
     While,
     Is,
     OpenBracket,
-    CloseBracket
+    CloseBracket,
+    Asterisk
 }
 
 parser! {
@@ -75,6 +76,7 @@ parser! {
         rule question_mark() -> Token<'input> = "?" { Token::QuestionMark }
         rule colon() -> Token<'input> = ":" { Token::Colon }
         rule is() -> Token<'input> = "is" { Token::Is }
+        rule asterisk() -> Token<'input> = "*" { Token::Asterisk }
 
         rule _if() -> Token<'input> = "if" { Token::If }
         rule _else() -> Token<'input> = "else" { Token::Else }
@@ -95,7 +97,7 @@ parser! {
               greater() / less() / and_sym() / or_sym() / not_sym() / open_paren() /
               close_paren() / equals() / plus() / minus() / comma() / newline() /
               open_curly() / close_curly() / open_bracket() / close_bracket() /
-              question_mark() / colon()
+              question_mark() / colon() / asterisk()
 
         rule token() -> Token<'input> = word_token() / punctuation_token()
 

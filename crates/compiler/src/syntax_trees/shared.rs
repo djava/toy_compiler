@@ -114,6 +114,7 @@ pub enum BinaryOperator {
     Less,
     LessEquals,
     Is,
+    Multiply,
 }
 
 impl BinaryOperator {
@@ -125,6 +126,7 @@ impl BinaryOperator {
             (IntType, IntType) => match self {
                 Add => Some(IntType),
                 Subtract => Some(IntType),
+                Multiply => Some(IntType),
                 Equals => Some(BoolType),
                 NotEquals => Some(BoolType),
                 Greater => Some(BoolType),

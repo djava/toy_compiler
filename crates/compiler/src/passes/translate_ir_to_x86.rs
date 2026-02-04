@@ -76,6 +76,7 @@ fn translate_assign(dest: AssignDest, expr: ir::Expr) -> Vec<Instr> {
         ir::Expr::UnaryOp(UnaryOperator::Not, val) => translate_not(dest, val),
         ir::Expr::BinaryOp(l, BinaryOperator::Add, r) => translate_add(dest, l, r),
         ir::Expr::BinaryOp(l, BinaryOperator::Subtract, r) => translate_subtract(dest, l, r),
+        ir::Expr::BinaryOp(l, BinaryOperator::Multiply, r) => translate_multiply(dest, l, r),
         ir::Expr::BinaryOp(l, cmp_op, r) => translate_comparison(dest, cmp_op, l, r),
         ir::Expr::Call(func_id, args) => translate_call(Some(dest), func_id, args),
         ir::Expr::Allocate(bytes, value_type) => translate_allocation(dest, bytes, value_type),
@@ -334,6 +335,42 @@ fn translate_subtract(dest: AssignDest, left: ir::Atom, right: ir::Atom) -> Vec<
     ret
 }
 
+
+fn translate_multiply(dest: AssignDest, left: ir::Atom, right: ir::Atom) -> Vec<Instr> {
+    let mut ret = vec![];
+    if let AssignDest::Subscript(id, _idx) = &dest {
+        ret.push(Instr::movq(
+            x86::Arg::Variable(id.clone()),
+            x86::Arg::Reg(x86::Register::r11),
+        ));
+    }
+
+    if let ir::Atom::Variable(left_id) = &left
+        && let AssignDest::Id(dest_id) = &dest
+        && left_id == dest_id
+    {
+        // Expression can be calculated in 1 instr, dest
+        // is the same as the left arg (x = x * y)
+        ret.push(Instr::imulq(atom_to_arg(right), assigndest_to_arg(dest)));
+    } else if let ir::Atom::Variable(right_id) = &right
+        && let AssignDest::Id(dest_id) = &dest
+        && right_id == dest_id
+    {
+        // Expression can be calculated in 1 instr, dest
+        // is the same as the right arg (x = 1 + x)
+        ret.push(Instr::imulq(atom_to_arg(left), assigndest_to_arg(dest)));
+    } else {
+        // Expression requires two instructions - load
+        // left into dest, then add right into dest
+        ret.extend([
+            Instr::movq(atom_to_arg(left), assigndest_to_arg(dest.clone())),
+            Instr::imulq(atom_to_arg(right), assigndest_to_arg(dest)),
+        ]);
+    }
+
+    ret
+}
+
 fn translate_not(dest: AssignDest, atom: ir::Atom) -> Vec<Instr> {
     let mut ret = vec![];
     if let AssignDest::Subscript(id, _idx) = &dest {
@@ -520,6 +557,7 @@ fn try_binop_to_cc(op: BinaryOperator) -> Option<x86::Comparison> {
         BinaryOperator::Is => Some(x86::Comparison::Equals),
         BinaryOperator::Add
         | BinaryOperator::Subtract
+        | BinaryOperator::Multiply
         | BinaryOperator::And
         | BinaryOperator::Or => None,
     }

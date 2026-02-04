@@ -5,6 +5,7 @@ by Jeremy G. Siek. I decided to write it from scratch in Rust instead of
 using the provided Python infrastructure though.
 
 TODO:
-- Multiplication/division
+- Unit tests for multiplication
 - Variable indexing
 - Variable shift
+- Division

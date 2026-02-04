@@ -135,6 +135,7 @@ fn run_for_block(
         match i {
             Instr::addq(s, d)
             | Instr::subq(s, d)
+            | Instr::imulq(s, d)
             | Instr::movq(s, d)
             | Instr::xorq(s, d)
             | Instr::cmpq(s, d)

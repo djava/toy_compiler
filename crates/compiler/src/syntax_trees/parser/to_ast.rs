@@ -35,6 +35,7 @@ fn to_ast_expr(pte: pt::Expr) -> ast::Expr {
                 pt::Operator::Less => BinaryOperator::Less,
                 pt::Operator::LessEquals => BinaryOperator::LessEquals,
                 pt::Operator::Is => BinaryOperator::Is,
+                pt::Operator::Asterisk => BinaryOperator::Multiply,
                 pt::Operator::Not => {
                     panic!("pt::Operator::Not should never be in a Binary expression")
                 }
