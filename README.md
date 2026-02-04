@@ -6,4 +6,5 @@ using the provided Python infrastructure though.
 
 TODO:
 - Multiplication/division
-- PatchInstructions for sarq/salq to have imm in first arg(?)
+- Variable indexing
+- Variable shift

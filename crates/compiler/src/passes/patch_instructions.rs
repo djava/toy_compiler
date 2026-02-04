@@ -23,7 +23,14 @@ impl X86Pass for PatchInstructions {
             match &i {
                 // If both args to an instr are derefs, we need to add a
                 // patch instruction
-                Instr::addq(s, d) | Instr::subq(s, d) | Instr::movq(s, d)
+                Instr::addq(s, d)
+                | Instr::subq(s, d)
+                | Instr::movq(s, d)
+                | Instr::xorq(s, d)
+                | Instr::cmpq(s, d)
+                | Instr::sarq(s, d)
+                | Instr::salq(s, d)
+                | Instr::andq(s, d)
                     if matches!(s, Arg::Deref(_, _)) && matches!(d, Arg::Deref(_, _)) =>
                 {
                     new_instrs.push(Instr::movq(s.clone(), Arg::Reg(Register::rax)));
@@ -37,7 +44,14 @@ impl X86Pass for PatchInstructions {
 
                 // If the instruction has an immediate > 32 bits and
                 // also accesses memory, need a patch instr
-                Instr::addq(s, d) | Instr::subq(s, d) | Instr::movq(s, d)
+                Instr::addq(s, d)
+                | Instr::subq(s, d)
+                | Instr::movq(s, d)
+                | Instr::xorq(s, d)
+                | Instr::cmpq(s, d)
+                | Instr::sarq(s, d)
+                | Instr::salq(s, d)
+                | Instr::andq(s, d)
                     if matches!(s, Arg::Immediate(v) if i32::try_from(*v).is_err())
                         && matches!(d, Arg::Deref(_, _)) =>
                 {
