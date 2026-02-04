@@ -1,6 +1,9 @@
 use std::collections::HashMap;
 
-use crate::{ast::{self, ValueType, Identifier}, x86_ast::{Block, Directive, Instr}};
+use crate::{
+    ast::{self, Identifier, ValueType},
+    x86_ast::{Block, Directive, Instr},
+};
 use petgraph::graph::DiGraph;
 
 pub fn x86_block_adj_graph<'a>(blocks: &'a [Block]) -> DiGraph<&'a Block, ()> {
@@ -35,7 +38,6 @@ pub fn x86_block_adj_graph<'a>(blocks: &'a [Block]) -> DiGraph<&'a Block, ()> {
     block_graph
 }
 
-
 pub fn type_check_ast_expr(e: &ast::Expr, env: &mut ast::TypeEnv) -> ValueType {
     use ast::Expr::*;
 
@@ -47,10 +49,18 @@ pub fn type_check_ast_expr(e: &ast::Expr, env: &mut ast::TypeEnv) -> ValueType {
             let result_type = op.type_of(&l_type, &r_type).unwrap();
             result_type
         }
-        UnaryOp(_op, exp) => {
+        UnaryOp(op, exp) => {
             let exp_type = type_check_ast_expr(&*exp, env);
-            assert_eq!(exp_type, ValueType::IntType);
-            ValueType::IntType
+            match op {
+                ast::UnaryOperator::Plus | ast::UnaryOperator::Minus => {
+                    assert_eq!(exp_type, ValueType::IntType);
+                    ValueType::IntType
+                }
+                ast::UnaryOperator::Not => {
+                    assert_eq!(exp_type, ValueType::BoolType);
+                    ValueType::BoolType
+                }
+            }
         }
         Id(id) => env
             .get(&ast::AssignDest::Id(id.clone()))
@@ -92,7 +102,12 @@ pub fn type_check_ast_expr(e: &ast::Expr, env: &mut ast::TypeEnv) -> ValueType {
                     );
                     ValueType::IntType
                 } else if name.as_ref() == "__gc_collect" {
-                    assert_eq!(args.len(), 1, "Passed {} args to {name}, expected 1", args.len());
+                    assert_eq!(
+                        args.len(),
+                        1,
+                        "Passed {} args to {name}, expected 1",
+                        args.len()
+                    );
                     assert!(
                         matches!(type_check_ast_expr(&args[0], env), ValueType::IntType),
                         "Passed wrong arg type to {name}, expected int"
@@ -124,20 +139,26 @@ pub fn type_check_ast_expr(e: &ast::Expr, env: &mut ast::TypeEnv) -> ValueType {
             type_check_ast_expr(expr, env)
         }
         Tuple(elements) => {
-            let element_types: Vec<_> = elements.iter().map(|e| type_check_ast_expr(e, env)).collect();
+            let element_types: Vec<_> = elements
+                .iter()
+                .map(|e| type_check_ast_expr(e, env))
+                .collect();
 
             ValueType::TupleType(element_types)
         }
         Subscript(tup, idx) => {
             if let ValueType::TupleType(elems) = type_check_ast_expr(tup, env) {
-                assert!(*idx >= 0 && *idx < elems.len() as i64, "Indexed tuple out of bounds");
+                assert!(
+                    *idx >= 0 && *idx < elems.len() as i64,
+                    "Indexed tuple out of bounds"
+                );
                 elems[*idx as usize].clone()
             } else {
                 panic!("Subscripted a non-tuple")
             }
         }
-        Allocate(_, value_type) => { ValueType::PointerType(Box::new(value_type.clone())) },
-        GlobalSymbol(_) => { ValueType::IntType },
+        Allocate(_, value_type) => ValueType::PointerType(Box::new(value_type.clone())),
+        GlobalSymbol(_) => ValueType::IntType,
     }
 }
 
