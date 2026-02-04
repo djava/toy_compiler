@@ -1,9 +1,8 @@
-mod infra;
 use std::collections::VecDeque;
 
-use cs4999_compiler::{ast::*, passes::*, pipeline::Pipeline, x86_ast};
+use compiler::{ast::*, passes::*, pipeline::Pipeline, x86_ast};
 
-use crate::infra::x86_interpreter::interpret_x86;
+use test_support::x86_interpreter::interpret_x86;
 
 struct TestCase {
     ast: Module,

@@ -1,6 +1,6 @@
 use clap::Parser;
 use clio::*;
-use cs4999_compiler::{parser, pipeline::Pipeline};
+use compiler::{parser, pipeline::Pipeline};
 use std::io::{Read, Write};
 
 #[derive(Parser, Debug)]

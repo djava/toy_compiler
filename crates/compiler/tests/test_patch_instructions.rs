@@ -1,12 +1,8 @@
-mod infra;
 use std::collections::VecDeque;
 
-use cs4999_compiler::{
-    ast::*,
-    passes::{ASTPass, TypeCheck, remove_complex_operands::RemoveComplexOperands},
-};
+use compiler::{ast::*, passes::*, pipeline::Pipeline, x86_ast};
 
-use crate::infra::ast_interpreter::interpret;
+use test_support::x86_interpreter::interpret_x86;
 
 struct TestCase {
     ast: Module,
@@ -17,23 +13,52 @@ struct TestCase {
 fn execute_test_case(mut tc: TestCase) {
     println!("\n==================");
 
-    tc.ast = TypeCheck.run_pass(tc.ast);
+    let pipeline = Pipeline {
+        ast_passes: vec![
+            ASTtoAST::from(TypeCheck),
+            ASTtoAST::from(RemoveComplexOperands),
+        ],
+        ast_to_ir_pass: ASTtoIR::from(TranslateASTtoIR),
+        ir_passes: vec![],
+        ir_to_x86_pass: IRtoX86::from(TranslateIRtoX86),
+        x86_passes: vec![X86toX86::from(PatchInstructions)],
+    };
 
-    println!("AST before RCO: {:#?}", tc.ast);
-    let post_run_ast = RemoveComplexOperands.run_pass(tc.ast);
-    println!("AST after RCO: {:#?}", post_run_ast);
+    let before_ast = pipeline.run(tc.ast);
+    println!("-- AST before PatchInstr:\n{before_ast}");
+    let after_ast = PatchInstructions.run_pass(before_ast);
+    println!("-- AST after PatchInstr:\n{after_ast}");
 
-    let type_checked = TypeCheck.run_pass(post_run_ast);
-    println!("Type-check passed after pass");
+    // Ensure that all the variable arguments have been removed
+    for i in after_ast.blocks.iter().map(|x| &x.instrs).flatten() {
+        use x86_ast::{Arg, Instr};
+        match i {
+            Instr::addq(s, d) | Instr::subq(s, d) | Instr::movq(s, d)
+                if matches!(s, Arg::Deref(_, _)) && matches!(d, Arg::Deref(_, _)) =>
+            {
+                panic!("PatchInstructions should remove all double-memory-access instructions");
+            }
+            Instr::addq(s, d) | Instr::subq(s, d) | Instr::movq(s, d)
+                if matches!(s, Arg::Immediate(v) if i32::try_from(*v).is_err())
+                    && matches!(d, Arg::Deref(_, _)) =>
+            {
+                panic!(
+                    "PatchInstructions should remove all memory-access + 64-bit-imm instructions"
+                );
+            }
+            _ => {}
+        }
+    }
 
+    let with_prelude = PreludeConclusion.run_pass(after_ast);
     let mut outputs = VecDeque::<i64>::new();
-    interpret(&type_checked, &mut tc.inputs, &mut outputs);
+    interpret_x86(&with_prelude, &mut tc.inputs, &mut outputs);
 
     assert_eq!(outputs, tc.expected_outputs);
 }
 
 #[test]
-fn test_remove_complex_operands_add() {
+fn test_patch_instructions_add() {
     execute_test_case(TestCase {
         ast: Module {
             body: vec![Statement::Expr(Expr::Call(
@@ -52,7 +77,7 @@ fn test_remove_complex_operands_add() {
 }
 
 #[test]
-fn test_remove_complex_operands_input() {
+fn test_patch_instructions_input() {
     execute_test_case(TestCase {
         ast: Module {
             body: vec![Statement::Expr(Expr::Call(
@@ -67,7 +92,7 @@ fn test_remove_complex_operands_input() {
 }
 
 #[test]
-fn test_remove_complex_operands_subinput() {
+fn test_patch_instructions_subinput() {
     execute_test_case(TestCase {
         ast: Module {
             body: vec![Statement::Expr(Expr::Call(
@@ -86,7 +111,7 @@ fn test_remove_complex_operands_subinput() {
 }
 
 #[test]
-fn test_remove_complex_operands_zero() {
+fn test_patch_instructions_zero() {
     execute_test_case(TestCase {
         ast: Module {
             body: vec![Statement::Expr(Expr::Call(
@@ -101,7 +126,7 @@ fn test_remove_complex_operands_zero() {
 }
 
 #[test]
-fn test_remove_complex_operands_nested() {
+fn test_patch_instructions_nested() {
     execute_test_case(TestCase {
         ast: Module {
             body: vec![Statement::Expr(Expr::Call(
@@ -128,7 +153,7 @@ fn test_remove_complex_operands_nested() {
 }
 
 #[test]
-fn test_remove_complex_operands_mixed() {
+fn test_patch_instructions_mixed() {
     execute_test_case(TestCase {
         ast: Module {
             body: vec![Statement::Expr(Expr::Call(
@@ -155,7 +180,7 @@ fn test_remove_complex_operands_mixed() {
 }
 
 #[test]
-fn test_remove_complex_operands_simple_assignment() {
+fn test_patch_instructions_simple_assignment() {
     execute_test_case(TestCase {
         ast: Module {
             body: vec![
@@ -173,7 +198,25 @@ fn test_remove_complex_operands_simple_assignment() {
 }
 
 #[test]
-fn test_remove_complex_operands_complex_assignment() {
+fn test_patch_instructions_simple_assignment_imm64() {
+    execute_test_case(TestCase {
+        ast: Module {
+            body: vec![
+                Statement::Assign(AssignDest::Id(Identifier::from("x")), Expr::Constant(Value::I64(i64::MAX))),
+                Statement::Expr(Expr::Call(
+                    Identifier::from("print_int"),
+                    vec![Expr::Id(Identifier::from("x"))],
+                )),
+            ],
+            types: TypeEnv::new(),
+        },
+        inputs: VecDeque::from(vec![]),
+        expected_outputs: VecDeque::from(vec![i64::MAX]),
+    });
+}
+
+#[test]
+fn test_patch_instructions_complex_assignment() {
     // -- Original
     // print((input_int() + 2) + (40 - 2))
 
@@ -215,7 +258,7 @@ fn test_remove_complex_operands_complex_assignment() {
 }
 
 #[test]
-fn test_remove_complex_operands_complex_args() {
+fn test_patch_instructions_complex_args() {
     execute_test_case(TestCase {
         ast: Module {
             body: vec![Statement::Expr(Expr::Call(
@@ -242,7 +285,7 @@ fn test_remove_complex_operands_complex_args() {
 }
 
 #[test]
-fn test_remove_complex_operands_cascading_assigns() {
+fn test_patch_instructions_cascading_assigns() {
     // -- Original
     // foo = input_int(10)        # 10
     // bar = input_int(20) + foo  # 20 + 10 = 30
@@ -310,142 +353,5 @@ fn test_remove_complex_operands_cascading_assigns() {
         },
         inputs: VecDeque::from(vec![10, 20, 30, 40]),
         expected_outputs: VecDeque::from(vec![10 + (10 + 20) + (10 + 20 + 30) + 40]),
-    });
-}
-
-#[test]
-fn test_remove_complex_operands_while_loop_simple() {
-    // x = 5
-    // while x > 0 {
-    //     print_int(x)
-    //     x = x - 1
-    // }
-    execute_test_case(TestCase {
-        ast: Module {
-            body: vec![
-                Statement::Assign(AssignDest::Id(Identifier::from("x")), Expr::Constant(Value::I64(5))),
-                Statement::WhileLoop(
-                    Expr::BinaryOp(
-                        Box::new(Expr::Id(Identifier::from("x"))),
-                        BinaryOperator::Greater,
-                        Box::new(Expr::Constant(Value::I64(0))),
-                    ),
-                    vec![
-                        Statement::Expr(Expr::Call(
-                            Identifier::from("print_int"),
-                            vec![Expr::Id(Identifier::from("x"))],
-                        )),
-                        Statement::Assign(
-                            AssignDest::Id(Identifier::from("x")),
-                            Expr::BinaryOp(
-                                Box::new(Expr::Id(Identifier::from("x"))),
-                                BinaryOperator::Subtract,
-                                Box::new(Expr::Constant(Value::I64(1))),
-                            ),
-                        ),
-                    ],
-                ),
-            ],
-            types: TypeEnv::new(),
-        },
-        inputs: VecDeque::new(),
-        expected_outputs: VecDeque::from(vec![5, 4, 3, 2, 1]),
-    });
-}
-
-#[test]
-fn test_remove_complex_operands_while_loop_complex_condition() {
-    // x = 10
-    // while (x - 5) > 0 {
-    //     print_int(x)
-    //     x = x - 1
-    // }
-    // The condition should have ephemeral assignment extracted
-    execute_test_case(TestCase {
-        ast: Module {
-            body: vec![
-                Statement::Assign(AssignDest::Id(Identifier::from("x")), Expr::Constant(Value::I64(10))),
-                Statement::WhileLoop(
-                    Expr::BinaryOp(
-                        Box::new(Expr::BinaryOp(
-                            Box::new(Expr::Id(Identifier::from("x"))),
-                            BinaryOperator::Subtract,
-                            Box::new(Expr::Constant(Value::I64(5))),
-                        )),
-                        BinaryOperator::Greater,
-                        Box::new(Expr::Constant(Value::I64(0))),
-                    ),
-                    vec![
-                        Statement::Expr(Expr::Call(
-                            Identifier::from("print_int"),
-                            vec![Expr::Id(Identifier::from("x"))],
-                        )),
-                        Statement::Assign(
-                            AssignDest::Id(Identifier::from("x")),
-                            Expr::BinaryOp(
-                                Box::new(Expr::Id(Identifier::from("x"))),
-                                BinaryOperator::Subtract,
-                                Box::new(Expr::Constant(Value::I64(1))),
-                            ),
-                        ),
-                    ],
-                ),
-            ],
-            types: TypeEnv::new(),
-        },
-        inputs: VecDeque::new(),
-        expected_outputs: VecDeque::from(vec![10, 9, 8, 7, 6]),
-    });
-}
-
-#[test]
-fn test_remove_complex_operands_while_loop_complex_body() {
-    // i = 3
-    // while i > 0 {
-    //     print_int((read_int() + 10) + (20 - 5))
-    //     i = i - 1
-    // }
-    execute_test_case(TestCase {
-        ast: Module {
-            body: vec![
-                Statement::Assign(AssignDest::Id(Identifier::from("i")), Expr::Constant(Value::I64(3))),
-                Statement::WhileLoop(
-                    Expr::BinaryOp(
-                        Box::new(Expr::Id(Identifier::from("i"))),
-                        BinaryOperator::Greater,
-                        Box::new(Expr::Constant(Value::I64(0))),
-                    ),
-                    vec![
-                        Statement::Expr(Expr::Call(
-                            Identifier::from("print_int"),
-                            vec![Expr::BinaryOp(
-                                Box::new(Expr::BinaryOp(
-                                    Box::new(Expr::Call(Identifier::from("read_int"), vec![])),
-                                    BinaryOperator::Add,
-                                    Box::new(Expr::Constant(Value::I64(10))),
-                                )),
-                                BinaryOperator::Add,
-                                Box::new(Expr::BinaryOp(
-                                    Box::new(Expr::Constant(Value::I64(20))),
-                                    BinaryOperator::Subtract,
-                                    Box::new(Expr::Constant(Value::I64(5))),
-                                )),
-                            )],
-                        )),
-                        Statement::Assign(
-                            AssignDest::Id(Identifier::from("i")),
-                            Expr::BinaryOp(
-                                Box::new(Expr::Id(Identifier::from("i"))),
-                                BinaryOperator::Subtract,
-                                Box::new(Expr::Constant(Value::I64(1))),
-                            ),
-                        ),
-                    ],
-                ),
-            ],
-            types: TypeEnv::new(),
-        },
-        inputs: VecDeque::from(vec![1, 2, 3]),
-        expected_outputs: VecDeque::from(vec![1 + 10 + 15, 2 + 10 + 15, 3 + 10 + 15]),
     });
 }

@@ -1,13 +1,13 @@
 #![allow(dead_code)]
 
-use cs4999_compiler::ast::{self, AssignDest, Identifier, Value};
+use compiler::ast::{self, AssignDest, Identifier, Value};
 use std::collections::HashMap;
 
 pub mod ast_interpreter;
 pub mod ir_interpreter;
 pub mod x86_interpreter;
 
-mod interpreter_utils;
+pub(crate) mod interpreter_utils;
 
 type ValueEnv = HashMap<AssignDest, Value>;
 

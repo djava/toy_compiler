@@ -1,11 +1,11 @@
 use std::collections::VecDeque;
 
-use cs4999_compiler::{
+use compiler::{
     ast::{AssignDest, Identifier, Value},
     ir::*,
 };
 
-use crate::infra::{ValueEnv, interpreter_utils::*};
+use crate::{ValueEnv, interpreter_utils::*};
 
 #[derive(Debug, Clone)]
 enum Continuation {

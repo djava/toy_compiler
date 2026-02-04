@@ -1,4 +1,4 @@
-use cs4999_compiler::{ast, parser::*};
+use compiler::{ast, parser::*};
 use std::collections::HashMap;
 
 use parse_tree as pt;

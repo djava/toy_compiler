@@ -1,12 +1,11 @@
-mod infra;
 use std::collections::VecDeque;
 
-use cs4999_compiler::{
+use compiler::{
     ast::*,
     passes::{ASTPass, ShortCircuiting, TypeCheck},
 };
 
-use crate::infra::ast_interpreter::interpret;
+use test_support::ast_interpreter::interpret;
 
 struct TestCase {
     ast: Module,

@@ -1,7 +1,8 @@
 use std::collections::VecDeque;
 
-use crate::infra::ValueEnv;
-use cs4999_compiler::{
+use crate::ValueEnv;
+
+use compiler::{
     ast::{AssignDest, Value},
     ir::Identifier,
     x86_ast::*,
@@ -19,8 +20,10 @@ struct Eflags {
 struct X86Env {
     vars: ValueEnv,
     regs: [i64; 16],
-    memory: [u8; 2048],
+    stack: [u8; 2048],
     eflags: Eflags,
+    heap: [u8; 2048],
+    gc_free_ptr: i64,
 }
 
 impl X86Env {
@@ -28,8 +31,10 @@ impl X86Env {
         let mut ret = Self {
             vars: ValueEnv::new(),
             regs: [0; 16],
-            memory: [0; 2048],
+            stack: [0; 2048],
             eflags: Eflags::default(),
+            heap: [0; 2048],
+            gc_free_ptr: 0x10000
         };
 
         ret.regs[Register::rsp as usize] = 2048;
@@ -63,7 +68,7 @@ impl X86Env {
 
                 let bytes = value.to_le_bytes();
                 for (idx, byte) in bytes.iter().enumerate() {
-                    self.memory[addr + idx] = *byte;
+                    self.stack[addr + idx] = *byte;
                 }
             }
             Arg::ByteReg(reg) => match reg {
@@ -93,7 +98,12 @@ impl X86Env {
                 }
             },
             Arg::Immediate(_) => panic!("Can't write to an intermediate"),
-            Arg::Global(_) => todo!("Add globals to env"),
+            Arg::Global(name) => { 
+                if &**name == "__gc_free_ptr" {
+                    self.gc_free_ptr = value;
+                }
+                // No other globals should matter in sim?
+            },
         }
     }
 
@@ -107,12 +117,21 @@ impl X86Env {
                 .expect(format!("Unknown x86var identifier: {id:?}").as_str()),
             Arg::Deref(reg, offset) => {
                 let base = self.regs[*reg as usize];
-                let addr: usize = (base + (*offset as i64)).try_into().unwrap();
+                let mut addr: usize = (base + (*offset as i64)).try_into().unwrap();
 
                 let mut bytes = [0xFF; 8];
+                let memory = if addr & 0x10000 != 0 {
+                    &self.heap
+                } else {
+                    &self.stack
+                };
+
+                addr &= !0x10000;
+
                 for (idx, byte) in bytes.iter_mut().enumerate() {
-                    *byte = self.memory[addr + idx];
+                    *byte = memory[addr + idx];
                 }
+
                 i64::from_le_bytes(bytes)
             }
             Arg::Immediate(val) => *val as i64,
@@ -142,7 +161,20 @@ impl X86Env {
                     (self.regs[Register::rdx as usize] & 0x0000_0000_0000_00FFu64 as i64) >> 0
                 }
             },
-            Arg::Global(_) => todo!("Add globals to env"),
+            Arg::Global(name) => {
+                if &**name == "__gc_free_ptr" {
+                    self.gc_free_ptr
+                } else if [
+                    "__gc_fromspace_begin", "__gc_fromspace_end",
+                    "__gc_rootstack_begin", "__gc_rootstack_end"
+                ].contains(&&**name) {
+                    // I think its ok for them all to just be 0 - it'll
+                    // trigger __gc_collect() every time but whatever
+                    0
+                } else {
+                    unimplemented!("Unknown global symbol: `{name}`")
+                }
+            },
         }
     }
 
@@ -185,6 +217,12 @@ fn execute_runtime_calls(
     } else if label == &Identifier::from("read_int") {
         let int = inputs.pop_front().expect("Overflowed input values");
         env.write_arg(&Arg::Reg(Register::rax), int);
+        return true;
+    } else if label == &Identifier::from("__gc_initialize") {
+        // Don't need to do anything in sim
+        return true;
+    } else if label == &Identifier::from("__gc_collect") {
+        // Don't need to do anything in sim
         return true;
     } else {
         // No match found, must be another call
@@ -239,7 +277,7 @@ fn run_instr(
         }
         Instr::callq(label, _num_args) => {
             if !execute_runtime_calls(label, inputs, outputs, env) {
-                unimplemented!("User-defined function calls not implemented");
+                unimplemented!("Function call not implemented: {label:?}");
             }
             Continuation::Next
         }
@@ -277,6 +315,10 @@ fn run_instr(
             env.write_arg(d, env.read_arg(d) << env.read_arg(s));
             Continuation::Next
         }
+        Instr::andq(s, d) => {
+            env.write_arg(d, env.read_arg(d) & env.read_arg(s));
+            Continuation::Next
+        },
     }
 }
 

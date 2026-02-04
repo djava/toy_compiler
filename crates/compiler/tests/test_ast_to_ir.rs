@@ -1,7 +1,6 @@
-mod infra;
 use std::collections::VecDeque;
 
-use cs4999_compiler::{
+use compiler::{
     ast::*,
     passes::{
         ASTPass, ASTtoIRPass, ShortCircuiting, TranslateASTtoIR, TypeCheck,
@@ -9,7 +8,7 @@ use cs4999_compiler::{
     },
 };
 
-use crate::infra::{
+use test_support::{
     ast_const_int, ast_print_int, ast_read_int, ir_interpreter::interpret_irprogram,
 };
 
