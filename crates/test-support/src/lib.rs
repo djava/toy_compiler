@@ -3,6 +3,8 @@
 use compiler::ast::{self, AssignDest, Identifier, Value};
 use std::collections::HashMap;
 
+pub use compiler;
+
 pub mod ast_interpreter;
 pub mod ir_interpreter;
 pub mod x86_interpreter;

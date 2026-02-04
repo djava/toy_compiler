@@ -44,12 +44,12 @@ fn shortcircuit_expr(e: &mut Expr) {
         Expr::Constant(_) | Expr::Id(_) => {}
         Expr::Tuple(elems) => {
             elems.iter_mut().for_each(shortcircuit_expr);
-        },
+        }
         Expr::Subscript(tup, _idx) => {
             shortcircuit_expr(tup);
-        },
-        Expr::Allocate(_, _) => {},
-        Expr::GlobalSymbol(_) => {},
+        }
+        Expr::Allocate(_, _) => {}
+        Expr::GlobalSymbol(_) => {}
     }
 
     // Apply transformation, only applies to expressions with And/Or
@@ -68,5 +68,200 @@ fn shortcircuit_expr(e: &mut Expr) {
             Box::new(Expr::Constant(Value::Bool(false))),
             right.clone(),
         );
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use std::collections::VecDeque;
+    use test_support::{
+        compiler::{ast::*, passes::{ASTPass, ShortCircuiting}, utils::type_check_ast_statements},
+        *,
+    };
+
+    struct TestCase {
+        ast: Module,
+        inputs: VecDeque<i64>,
+        expected_outputs: VecDeque<i64>,
+    }
+
+    fn assert_expr_no_and_or(e: &Expr) {
+        match e {
+            Expr::BinaryOp(_, BinaryOperator::And, _)
+            | Expr::BinaryOp(_, BinaryOperator::Or, _) => {
+                panic!("short circuiting should have removed and And/Or operators");
+            }
+            Expr::BinaryOp(left, _, right) => {
+                assert_expr_no_and_or(&*left);
+                assert_expr_no_and_or(&*right);
+            }
+            Expr::UnaryOp(_, expr) => {
+                assert_expr_no_and_or(&*expr);
+            }
+            Expr::Call(_, exprs) => {
+                exprs.iter().for_each(assert_expr_no_and_or);
+            }
+            Expr::Ternary(cond, pos, neg) => {
+                assert_expr_no_and_or(cond);
+                assert_expr_no_and_or(pos);
+                assert_expr_no_and_or(neg);
+            }
+            _ => {}
+        }
+    }
+
+    fn assert_statement_no_and_or(s: &Statement) {
+        match s {
+            Statement::Assign(_, expr) => assert_expr_no_and_or(&expr),
+            Statement::Expr(expr) => assert_expr_no_and_or(&expr),
+            Statement::Conditional(expr, pos, neg) => {
+                assert_expr_no_and_or(&expr);
+                pos.iter().for_each(assert_statement_no_and_or);
+                neg.iter().for_each(assert_statement_no_and_or);
+            }
+            Statement::WhileLoop(expr, body) => {
+                assert_expr_no_and_or(&expr);
+                body.iter().for_each(assert_statement_no_and_or);
+            }
+        }
+    }
+
+    fn execute_test_case(mut tc: TestCase) {
+        type_check_ast_statements(&tc.ast.body, &mut TypeEnv::new());
+
+        println!("AST before Short Circuiting: {:?}", tc.ast);
+        let post_run_ast = ShortCircuiting.run_pass(tc.ast);
+        println!("AST after Short Circuiting: {:?}", post_run_ast);
+
+        type_check_ast_statements(&post_run_ast.body, &mut TypeEnv::new());
+
+        post_run_ast
+            .body
+            .iter()
+            .for_each(assert_statement_no_and_or);
+
+        let mut outputs = VecDeque::<i64>::new();
+        ast_interpreter::interpret(&post_run_ast, &mut tc.inputs, &mut outputs);
+
+        assert!(tc.inputs.is_empty());
+        assert_eq!(outputs, tc.expected_outputs);
+    }
+
+    #[test]
+    fn test_simple() {
+        let tc = TestCase {
+            ast: Module {
+                body: vec![Statement::Expr(Expr::BinaryOp(
+                    Box::new(Expr::Constant(Value::Bool(true))),
+                    BinaryOperator::And,
+                    Box::new(Expr::Constant(Value::Bool(false))),
+                ))],
+                types: TypeEnv::new(),
+            },
+            inputs: VecDeque::new(),
+            expected_outputs: VecDeque::new(),
+        };
+
+        execute_test_case(tc);
+    }
+
+    #[test]
+    fn test_nested() {
+        let tc = TestCase {
+            ast: Module {
+                body: vec![Statement::Expr(Expr::BinaryOp(
+                    Box::new(Expr::Constant(Value::Bool(true))),
+                    BinaryOperator::And,
+                    Box::new(Expr::BinaryOp(
+                        Box::new(Expr::Constant(Value::Bool(true))),
+                        BinaryOperator::And,
+                        Box::new(Expr::BinaryOp(
+                            Box::new(Expr::Constant(Value::Bool(true))),
+                            BinaryOperator::And,
+                            Box::new(Expr::BinaryOp(
+                                Box::new(Expr::Constant(Value::Bool(true))),
+                                BinaryOperator::And,
+                                Box::new(Expr::BinaryOp(
+                                    Box::new(Expr::Constant(Value::Bool(true))),
+                                    BinaryOperator::And,
+                                    Box::new(Expr::Constant(Value::Bool(false))),
+                                )),
+                            )),
+                        )),
+                    )),
+                ))],
+                types: TypeEnv::new(),
+            },
+            inputs: VecDeque::new(),
+            expected_outputs: VecDeque::new(),
+        };
+
+        execute_test_case(tc);
+    }
+
+    #[test]
+    fn test_comparisons_and() {
+        let tc = TestCase {
+            ast: Module {
+                body: vec![
+                    Statement::Expr(Expr::BinaryOp(
+                        Box::new(Expr::Constant(Value::Bool(true))),
+                        BinaryOperator::And,
+                        Box::new(Expr::BinaryOp(
+                            Box::new(Expr::Constant(Value::I64(1))),
+                            BinaryOperator::Equals,
+                            Box::new(Expr::Call(Identifier::from("read_int"), vec![])),
+                        )),
+                    )),
+                    Statement::Expr(Expr::BinaryOp(
+                        Box::new(Expr::Constant(Value::Bool(false))),
+                        BinaryOperator::And,
+                        Box::new(Expr::BinaryOp(
+                            Box::new(Expr::Constant(Value::I64(1))),
+                            BinaryOperator::Equals,
+                            Box::new(Expr::Call(Identifier::from("read_int"), vec![])),
+                        )),
+                    )),
+                ],
+                types: TypeEnv::new(),
+            },
+            inputs: VecDeque::from([1]),
+            expected_outputs: VecDeque::new(),
+        };
+
+        execute_test_case(tc);
+    }
+
+    #[test]
+    fn test_comparisons_or() {
+        let tc = TestCase {
+            ast: Module {
+                body: vec![
+                    Statement::Expr(Expr::BinaryOp(
+                        Box::new(Expr::Constant(Value::Bool(true))),
+                        BinaryOperator::Or,
+                        Box::new(Expr::BinaryOp(
+                            Box::new(Expr::Constant(Value::I64(1))),
+                            BinaryOperator::Equals,
+                            Box::new(Expr::Call(Identifier::from("read_int"), vec![])),
+                        )),
+                    )),
+                    Statement::Expr(Expr::BinaryOp(
+                        Box::new(Expr::Constant(Value::Bool(false))),
+                        BinaryOperator::Or,
+                        Box::new(Expr::BinaryOp(
+                            Box::new(Expr::Constant(Value::I64(1))),
+                            BinaryOperator::Equals,
+                            Box::new(Expr::Call(Identifier::from("read_int"), vec![])),
+                        )),
+                    )),
+                ],
+                types: TypeEnv::new(),
+            },
+            inputs: VecDeque::from([1]),
+            expected_outputs: VecDeque::new(),
+        };
+
+        execute_test_case(tc);
     }
 }

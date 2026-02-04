@@ -139,9 +139,11 @@ fn partial_eval_expr(e: &mut Expr) {
                     *e = Constant(elem_val.clone());
                 }
             }
-        },
+        }
         GlobalSymbol(_) => {}
-        Allocate(_, _) => panic!("This pass should've happened before any Allocate calls are injected")
+        Allocate(_, _) => {
+            panic!("This pass should've happened before any Allocate calls are injected")
+        }
     }
 }
 
@@ -235,5 +237,358 @@ impl UnaryOperatorExt for UnaryOperator {
                 ValueType::from(v)
             ),
         }
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use std::collections::VecDeque;
+
+    use test_support::{
+        ast_interpreter::interpret,
+        compiler::{
+            ast::*,
+            passes::{ASTPass, partial_eval::PartialEval},
+            utils::type_check_ast_statements
+        },
+    };
+
+    struct TestCase {
+        ast: Module,
+        inputs: VecDeque<i64>,
+        expected_outputs: VecDeque<i64>,
+    }
+
+    fn check_expr_invariants(e: &Expr) {
+        match e {
+            Expr::BinaryOp(left, _, right) => {
+                check_expr_invariants(left);
+                check_expr_invariants(right);
+                assert!(
+                    !matches!((&**left, &**right), (Expr::Constant(_), Expr::Constant(_))),
+                    "BinaryOp with two Constant operands should have been folded: {e:?}"
+                );
+            }
+            Expr::UnaryOp(_, val) => {
+                check_expr_invariants(val);
+                assert!(
+                    !matches!(&**val, Expr::Constant(_)),
+                    "UnaryOp with Constant operand should have been folded: {e:?}"
+                );
+            }
+            Expr::Call(_, args) => {
+                args.iter().for_each(check_expr_invariants);
+            }
+            Expr::Ternary(cond, pos, neg) => {
+                check_expr_invariants(cond);
+                check_expr_invariants(pos);
+                check_expr_invariants(neg);
+                assert!(
+                    !matches!(&**cond, Expr::Constant(_)),
+                    "Ternary with Constant condition should have been resolved: {e:?}"
+                );
+            }
+            Expr::Tuple(elems) => {
+                elems.iter().for_each(check_expr_invariants);
+            }
+            Expr::Subscript(tup, idx) => {
+                check_expr_invariants(tup);
+                if let Expr::Tuple(elems) = &**tup {
+                    assert!(
+                        !matches!(&elems[*idx as usize], Expr::Constant(_)),
+                        "Subscript of Tuple with Constant element should have been folded: {e:?}"
+                    );
+                }
+            }
+            Expr::StatementBlock(stmts, expr) => {
+                stmts.iter().for_each(check_statement_invariants);
+                check_expr_invariants(expr);
+            }
+            Expr::Constant(_) | Expr::Id(_) | Expr::GlobalSymbol(_) | Expr::Allocate(_, _) => {}
+        }
+    }
+
+    fn check_statement_invariants(s: &Statement) {
+        match s {
+            Statement::Assign(_, expr) => check_expr_invariants(expr),
+            Statement::Expr(expr) => check_expr_invariants(expr),
+            Statement::Conditional(cond, pos, neg) => {
+                check_expr_invariants(cond);
+                assert!(
+                    !matches!(cond, Expr::Constant(_)),
+                    "Conditional with Constant condition should have been inlined: {s:?}"
+                );
+                pos.iter().for_each(check_statement_invariants);
+                neg.iter().for_each(check_statement_invariants);
+            }
+            Statement::WhileLoop(cond, body) => {
+                check_expr_invariants(cond);
+                assert!(
+                    !matches!(cond, Expr::Constant(_)),
+                    "WhileLoop with Constant condition should have been eliminated: {s:?}"
+                );
+                body.iter().for_each(check_statement_invariants);
+            }
+        }
+    }
+
+    fn check_invariants(m: &Module) {
+        m.body.iter().for_each(check_statement_invariants);
+    }
+
+    fn execute_test_case(mut tc: TestCase) {
+        type_check_ast_statements(&tc.ast.body, &mut TypeEnv::new());
+
+        println!("AST before Partial Eval: {:?}", tc.ast);
+        let post_run_ast = PartialEval.run_pass(tc.ast);
+        println!("AST after Partial Eval: {:?}", post_run_ast);
+
+        type_check_ast_statements(&post_run_ast.body, &mut TypeEnv::new());
+        check_invariants(&post_run_ast);
+
+        let mut outputs = VecDeque::<i64>::new();
+        interpret(&post_run_ast, &mut tc.inputs, &mut outputs);
+
+        assert_eq!(outputs, tc.expected_outputs);
+    }
+
+    #[test]
+    fn test_add() {
+        execute_test_case(TestCase {
+            ast: Module {
+                body: vec![Statement::Expr(Expr::Call(
+                    Identifier::from("print_int"),
+                    vec![Expr::BinaryOp(
+                        Box::new(Expr::Constant(Value::I64(40))),
+                        BinaryOperator::Add,
+                        Box::new(Expr::Constant(Value::I64(2))),
+                    )],
+                ))],
+                types: TypeEnv::new(),
+            },
+            inputs: VecDeque::new(),
+            expected_outputs: VecDeque::from(vec![42]),
+        })
+    }
+
+    #[test]
+    fn test_input() {
+        execute_test_case(TestCase {
+            ast: Module {
+                body: vec![Statement::Expr(Expr::Call(
+                    Identifier::from("print_int"),
+                    vec![Expr::Call(Identifier::from("read_int"), vec![])],
+                ))],
+                types: TypeEnv::new(),
+            },
+            inputs: VecDeque::from(vec![42]),
+            expected_outputs: VecDeque::from(vec![42]),
+        })
+    }
+
+    #[test]
+    fn test_subinput() {
+        execute_test_case(TestCase {
+            ast: Module {
+                body: vec![Statement::Expr(Expr::Call(
+                    Identifier::from("print_int"),
+                    vec![Expr::BinaryOp(
+                        Box::new(Expr::Call(Identifier::from("read_int"), vec![])),
+                        BinaryOperator::Subtract,
+                        Box::new(Expr::Call(Identifier::from("read_int"), vec![])),
+                    )],
+                ))],
+                types: TypeEnv::new(),
+            },
+            inputs: VecDeque::from(vec![5, 3]),
+            expected_outputs: VecDeque::from(vec![2]),
+        });
+    }
+
+    #[test]
+    fn test_zero() {
+        execute_test_case(TestCase {
+            ast: Module {
+                body: vec![Statement::Expr(Expr::Call(
+                    Identifier::from("print_int"),
+                    vec![Expr::Constant(Value::I64(0))],
+                ))],
+                types: TypeEnv::new(),
+            },
+            inputs: VecDeque::from(vec![]),
+            expected_outputs: VecDeque::from(vec![0]),
+        });
+    }
+
+    #[test]
+    fn test_nested() {
+        execute_test_case(TestCase {
+            ast: Module {
+                body: vec![Statement::Expr(Expr::Call(
+                    Identifier::from("print_int"),
+                    vec![Expr::BinaryOp(
+                        Box::new(Expr::BinaryOp(
+                            Box::new(Expr::Constant(Value::I64(40))),
+                            BinaryOperator::Add,
+                            Box::new(Expr::Constant(Value::I64(2))),
+                        )),
+                        BinaryOperator::Add,
+                        Box::new(Expr::BinaryOp(
+                            Box::new(Expr::Constant(Value::I64(40))),
+                            BinaryOperator::Add,
+                            Box::new(Expr::Constant(Value::I64(2))),
+                        )),
+                    )],
+                ))],
+                types: TypeEnv::new(),
+            },
+            inputs: VecDeque::from(vec![]),
+            expected_outputs: VecDeque::from(vec![84]),
+        });
+    }
+
+    #[test]
+    fn test_mixed() {
+        execute_test_case(TestCase {
+            ast: Module {
+                body: vec![Statement::Expr(Expr::Call(
+                    Identifier::from("print_int"),
+                    vec![Expr::BinaryOp(
+                        Box::new(Expr::BinaryOp(
+                            Box::new(Expr::Call(Identifier::from("read_int"), vec![])),
+                            BinaryOperator::Add,
+                            Box::new(Expr::Constant(Value::I64(2))),
+                        )),
+                        BinaryOperator::Add,
+                        Box::new(Expr::BinaryOp(
+                            Box::new(Expr::Constant(Value::I64(40))),
+                            BinaryOperator::Add,
+                            Box::new(Expr::Constant(Value::I64(2))),
+                        )),
+                    )],
+                ))],
+                types: TypeEnv::new(),
+            },
+            inputs: VecDeque::from(vec![-100]),
+            expected_outputs: VecDeque::from(vec![44 - 100]),
+        });
+    }
+
+    #[test]
+    fn test_while_loop_simple() {
+        // x = 5
+        // while x > 0 {
+        //     print_int(x)
+        //     x = x - 1
+        // }
+        execute_test_case(TestCase {
+            ast: Module {
+                body: vec![
+                    Statement::Assign(
+                        AssignDest::Id(Identifier::from("x")),
+                        Expr::Constant(Value::I64(5)),
+                    ),
+                    Statement::WhileLoop(
+                        Expr::BinaryOp(
+                            Box::new(Expr::Id(Identifier::from("x"))),
+                            BinaryOperator::Greater,
+                            Box::new(Expr::Constant(Value::I64(0))),
+                        ),
+                        vec![
+                            Statement::Expr(Expr::Call(
+                                Identifier::from("print_int"),
+                                vec![Expr::Id(Identifier::from("x"))],
+                            )),
+                            Statement::Assign(
+                                AssignDest::Id(Identifier::from("x")),
+                                Expr::BinaryOp(
+                                    Box::new(Expr::Id(Identifier::from("x"))),
+                                    BinaryOperator::Subtract,
+                                    Box::new(Expr::Constant(Value::I64(1))),
+                                ),
+                            ),
+                        ],
+                    ),
+                ],
+                types: TypeEnv::new(),
+            },
+            inputs: VecDeque::new(),
+            expected_outputs: VecDeque::from(vec![5, 4, 3, 2, 1]),
+        });
+    }
+
+    #[test]
+    fn test_while_loop_constant_false() {
+        // while false {
+        //     print_int(100)
+        // }
+        // print_int(42)
+        execute_test_case(TestCase {
+            ast: Module {
+                body: vec![
+                    Statement::WhileLoop(
+                        Expr::Constant(Value::Bool(false)),
+                        vec![Statement::Expr(Expr::Call(
+                            Identifier::from("print_int"),
+                            vec![Expr::Constant(Value::I64(100))],
+                        ))],
+                    ),
+                    Statement::Expr(Expr::Call(
+                        Identifier::from("print_int"),
+                        vec![Expr::Constant(Value::I64(42))],
+                    )),
+                ],
+                types: TypeEnv::new(),
+            },
+            inputs: VecDeque::new(),
+            expected_outputs: VecDeque::from(vec![42]), // Loop should be removed entirely
+        });
+    }
+
+    #[test]
+    fn test_while_loop_with_partial_eval_in_body() {
+        // x = 3
+        // while x > 0 {
+        //     print_int(10 + 10)  // Should be partial evaluated to 20
+        //     x = x - 1
+        // }
+        execute_test_case(TestCase {
+            ast: Module {
+                body: vec![
+                    Statement::Assign(
+                        AssignDest::Id(Identifier::from("x")),
+                        Expr::Constant(Value::I64(3)),
+                    ),
+                    Statement::WhileLoop(
+                        Expr::BinaryOp(
+                            Box::new(Expr::Id(Identifier::from("x"))),
+                            BinaryOperator::Greater,
+                            Box::new(Expr::Constant(Value::I64(0))),
+                        ),
+                        vec![
+                            Statement::Expr(Expr::Call(
+                                Identifier::from("print_int"),
+                                vec![Expr::BinaryOp(
+                                    Box::new(Expr::Constant(Value::I64(10))),
+                                    BinaryOperator::Add,
+                                    Box::new(Expr::Constant(Value::I64(10))),
+                                )],
+                            )),
+                            Statement::Assign(
+                                AssignDest::Id(Identifier::from("x")),
+                                Expr::BinaryOp(
+                                    Box::new(Expr::Id(Identifier::from("x"))),
+                                    BinaryOperator::Subtract,
+                                    Box::new(Expr::Constant(Value::I64(1))),
+                                ),
+                            ),
+                        ],
+                    ),
+                ],
+                types: TypeEnv::new(),
+            },
+            inputs: VecDeque::new(),
+            expected_outputs: VecDeque::from(vec![20, 20, 20]),
+        });
     }
 }
