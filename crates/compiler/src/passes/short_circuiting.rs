@@ -65,7 +65,7 @@ fn shortcircuit_expr(e: &mut Expr) {
         // (A || B) is equivalent to (A ? true : B)
         *e = Expr::Ternary(
             left.clone(),
-            Box::new(Expr::Constant(Value::Bool(false))),
+            Box::new(Expr::Constant(Value::Bool(true))),
             right.clone(),
         );
     }

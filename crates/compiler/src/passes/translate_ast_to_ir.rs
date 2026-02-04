@@ -265,8 +265,8 @@ fn generate_for_predicate(
         ast::Expr::UnaryOp(op, val) => {
             vec![ir::Statement::If(
                 ir::Expr::UnaryOp(*op, expr_to_atom(&*val)),
-                neg_label,
                 pos_label,
+                neg_label,
             )]
         }
         ast::Expr::Ternary(sub_cond, sub_pos, sub_neg) => {
