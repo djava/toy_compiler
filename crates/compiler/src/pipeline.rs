@@ -52,7 +52,7 @@ impl Pipeline {
             .fold(program, |p, pass| pass.run_pass(p))
     }
 
-    pub fn make_full() -> Self {
+    pub fn make_opt() -> Self {
         Self {
             ast_passes: vec![
                 ASTtoAST::from(TypeCheck),

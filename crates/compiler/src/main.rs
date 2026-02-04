@@ -46,7 +46,7 @@ fn main() {
     };
 
     let pipeline = if args.optimize {
-        Pipeline::make_full()
+        Pipeline::make_opt()
     } else {
         Pipeline::make_no_opt()
     };
