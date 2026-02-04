@@ -5,7 +5,6 @@ by Jeremy G. Siek. I decided to write it from scratch in Rust instead of
 using the provided Python infrastructure though.
 
 TODO:
-- Refactor tests
 - Multiplication/division
 - Extract constants
 - Extract syntax trees into module + do "shared" ones for
