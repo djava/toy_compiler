@@ -1,7 +1,6 @@
 use std::sync::Arc;
 
-use crate::ast::{AssignDest, TypeEnv, ValueType};
-pub use crate::ast::{BinaryOperator, Identifier, UnaryOperator, Value};
+use super::shared::*;
 use indexmap::IndexMap;
 
 #[derive(Debug, Clone)]

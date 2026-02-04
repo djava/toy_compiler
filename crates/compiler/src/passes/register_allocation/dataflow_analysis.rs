@@ -6,10 +6,9 @@ use petgraph::{
 use std::collections::{HashMap, HashSet, VecDeque};
 
 use crate::{
-    ast::{AssignDest, TypeEnv, ValueType},
     passes::register_allocation::Location,
+    syntax_trees::{shared::*, x86::*},
     utils::x86_block_adj_graph,
-    x86_ast::*,
 };
 
 #[derive(Debug, Clone)]
@@ -282,7 +281,7 @@ fn locs_written(i: &Instr) -> Vec<Location> {
         | Instr::movq(_, r)
         | Instr::movzbq(_, r)
         | Instr::popq(r)
-        | Instr::xorq(_, r) 
+        | Instr::xorq(_, r)
         | Instr::andq(_, r)
         | Instr::sarq(_, r)
         | Instr::salq(_, r) => {
@@ -312,7 +311,9 @@ fn locs_written(i: &Instr) -> Vec<Location> {
 
             // Consider r15 to be written by a call to __gc_collect()
             // because it might do the GC copy and change the gc stack ptr
-            if let Identifier::Named(name) = func_id && &**name == "__gc_collect" {
+            if let Identifier::Named(name) = func_id
+                && &**name == "__gc_collect"
+            {
                 locations.push(Location::Reg(Register::r15));
             }
         }

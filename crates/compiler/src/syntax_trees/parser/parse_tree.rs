@@ -1,4 +1,4 @@
-use crate::parser::{ParserError, tokenizer::*};
+use super::{ParserError, tokenizer::*};
 use peg::*;
 
 #[derive(Debug, Clone, Copy, PartialEq)]

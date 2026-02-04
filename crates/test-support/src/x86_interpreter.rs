@@ -2,11 +2,7 @@ use std::collections::VecDeque;
 
 use crate::ValueEnv;
 
-use compiler::{
-    ast::{AssignDest, Value},
-    ir::Identifier,
-    x86_ast::*,
-};
+use compiler::syntax_trees::{shared::*, x86::*};
 
 #[derive(Debug, Default)]
 struct Eflags {
@@ -34,7 +30,7 @@ impl X86Env {
             stack: [0; 2048],
             eflags: Eflags::default(),
             heap: [0; 2048],
-            gc_free_ptr: 0x10000
+            gc_free_ptr: 0x10000,
         };
 
         ret.regs[Register::rsp as usize] = 2048;
@@ -105,12 +101,12 @@ impl X86Env {
                 }
             },
             Arg::Immediate(_) => panic!("Can't write to an intermediate"),
-            Arg::Global(name) => { 
+            Arg::Global(name) => {
                 if &**name == "__gc_free_ptr" {
                     self.gc_free_ptr = value;
                 }
                 // No other globals should matter in sim?
-            },
+            }
         }
     }
 
@@ -172,16 +168,20 @@ impl X86Env {
                 if &**name == "__gc_free_ptr" {
                     self.gc_free_ptr
                 } else if [
-                    "__gc_fromspace_begin", "__gc_fromspace_end",
-                    "__gc_rootstack_begin", "__gc_rootstack_end"
-                ].contains(&&**name) {
+                    "__gc_fromspace_begin",
+                    "__gc_fromspace_end",
+                    "__gc_rootstack_begin",
+                    "__gc_rootstack_end",
+                ]
+                .contains(&&**name)
+                {
                     // I think its ok for them all to just be 0 - it'll
                     // trigger __gc_collect() every time but whatever
                     0
                 } else {
                     unimplemented!("Unknown global symbol: `{name}`")
                 }
-            },
+            }
         }
     }
 
@@ -325,7 +325,7 @@ fn run_instr(
         Instr::andq(s, d) => {
             env.write_arg(d, env.read_arg(d) & env.read_arg(s));
             Continuation::Next
-        },
+        }
     }
 }
 

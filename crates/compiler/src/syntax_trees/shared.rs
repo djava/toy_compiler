@@ -1,6 +1,29 @@
 use std::collections::HashMap;
 use std::sync::Arc;
 use std::sync::atomic::{AtomicU64, Ordering};
+use bitfield_struct::bitfield;
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub enum Identifier {
+    Ephemeral(u64),
+    Named(Arc<str>),
+}
+
+impl Identifier {
+    pub fn new_ephemeral() -> Identifier {
+        static COUNTER: AtomicU64 = AtomicU64::new(0);
+        
+        let current_counter = COUNTER.load(Ordering::Relaxed);
+        COUNTER.store(current_counter + 1, Ordering::Relaxed);
+        Identifier::Ephemeral(current_counter)
+    }
+}
+
+impl From<&str> for Identifier {
+    fn from(value: &str) -> Self {
+        Identifier::Named(Arc::from(value))
+    }
+}
 
 pub type TypeEnv = HashMap<AssignDest, ValueType>;
 
@@ -76,6 +99,7 @@ impl From<&Value> for i64 {
         }
     }
 }
+
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum BinaryOperator {
@@ -155,58 +179,19 @@ impl UnaryOperator {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub enum Identifier {
-    Ephemeral(u64),
-    Named(Arc<str>),
-}
-
-impl Identifier {
-    pub fn new_ephemeral() -> Identifier {
-        static COUNTER: AtomicU64 = AtomicU64::new(0);
-
-        let current_counter = COUNTER.load(Ordering::Relaxed);
-        COUNTER.store(current_counter + 1, Ordering::Relaxed);
-        Identifier::Ephemeral(current_counter)
-    }
-}
-
-impl From<&str> for Identifier {
-    fn from(value: &str) -> Self {
-        Identifier::Named(Arc::from(value))
-    }
-}
-
-#[derive(Debug, Clone, PartialEq)]
-pub enum Expr {
-    Constant(Value),
-    BinaryOp(Box<Expr>, BinaryOperator, Box<Expr>),
-    UnaryOp(UnaryOperator, Box<Expr>),
-    Call(Identifier, Vec<Expr>),
-    Id(Identifier),
-    Ternary(Box<Expr>, Box<Expr>, Box<Expr>),
-    StatementBlock(Vec<Statement>, Box<Expr>),
-    Tuple(Vec<Expr>),
-    Subscript(Box<Expr>, i64),
-    Allocate(usize, ValueType),
-    GlobalSymbol(Arc<str>)
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum AssignDest {
     Id(Identifier),
     Subscript(Identifier, i64)
 }
 
-#[derive(Debug, Clone, PartialEq)]
-pub enum Statement {
-    Assign(AssignDest, Expr),
-    Expr(Expr),
-    Conditional(Expr, Vec<Statement>, Vec<Statement>),
-    WhileLoop(Expr, Vec<Statement>),
-}
 
-#[derive(Debug, Clone, PartialEq)]
-pub struct Module {
-    pub body: Vec<Statement>,
-    pub types: TypeEnv,
+#[bitfield(u64, order = Lsb)]
+pub struct TupleTag {
+    pub forwarding: bool,
+    #[bits(6)]
+    pub length: u8,
+    #[bits(50)]
+    pub pointer_mask: u64,
+    #[bits(7)]
+    __: u8
 }

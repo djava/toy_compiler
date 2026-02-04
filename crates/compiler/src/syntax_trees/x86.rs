@@ -1,19 +1,7 @@
 use std::{fmt::Display, sync::Arc};
-use bitfield_struct::bitfield;
 
-pub use crate::ast::Identifier;
-use crate::ast::TypeEnv;
+use super::shared::*;
 
-#[bitfield(u64, order = Lsb)]
-pub struct TupleTag {
-    pub forwarding: bool,
-    #[bits(6)]
-    pub length: u8,
-    #[bits(50)]
-    pub pointer_mask: u64,
-    #[bits(7)]
-    __: u8
-}
 
 #[allow(non_camel_case_types)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]

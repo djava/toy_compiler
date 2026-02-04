@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use crate::{passes::X86Pass, x86_ast::*};
+use crate::{passes::X86Pass, syntax_trees::{shared::*, x86::*}};
 
 pub struct PreludeConclusion;
 

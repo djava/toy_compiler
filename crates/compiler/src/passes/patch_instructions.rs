@@ -1,4 +1,7 @@
-use crate::{passes::X86Pass, x86_ast::*};
+use crate::{
+    passes::X86Pass,
+    syntax_trees::{shared::*, x86::*},
+};
 
 pub struct PatchInstructions;
 
@@ -76,7 +79,11 @@ mod tests {
     use std::collections::VecDeque;
 
     use test_support::{
-        compiler::{ast::*, passes::*, pipeline::Pipeline, x86_ast},
+        compiler::{
+            passes::*,
+            pipeline::Pipeline,
+            syntax_trees::{ast::*, shared::*, x86},
+        },
         x86_interpreter::interpret_x86,
     };
 
@@ -86,9 +93,9 @@ mod tests {
         expected_outputs: VecDeque<i64>,
     }
 
-    fn check_invariants(p: &x86_ast::X86Program) {
+    fn check_invariants(p: &x86::X86Program) {
         for i in p.blocks.iter().map(|x| &x.instrs).flatten() {
-            use x86_ast::{Arg, Instr};
+            use x86::{Arg, Instr};
             match i {
                 Instr::addq(s, d)
                 | Instr::subq(s, d)

@@ -1,4 +1,4 @@
-use crate::ast;
+use super::ast;
 use peg::error::ParseError;
 use peg::str::LineCol;
 
@@ -24,8 +24,8 @@ pub fn parse<'a>(input: &'a str) -> Result<ast::Module, ParserError<'a>> {
 
 #[cfg(test)]
 mod tests {
-    use test_support::compiler::{ast, parser::*};
     use std::collections::HashMap;
+    use test_support::compiler::syntax_trees::{ast, parser::*, shared::*};
 
     use parse_tree as pt;
 
@@ -58,7 +58,7 @@ mod tests {
                 statements: vec![pt::Statement::Expr(pt::Expr::Int(1))],
             },
             expected_ast: ast::Module {
-                body: vec![ast::Statement::Expr(ast::Expr::Constant(ast::Value::I64(
+                body: vec![ast::Statement::Expr(ast::Expr::Constant(Value::I64(
                     1,
                 )))],
                 types: HashMap::new(),
@@ -77,7 +77,7 @@ mod tests {
                 statements: vec![pt::Statement::Expr(pt::Expr::Int(-100))],
             },
             expected_ast: ast::Module {
-                body: vec![ast::Statement::Expr(ast::Expr::Constant(ast::Value::I64(
+                body: vec![ast::Statement::Expr(ast::Expr::Constant(Value::I64(
                     -100,
                 )))],
                 types: HashMap::new(),
@@ -101,9 +101,9 @@ mod tests {
             },
             expected_ast: ast::Module {
                 body: vec![ast::Statement::Expr(ast::Expr::BinaryOp(
-                    Box::new(ast::Expr::Constant(ast::Value::I64(1))),
-                    ast::BinaryOperator::Add,
-                    Box::new(ast::Expr::Constant(ast::Value::I64(2))),
+                    Box::new(ast::Expr::Constant(Value::I64(1))),
+                    BinaryOperator::Add,
+                    Box::new(ast::Expr::Constant(Value::I64(2))),
                 ))],
                 types: HashMap::new(),
             },
@@ -138,12 +138,12 @@ mod tests {
             },
             expected_ast: ast::Module {
                 body: vec![ast::Statement::Expr(ast::Expr::BinaryOp(
-                    Box::new(ast::Expr::Constant(ast::Value::I64(1))),
-                    ast::BinaryOperator::Add,
+                    Box::new(ast::Expr::Constant(Value::I64(1))),
+                    BinaryOperator::Add,
                     Box::new(ast::Expr::BinaryOp(
-                        Box::new(ast::Expr::Constant(ast::Value::I64(2))),
-                        ast::BinaryOperator::Add,
-                        Box::new(ast::Expr::Constant(ast::Value::I64(3))),
+                        Box::new(ast::Expr::Constant(Value::I64(2))),
+                        BinaryOperator::Add,
+                        Box::new(ast::Expr::Constant(Value::I64(3))),
                     )),
                 ))],
                 types: HashMap::new(),
@@ -171,8 +171,8 @@ mod tests {
             },
             expected_ast: ast::Module {
                 body: vec![ast::Statement::Expr(ast::Expr::UnaryOp(
-                    ast::UnaryOperator::Minus,
-                    Box::new(ast::Expr::Constant(ast::Value::I64(1))),
+                    UnaryOperator::Minus,
+                    Box::new(ast::Expr::Constant(Value::I64(1))),
                 ))],
                 types: HashMap::new(),
             },
@@ -204,11 +204,11 @@ mod tests {
             },
             expected_ast: ast::Module {
                 body: vec![ast::Statement::Assign(
-                    ast::AssignDest::Id(ast::Identifier::from("x")),
+                    AssignDest::Id(Identifier::from("x")),
                     ast::Expr::BinaryOp(
-                        Box::new(ast::Expr::Constant(ast::Value::I64(1000))),
-                        ast::BinaryOperator::Add,
-                        Box::new(ast::Expr::Constant(ast::Value::I64(-21912983))),
+                        Box::new(ast::Expr::Constant(Value::I64(1000))),
+                        BinaryOperator::Add,
+                        Box::new(ast::Expr::Constant(Value::I64(-21912983))),
                     ),
                 )],
                 types: HashMap::new(),
@@ -235,8 +235,8 @@ mod tests {
             },
             expected_ast: ast::Module {
                 body: vec![ast::Statement::Expr(ast::Expr::Call(
-                    ast::Identifier::from("print"),
-                    vec![ast::Expr::Id(ast::Identifier::from("x"))],
+                    Identifier::from("print"),
+                    vec![ast::Expr::Id(Identifier::from("x"))],
                 ))],
                 types: HashMap::new(),
             },
@@ -258,7 +258,7 @@ mod tests {
             },
             expected_ast: ast::Module {
                 body: vec![ast::Statement::Expr(ast::Expr::Call(
-                    ast::Identifier::from("oogabooga"),
+                    Identifier::from("oogabooga"),
                     vec![],
                 ))],
                 types: HashMap::new(),
@@ -309,19 +309,19 @@ mod tests {
             },
             expected_ast: ast::Module {
                 body: vec![ast::Statement::Expr(ast::Expr::Call(
-                    ast::Identifier::from("print"),
+                    Identifier::from("print"),
                     vec![ast::Expr::BinaryOp(
                         Box::new(ast::Expr::BinaryOp(
-                            Box::new(ast::Expr::Constant(ast::Value::I64(1))),
-                            ast::BinaryOperator::Add,
+                            Box::new(ast::Expr::Constant(Value::I64(1))),
+                            BinaryOperator::Add,
                             Box::new(ast::Expr::BinaryOp(
-                                Box::new(ast::Expr::Constant(ast::Value::I64(2))),
-                                ast::BinaryOperator::Add,
-                                Box::new(ast::Expr::Constant(ast::Value::I64(4))),
+                                Box::new(ast::Expr::Constant(Value::I64(2))),
+                                BinaryOperator::Add,
+                                Box::new(ast::Expr::Constant(Value::I64(4))),
                             )),
                         )),
-                        ast::BinaryOperator::Subtract,
-                        Box::new(ast::Expr::Call(ast::Identifier::from("read_int"), vec![])),
+                        BinaryOperator::Subtract,
+                        Box::new(ast::Expr::Call(Identifier::from("read_int"), vec![])),
                     )],
                 ))],
                 types: HashMap::new(),
@@ -362,13 +362,13 @@ mod tests {
             },
             expected_ast: ast::Module {
                 body: vec![ast::Statement::Expr(ast::Expr::Call(
-                    ast::Identifier::from("print"),
+                    Identifier::from("print"),
                     vec![
-                        ast::Expr::Id(ast::Identifier::from("x")),
-                        ast::Expr::Id(ast::Identifier::from("y")),
-                        ast::Expr::Constant(ast::Value::I64(1)),
-                        ast::Expr::Constant(ast::Value::I64(3)),
-                        ast::Expr::Constant(ast::Value::I64(1000)),
+                        ast::Expr::Id(Identifier::from("x")),
+                        ast::Expr::Id(Identifier::from("y")),
+                        ast::Expr::Constant(Value::I64(1)),
+                        ast::Expr::Constant(Value::I64(3)),
+                        ast::Expr::Constant(Value::I64(1000)),
                     ],
                 ))],
                 types: HashMap::new(),
@@ -397,10 +397,10 @@ mod tests {
             },
             expected_ast: ast::Module {
                 body: vec![ast::Statement::Assign(
-                    ast::AssignDest::Id(ast::Identifier::from("x")),
+                    AssignDest::Id(Identifier::from("x")),
                     ast::Expr::Call(
-                        ast::Identifier::from("Fffoo"),
-                        vec![ast::Expr::Constant(ast::Value::I64(1))],
+                        Identifier::from("Fffoo"),
+                        vec![ast::Expr::Constant(Value::I64(1))],
                     ),
                 )],
                 types: HashMap::new(),
@@ -452,21 +452,21 @@ mod tests {
             expected_ast: ast::Module {
                 body: vec![
                     ast::Statement::Assign(
-                        ast::AssignDest::Id(ast::Identifier::from("x")),
-                        ast::Expr::Constant(ast::Value::I64(100)),
+                        AssignDest::Id(Identifier::from("x")),
+                        ast::Expr::Constant(Value::I64(100)),
                     ),
                     ast::Statement::Expr(ast::Expr::Call(
-                        ast::Identifier::from("print"),
-                        vec![ast::Expr::Constant(ast::Value::I64(1000))],
+                        Identifier::from("print"),
+                        vec![ast::Expr::Constant(Value::I64(1000))],
                     )),
                     ast::Statement::Assign(
-                        ast::AssignDest::Id(ast::Identifier::from("whatevn")),
-                        ast::Expr::Id(ast::Identifier::from("x")),
+                        AssignDest::Id(Identifier::from("whatevn")),
+                        ast::Expr::Id(Identifier::from("x")),
                     ),
                     ast::Statement::Expr(ast::Expr::BinaryOp(
-                        Box::new(ast::Expr::Constant(ast::Value::I64(101010))),
-                        ast::BinaryOperator::Add,
-                        Box::new(ast::Expr::Constant(ast::Value::I64(1001010))),
+                        Box::new(ast::Expr::Constant(Value::I64(101010))),
+                        BinaryOperator::Add,
+                        Box::new(ast::Expr::Constant(Value::I64(1001010))),
                     )),
                 ],
                 types: HashMap::new(),
@@ -493,11 +493,11 @@ mod tests {
             },
             expected_ast: ast::Module {
                 body: vec![ast::Statement::Expr(ast::Expr::BinaryOp(
-                    Box::new(ast::Expr::Constant(ast::Value::I64(2))),
-                    ast::BinaryOperator::Add,
+                    Box::new(ast::Expr::Constant(Value::I64(2))),
+                    BinaryOperator::Add,
                     Box::new(ast::Expr::UnaryOp(
-                        ast::UnaryOperator::Minus,
-                        Box::new(ast::Expr::Constant(ast::Value::I64(5))),
+                        UnaryOperator::Minus,
+                        Box::new(ast::Expr::Constant(Value::I64(5))),
                     )),
                 ))],
                 types: HashMap::new(),
@@ -520,9 +520,9 @@ mod tests {
             },
             expected_ast: ast::Module {
                 body: vec![ast::Statement::Expr(ast::Expr::BinaryOp(
-                    Box::new(ast::Expr::Constant(ast::Value::Bool(false))),
-                    ast::BinaryOperator::And,
-                    Box::new(ast::Expr::Constant(ast::Value::Bool(true))),
+                    Box::new(ast::Expr::Constant(Value::Bool(false))),
+                    BinaryOperator::And,
+                    Box::new(ast::Expr::Constant(Value::Bool(true))),
                 ))],
                 types: HashMap::new(),
             },
@@ -588,29 +588,29 @@ mod tests {
             },
             expected_ast: ast::Module {
                 body: vec![ast::Statement::Expr(ast::Expr::Call(
-                    ast::Identifier::from("truefoofalse"),
+                    Identifier::from("truefoofalse"),
                     vec![ast::Expr::BinaryOp(
                         Box::new(ast::Expr::BinaryOp(
                             Box::new(ast::Expr::UnaryOp(
-                                ast::UnaryOperator::Not,
+                                UnaryOperator::Not,
                                 Box::new(ast::Expr::BinaryOp(
-                                    Box::new(ast::Expr::Constant(ast::Value::Bool(false))),
-                                    ast::BinaryOperator::And,
-                                    Box::new(ast::Expr::Constant(ast::Value::Bool(true))),
+                                    Box::new(ast::Expr::Constant(Value::Bool(false))),
+                                    BinaryOperator::And,
+                                    Box::new(ast::Expr::Constant(Value::Bool(true))),
                                 )),
                             )),
-                            ast::BinaryOperator::Or,
+                            BinaryOperator::Or,
                             Box::new(ast::Expr::BinaryOp(
-                                Box::new(ast::Expr::Constant(ast::Value::Bool(false))),
-                                ast::BinaryOperator::Equals,
-                                Box::new(ast::Expr::Constant(ast::Value::Bool(true))),
+                                Box::new(ast::Expr::Constant(Value::Bool(false))),
+                                BinaryOperator::Equals,
+                                Box::new(ast::Expr::Constant(Value::Bool(true))),
                             )),
                         )),
-                        ast::BinaryOperator::GreaterEquals,
+                        BinaryOperator::GreaterEquals,
                         Box::new(ast::Expr::BinaryOp(
-                            Box::new(ast::Expr::Constant(ast::Value::I64(1))),
-                            ast::BinaryOperator::Subtract,
-                            Box::new(ast::Expr::Constant(ast::Value::Bool(false))),
+                            Box::new(ast::Expr::Constant(Value::I64(1))),
+                            BinaryOperator::Subtract,
+                            Box::new(ast::Expr::Constant(Value::Bool(false))),
                         )),
                     )],
                 ))],
@@ -640,9 +640,9 @@ mod tests {
             },
             expected_ast: ast::Module {
                 body: vec![ast::Statement::Expr(ast::Expr::Ternary(
-                    Box::new(ast::Expr::Constant(ast::Value::Bool(true))),
-                    Box::new(ast::Expr::Constant(ast::Value::I64(1))),
-                    Box::new(ast::Expr::Constant(ast::Value::I64(2))),
+                    Box::new(ast::Expr::Constant(Value::Bool(true))),
+                    Box::new(ast::Expr::Constant(Value::I64(1))),
+                    Box::new(ast::Expr::Constant(Value::I64(2))),
                 ))],
                 types: HashMap::new(),
             },
@@ -679,12 +679,12 @@ mod tests {
             },
             expected_ast: ast::Module {
                 body: vec![ast::Statement::Expr(ast::Expr::Ternary(
-                    Box::new(ast::Expr::Constant(ast::Value::Bool(true))),
-                    Box::new(ast::Expr::Constant(ast::Value::I64(1))),
+                    Box::new(ast::Expr::Constant(Value::Bool(true))),
+                    Box::new(ast::Expr::Constant(Value::I64(1))),
                     Box::new(ast::Expr::Ternary(
-                        Box::new(ast::Expr::Constant(ast::Value::Bool(false))),
-                        Box::new(ast::Expr::Constant(ast::Value::I64(2))),
-                        Box::new(ast::Expr::Constant(ast::Value::I64(3))),
+                        Box::new(ast::Expr::Constant(Value::Bool(false))),
+                        Box::new(ast::Expr::Constant(Value::I64(2))),
+                        Box::new(ast::Expr::Constant(Value::I64(3))),
                     )),
                 ))],
                 types: HashMap::new(),
@@ -721,12 +721,12 @@ mod tests {
             expected_ast: ast::Module {
                 body: vec![ast::Statement::Expr(ast::Expr::Ternary(
                     Box::new(ast::Expr::BinaryOp(
-                        Box::new(ast::Expr::Constant(ast::Value::I64(1))),
-                        ast::BinaryOperator::Add,
-                        Box::new(ast::Expr::Constant(ast::Value::I64(2))),
+                        Box::new(ast::Expr::Constant(Value::I64(1))),
+                        BinaryOperator::Add,
+                        Box::new(ast::Expr::Constant(Value::I64(2))),
                     )),
-                    Box::new(ast::Expr::Constant(ast::Value::I64(3))),
-                    Box::new(ast::Expr::Constant(ast::Value::I64(4))),
+                    Box::new(ast::Expr::Constant(Value::I64(3))),
+                    Box::new(ast::Expr::Constant(Value::I64(4))),
                 ))],
                 types: HashMap::new(),
             },
@@ -753,8 +753,8 @@ mod tests {
             },
             expected_ast: ast::Module {
                 body: vec![ast::Statement::Conditional(
-                    ast::Expr::Constant(ast::Value::Bool(true)),
-                    vec![ast::Statement::Expr(ast::Expr::Constant(ast::Value::I64(
+                    ast::Expr::Constant(Value::Bool(true)),
+                    vec![ast::Statement::Expr(ast::Expr::Constant(Value::I64(
                         1,
                     )))],
                     vec![],
@@ -793,11 +793,11 @@ else { 2 }",
             },
             expected_ast: ast::Module {
                 body: vec![ast::Statement::Conditional(
-                    ast::Expr::Constant(ast::Value::Bool(true)),
-                    vec![ast::Statement::Expr(ast::Expr::Constant(ast::Value::I64(
+                    ast::Expr::Constant(Value::Bool(true)),
+                    vec![ast::Statement::Expr(ast::Expr::Constant(Value::I64(
                         1,
                     )))],
-                    vec![ast::Statement::Expr(ast::Expr::Constant(ast::Value::I64(
+                    vec![ast::Statement::Expr(ast::Expr::Constant(Value::I64(
                         2,
                     )))],
                 )],
@@ -847,16 +847,16 @@ else { 3 }",
             },
             expected_ast: ast::Module {
                 body: vec![ast::Statement::Conditional(
-                    ast::Expr::Constant(ast::Value::Bool(true)),
-                    vec![ast::Statement::Expr(ast::Expr::Constant(ast::Value::I64(
+                    ast::Expr::Constant(Value::Bool(true)),
+                    vec![ast::Statement::Expr(ast::Expr::Constant(Value::I64(
                         1,
                     )))],
                     vec![ast::Statement::Conditional(
-                        ast::Expr::Constant(ast::Value::Bool(false)),
-                        vec![ast::Statement::Expr(ast::Expr::Constant(ast::Value::I64(
+                        ast::Expr::Constant(Value::Bool(false)),
+                        vec![ast::Statement::Expr(ast::Expr::Constant(Value::I64(
                             2,
                         )))],
-                        vec![ast::Statement::Expr(ast::Expr::Constant(ast::Value::I64(
+                        vec![ast::Statement::Expr(ast::Expr::Constant(Value::I64(
                             3,
                         )))],
                     )],
@@ -899,13 +899,13 @@ else { 3 }",
             expected_ast: ast::Module {
                 body: vec![ast::Statement::Conditional(
                     ast::Expr::BinaryOp(
-                        Box::new(ast::Expr::Id(ast::Identifier::from("x"))),
-                        ast::BinaryOperator::Equals,
-                        Box::new(ast::Expr::Constant(ast::Value::I64(1))),
+                        Box::new(ast::Expr::Id(Identifier::from("x"))),
+                        BinaryOperator::Equals,
+                        Box::new(ast::Expr::Constant(Value::I64(1))),
                     ),
                     vec![ast::Statement::Expr(ast::Expr::Call(
-                        ast::Identifier::from("print"),
-                        vec![ast::Expr::Id(ast::Identifier::from("x"))],
+                        Identifier::from("print"),
+                        vec![ast::Expr::Id(Identifier::from("x"))],
                     ))],
                     vec![],
                 )],
@@ -949,15 +949,15 @@ else { 3 }",
             },
             expected_ast: ast::Module {
                 body: vec![ast::Statement::Conditional(
-                    ast::Expr::Constant(ast::Value::Bool(true)),
+                    ast::Expr::Constant(Value::Bool(true)),
                     vec![
                         ast::Statement::Assign(
-                            ast::AssignDest::Id(ast::Identifier::from("x")),
-                            ast::Expr::Constant(ast::Value::I64(1)),
+                            AssignDest::Id(Identifier::from("x")),
+                            ast::Expr::Constant(Value::I64(1)),
                         ),
                         ast::Statement::Expr(ast::Expr::Call(
-                            ast::Identifier::from("print"),
-                            vec![ast::Expr::Id(ast::Identifier::from("x"))],
+                            Identifier::from("print"),
+                            vec![ast::Expr::Id(Identifier::from("x"))],
                         )),
                     ],
                     vec![],
@@ -983,7 +983,7 @@ else { 3 }",
             },
             expected_ast: ast::Module {
                 body: vec![ast::Statement::Conditional(
-                    ast::Expr::Constant(ast::Value::Bool(true)),
+                    ast::Expr::Constant(Value::Bool(true)),
                     vec![],
                     vec![],
                 )],
@@ -1082,41 +1082,41 @@ else { 5 }",
             expected_ast: ast::Module {
                 body: vec![ast::Statement::Conditional(
                     ast::Expr::BinaryOp(
-                        Box::new(ast::Expr::Id(ast::Identifier::from("x"))),
-                        ast::BinaryOperator::Equals,
-                        Box::new(ast::Expr::Constant(ast::Value::I64(1))),
+                        Box::new(ast::Expr::Id(Identifier::from("x"))),
+                        BinaryOperator::Equals,
+                        Box::new(ast::Expr::Constant(Value::I64(1))),
                     ),
-                    vec![ast::Statement::Expr(ast::Expr::Constant(ast::Value::I64(
+                    vec![ast::Statement::Expr(ast::Expr::Constant(Value::I64(
                         1,
                     )))],
                     vec![ast::Statement::Conditional(
                         ast::Expr::BinaryOp(
-                            Box::new(ast::Expr::Id(ast::Identifier::from("x"))),
-                            ast::BinaryOperator::Equals,
-                            Box::new(ast::Expr::Constant(ast::Value::I64(2))),
+                            Box::new(ast::Expr::Id(Identifier::from("x"))),
+                            BinaryOperator::Equals,
+                            Box::new(ast::Expr::Constant(Value::I64(2))),
                         ),
-                        vec![ast::Statement::Expr(ast::Expr::Constant(ast::Value::I64(
+                        vec![ast::Statement::Expr(ast::Expr::Constant(Value::I64(
                             2,
                         )))],
                         vec![ast::Statement::Conditional(
                             ast::Expr::BinaryOp(
-                                Box::new(ast::Expr::Id(ast::Identifier::from("x"))),
-                                ast::BinaryOperator::Equals,
-                                Box::new(ast::Expr::Constant(ast::Value::I64(3))),
+                                Box::new(ast::Expr::Id(Identifier::from("x"))),
+                                BinaryOperator::Equals,
+                                Box::new(ast::Expr::Constant(Value::I64(3))),
                             ),
-                            vec![ast::Statement::Expr(ast::Expr::Constant(ast::Value::I64(
+                            vec![ast::Statement::Expr(ast::Expr::Constant(Value::I64(
                                 3,
                             )))],
                             vec![ast::Statement::Conditional(
                                 ast::Expr::BinaryOp(
-                                    Box::new(ast::Expr::Id(ast::Identifier::from("x"))),
-                                    ast::BinaryOperator::Equals,
-                                    Box::new(ast::Expr::Constant(ast::Value::I64(4))),
+                                    Box::new(ast::Expr::Id(Identifier::from("x"))),
+                                    BinaryOperator::Equals,
+                                    Box::new(ast::Expr::Constant(Value::I64(4))),
                                 ),
-                                vec![ast::Statement::Expr(ast::Expr::Constant(ast::Value::I64(
+                                vec![ast::Statement::Expr(ast::Expr::Constant(Value::I64(
                                     4,
                                 )))],
-                                vec![ast::Statement::Expr(ast::Expr::Constant(ast::Value::I64(
+                                vec![ast::Statement::Expr(ast::Expr::Constant(Value::I64(
                                     5,
                                 )))],
                             )],
@@ -1156,11 +1156,11 @@ else { 5 }",
             },
             expected_ast: ast::Module {
                 body: vec![ast::Statement::Conditional(
-                    ast::Expr::Constant(ast::Value::Bool(true)),
-                    vec![ast::Statement::Expr(ast::Expr::Constant(ast::Value::I64(
+                    ast::Expr::Constant(Value::Bool(true)),
+                    vec![ast::Statement::Expr(ast::Expr::Constant(Value::I64(
                         1,
                     )))],
-                    vec![ast::Statement::Expr(ast::Expr::Constant(ast::Value::I64(
+                    vec![ast::Statement::Expr(ast::Expr::Constant(Value::I64(
                         2,
                     )))],
                 )],
@@ -1206,16 +1206,16 @@ else { 5 }",
             },
             expected_ast: ast::Module {
                 body: vec![ast::Statement::Conditional(
-                    ast::Expr::Constant(ast::Value::Bool(true)),
-                    vec![ast::Statement::Expr(ast::Expr::Constant(ast::Value::I64(
+                    ast::Expr::Constant(Value::Bool(true)),
+                    vec![ast::Statement::Expr(ast::Expr::Constant(Value::I64(
                         1,
                     )))],
                     vec![ast::Statement::Conditional(
-                        ast::Expr::Constant(ast::Value::Bool(false)),
-                        vec![ast::Statement::Expr(ast::Expr::Constant(ast::Value::I64(
+                        ast::Expr::Constant(Value::Bool(false)),
+                        vec![ast::Statement::Expr(ast::Expr::Constant(Value::I64(
                             2,
                         )))],
-                        vec![ast::Statement::Expr(ast::Expr::Constant(ast::Value::I64(
+                        vec![ast::Statement::Expr(ast::Expr::Constant(Value::I64(
                             3,
                         )))],
                     )],
@@ -1245,8 +1245,8 @@ else { 5 }",
             },
             expected_ast: ast::Module {
                 body: vec![ast::Statement::Expr(ast::Expr::Tuple(vec![
-                    ast::Expr::Constant(ast::Value::I64(1)),
-                    ast::Expr::Constant(ast::Value::I64(2)),
+                    ast::Expr::Constant(Value::I64(1)),
+                    ast::Expr::Constant(Value::I64(2)),
                 ]))],
                 types: HashMap::new(),
             },
@@ -1271,7 +1271,7 @@ else { 5 }",
             },
             expected_ast: ast::Module {
                 body: vec![ast::Statement::Expr(ast::Expr::Tuple(vec![
-                    ast::Expr::Constant(ast::Value::I64(42)),
+                    ast::Expr::Constant(Value::I64(42)),
                 ]))],
                 types: HashMap::new(),
             },
@@ -1314,15 +1314,15 @@ else { 5 }",
             },
             expected_ast: ast::Module {
                 body: vec![ast::Statement::Assign(
-                    ast::AssignDest::Id(ast::Identifier::from("x")),
+                    AssignDest::Id(Identifier::from("x")),
                     ast::Expr::Tuple(vec![
                         ast::Expr::BinaryOp(
-                            Box::new(ast::Expr::Constant(ast::Value::I64(1))),
-                            ast::BinaryOperator::Add,
-                            Box::new(ast::Expr::Constant(ast::Value::I64(2))),
+                            Box::new(ast::Expr::Constant(Value::I64(1))),
+                            BinaryOperator::Add,
+                            Box::new(ast::Expr::Constant(Value::I64(2))),
                         ),
-                        ast::Expr::Call(ast::Identifier::from("read_int"), vec![]),
-                        ast::Expr::Constant(ast::Value::Bool(true)),
+                        ast::Expr::Call(Identifier::from("read_int"), vec![]),
+                        ast::Expr::Constant(Value::Bool(true)),
                     ]),
                 )],
                 types: HashMap::new(),
@@ -1359,12 +1359,12 @@ else { 5 }",
             expected_ast: ast::Module {
                 body: vec![ast::Statement::Expr(ast::Expr::Tuple(vec![
                     ast::Expr::Tuple(vec![
-                        ast::Expr::Constant(ast::Value::I64(1)),
-                        ast::Expr::Constant(ast::Value::I64(2)),
+                        ast::Expr::Constant(Value::I64(1)),
+                        ast::Expr::Constant(Value::I64(2)),
                     ]),
                     ast::Expr::Tuple(vec![
-                        ast::Expr::Constant(ast::Value::I64(3)),
-                        ast::Expr::Constant(ast::Value::I64(4)),
+                        ast::Expr::Constant(Value::I64(3)),
+                        ast::Expr::Constant(Value::I64(4)),
                     ]),
                 ]))],
                 types: HashMap::new(),
@@ -1393,8 +1393,8 @@ else { 5 }",
             },
             expected_ast: ast::Module {
                 body: vec![ast::Statement::Expr(ast::Expr::Tuple(vec![
-                    ast::Expr::Constant(ast::Value::I64(1)),
-                    ast::Expr::Constant(ast::Value::I64(2)),
+                    ast::Expr::Constant(Value::I64(1)),
+                    ast::Expr::Constant(Value::I64(2)),
                 ]))],
                 types: HashMap::new(),
             },
@@ -1425,10 +1425,10 @@ else { 5 }",
             },
             expected_ast: ast::Module {
                 body: vec![ast::Statement::Expr(ast::Expr::Call(
-                    ast::Identifier::from("print"),
+                    Identifier::from("print"),
                     vec![ast::Expr::Tuple(vec![
-                        ast::Expr::Constant(ast::Value::I64(1)),
-                        ast::Expr::Constant(ast::Value::I64(2)),
+                        ast::Expr::Constant(Value::I64(1)),
+                        ast::Expr::Constant(Value::I64(2)),
                     ])],
                 ))],
                 types: HashMap::new(),
@@ -1457,7 +1457,7 @@ else { 5 }",
             },
             expected_ast: ast::Module {
                 body: vec![ast::Statement::Expr(ast::Expr::Subscript(
-                    Box::new(ast::Expr::Id(ast::Identifier::from("x"))),
+                    Box::new(ast::Expr::Id(Identifier::from("x"))),
                     0,
                 ))],
                 types: HashMap::new(),
@@ -1484,7 +1484,7 @@ else { 5 }",
             },
             expected_ast: ast::Module {
                 body: vec![ast::Statement::Expr(ast::Expr::Subscript(
-                    Box::new(ast::Expr::Id(ast::Identifier::from("myvar"))),
+                    Box::new(ast::Expr::Id(Identifier::from("myvar"))),
                     2,
                 ))],
                 types: HashMap::new(),
@@ -1511,7 +1511,7 @@ else { 5 }",
             },
             expected_ast: ast::Module {
                 body: vec![ast::Statement::Expr(ast::Expr::Subscript(
-                    Box::new(ast::Expr::Id(ast::Identifier::from("x"))),
+                    Box::new(ast::Expr::Id(Identifier::from("x"))),
                     -1,
                 ))],
                 types: HashMap::new(),
@@ -1543,7 +1543,7 @@ else { 5 }",
             expected_ast: ast::Module {
                 body: vec![ast::Statement::Expr(ast::Expr::Subscript(
                     Box::new(ast::Expr::Subscript(
-                        Box::new(ast::Expr::Id(ast::Identifier::from("x"))),
+                        Box::new(ast::Expr::Id(Identifier::from("x"))),
                         0,
                     )),
                     1,
@@ -1575,7 +1575,7 @@ else { 5 }",
             },
             expected_ast: ast::Module {
                 body: vec![ast::Statement::Expr(ast::Expr::Subscript(
-                    Box::new(ast::Expr::Call(ast::Identifier::from("foo"), vec![])),
+                    Box::new(ast::Expr::Call(Identifier::from("foo"), vec![])),
                     0,
                 ))],
                 types: HashMap::new(),
@@ -1607,11 +1607,11 @@ else { 5 }",
             expected_ast: ast::Module {
                 body: vec![ast::Statement::Expr(ast::Expr::BinaryOp(
                     Box::new(ast::Expr::Subscript(
-                        Box::new(ast::Expr::Id(ast::Identifier::from("x"))),
+                        Box::new(ast::Expr::Id(Identifier::from("x"))),
                         0,
                     )),
-                    ast::BinaryOperator::Add,
-                    Box::new(ast::Expr::Constant(ast::Value::I64(1))),
+                    BinaryOperator::Add,
+                    Box::new(ast::Expr::Constant(Value::I64(1))),
                 ))],
                 types: HashMap::new(),
             },
@@ -1648,8 +1648,8 @@ else { 5 }",
             expected_ast: ast::Module {
                 body: vec![ast::Statement::Expr(ast::Expr::Subscript(
                     Box::new(ast::Expr::Tuple(vec![
-                        ast::Expr::Constant(ast::Value::I64(1)),
-                        ast::Expr::Constant(ast::Value::I64(2)),
+                        ast::Expr::Constant(Value::I64(1)),
+                        ast::Expr::Constant(Value::I64(2)),
                     ])),
                     0,
                 ))],
@@ -1684,11 +1684,11 @@ else { 5 }",
             expected_ast: ast::Module {
                 body: vec![ast::Statement::Expr(ast::Expr::Ternary(
                     Box::new(ast::Expr::Subscript(
-                        Box::new(ast::Expr::Id(ast::Identifier::from("x"))),
+                        Box::new(ast::Expr::Id(Identifier::from("x"))),
                         0,
                     )),
-                    Box::new(ast::Expr::Constant(ast::Value::I64(1))),
-                    Box::new(ast::Expr::Constant(ast::Value::I64(2))),
+                    Box::new(ast::Expr::Constant(Value::I64(1))),
+                    Box::new(ast::Expr::Constant(Value::I64(2))),
                 ))],
                 types: HashMap::new(),
             },
@@ -1715,8 +1715,8 @@ else { 5 }",
             },
             expected_ast: ast::Module {
                 body: vec![ast::Statement::Assign(
-                    ast::AssignDest::Subscript(ast::Identifier::from("x"), 0),
-                    ast::Expr::Constant(ast::Value::I64(1)),
+                    AssignDest::Subscript(Identifier::from("x"), 0),
+                    ast::Expr::Constant(Value::I64(1)),
                 )],
                 types: HashMap::new(),
             },
@@ -1741,8 +1741,8 @@ else { 5 }",
             },
             expected_ast: ast::Module {
                 body: vec![ast::Statement::Assign(
-                    ast::AssignDest::Subscript(ast::Identifier::from("tup"), 3),
-                    ast::Expr::Constant(ast::Value::I64(42)),
+                    AssignDest::Subscript(Identifier::from("tup"), 3),
+                    ast::Expr::Constant(Value::I64(42)),
                 )],
                 types: HashMap::new(),
             },
@@ -1778,11 +1778,11 @@ else { 5 }",
             },
             expected_ast: ast::Module {
                 body: vec![ast::Statement::Assign(
-                    ast::AssignDest::Subscript(ast::Identifier::from("x"), 1),
+                    AssignDest::Subscript(Identifier::from("x"), 1),
                     ast::Expr::BinaryOp(
-                        Box::new(ast::Expr::Id(ast::Identifier::from("y"))),
-                        ast::BinaryOperator::Add,
-                        Box::new(ast::Expr::Constant(ast::Value::I64(1))),
+                        Box::new(ast::Expr::Id(Identifier::from("y"))),
+                        BinaryOperator::Add,
+                        Box::new(ast::Expr::Constant(Value::I64(1))),
                     ),
                 )],
                 types: HashMap::new(),
@@ -1817,10 +1817,10 @@ else { 5 }",
             },
             expected_ast: ast::Module {
                 body: vec![ast::Statement::Assign(
-                    ast::AssignDest::Subscript(ast::Identifier::from("x"), 0),
+                    AssignDest::Subscript(Identifier::from("x"), 0),
                     ast::Expr::Tuple(vec![
-                        ast::Expr::Constant(ast::Value::I64(1)),
-                        ast::Expr::Constant(ast::Value::I64(2)),
+                        ast::Expr::Constant(Value::I64(1)),
+                        ast::Expr::Constant(Value::I64(2)),
                     ]),
                 )],
                 types: HashMap::new(),
@@ -1846,8 +1846,8 @@ else { 5 }",
             },
             expected_ast: ast::Module {
                 body: vec![ast::Statement::Assign(
-                    ast::AssignDest::Subscript(ast::Identifier::from("x"), -1),
-                    ast::Expr::Constant(ast::Value::I64(99)),
+                    AssignDest::Subscript(Identifier::from("x"), -1),
+                    ast::Expr::Constant(Value::I64(99)),
                 )],
                 types: HashMap::new(),
             },
@@ -1879,10 +1879,10 @@ else { 5 }",
             },
             expected_ast: ast::Module {
                 body: vec![ast::Statement::Conditional(
-                    ast::Expr::Constant(ast::Value::Bool(true)),
+                    ast::Expr::Constant(Value::Bool(true)),
                     vec![ast::Statement::Assign(
-                        ast::AssignDest::Subscript(ast::Identifier::from("x"), 0),
-                        ast::Expr::Constant(ast::Value::I64(1)),
+                        AssignDest::Subscript(Identifier::from("x"), 0),
+                        ast::Expr::Constant(Value::I64(1)),
                     )],
                     vec![],
                 )],
@@ -1917,8 +1917,8 @@ else { 5 }",
             },
             expected_ast: ast::Module {
                 body: vec![ast::Statement::Assign(
-                    ast::AssignDest::Subscript(ast::Identifier::from("x"), 0),
-                    ast::Expr::Subscript(Box::new(ast::Expr::Id(ast::Identifier::from("y"))), 1),
+                    AssignDest::Subscript(Identifier::from("x"), 0),
+                    ast::Expr::Subscript(Box::new(ast::Expr::Id(Identifier::from("y"))), 1),
                 )],
                 types: HashMap::new(),
             },
@@ -1960,15 +1960,15 @@ x[0] = 42",
             expected_ast: ast::Module {
                 body: vec![
                     ast::Statement::Assign(
-                        ast::AssignDest::Id(ast::Identifier::from("x")),
+                        AssignDest::Id(Identifier::from("x")),
                         ast::Expr::Tuple(vec![
-                            ast::Expr::Constant(ast::Value::I64(1)),
-                            ast::Expr::Constant(ast::Value::I64(2)),
+                            ast::Expr::Constant(Value::I64(1)),
+                            ast::Expr::Constant(Value::I64(2)),
                         ]),
                     ),
                     ast::Statement::Assign(
-                        ast::AssignDest::Subscript(ast::Identifier::from("x"), 0),
-                        ast::Expr::Constant(ast::Value::I64(42)),
+                        AssignDest::Subscript(Identifier::from("x"), 0),
+                        ast::Expr::Constant(Value::I64(42)),
                     ),
                 ],
                 types: HashMap::new(),

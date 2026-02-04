@@ -5,13 +5,12 @@ use std::collections::HashMap;
 use std::mem::size_of;
 
 use crate::{
-    ast::{AssignDest, Identifier, TypeEnv, ValueType},
     passes::{X86Pass, register_allocation::graph_coloring::COLOR_TO_REG_STORAGE},
-    x86_ast,
+    syntax_trees::{shared::*, x86},
 };
 use dataflow_analysis::LivenessMap;
 use graph_coloring::color_location_graph;
-use x86_ast::*;
+use x86::*;
 
 pub struct RegisterAllocation;
 
@@ -245,7 +244,14 @@ fn replace_arg_with_allocated(
 mod tests {
     use std::collections::VecDeque;
 
-    use test_support::{x86_interpreter::interpret_x86, compiler::{ast::*, passes::*, pipeline::Pipeline, x86_ast}};
+    use test_support::{
+        compiler::{
+            passes::*,
+            pipeline::Pipeline,
+            syntax_trees::{ast::*, shared::*, x86},
+        },
+        x86_interpreter::interpret_x86,
+    };
 
     struct TestCase {
         ast: Module,
@@ -274,7 +280,7 @@ mod tests {
 
         // Ensure that all the variable arguments have been removed
         for i in after_ast.blocks.iter().map(|x| &x.instrs).flatten() {
-            use x86_ast::{Arg, Instr};
+            use x86::{Arg, Instr};
             match i {
                 Instr::addq(s, d) | Instr::subq(s, d) | Instr::movq(s, d) => {
                     for arg in [s, d] {

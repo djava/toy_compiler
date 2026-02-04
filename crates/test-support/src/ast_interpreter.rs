@@ -1,5 +1,5 @@
 use crate::{ValueEnv, interpreter_utils::*};
-use compiler::ast::*;
+use compiler::syntax_trees::{shared::*, ast::*};
 use std::collections::VecDeque;
 
 fn interpret_expr(

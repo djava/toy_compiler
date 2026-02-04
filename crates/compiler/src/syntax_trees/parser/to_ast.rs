@@ -1,19 +1,19 @@
-use crate::ast;
-use crate::parser::parse_tree as pt;
+use crate::syntax_trees::{ast, shared::*};
+use super::parse_tree as pt;
 use std::iter::Peekable;
 use std::vec::IntoIter;
 
 fn to_ast_expr(pte: pt::Expr) -> ast::Expr {
     match pte {
-        pt::Expr::Int(val) => ast::Expr::Constant(ast::Value::I64(val)),
-        pt::Expr::Bool(val) => ast::Expr::Constant(ast::Value::Bool(val)),
-        pt::Expr::Id(name) => ast::Expr::Id(ast::Identifier::from(name)),
+        pt::Expr::Int(val) => ast::Expr::Constant(Value::I64(val)),
+        pt::Expr::Bool(val) => ast::Expr::Constant(Value::Bool(val)),
+        pt::Expr::Id(name) => ast::Expr::Id(Identifier::from(name)),
         pt::Expr::Unary(op, val) => {
             let ast_val = Box::new(to_ast_expr(*val));
             let ast_op = match op {
-                pt::Operator::Minus => ast::UnaryOperator::Minus,
-                pt::Operator::Plus => ast::UnaryOperator::Plus,
-                pt::Operator::Not => ast::UnaryOperator::Not,
+                pt::Operator::Minus => UnaryOperator::Minus,
+                pt::Operator::Plus => UnaryOperator::Plus,
+                pt::Operator::Not => UnaryOperator::Not,
                 _ => panic!("{op:?} should never be in a unary expression"),
             };
 
@@ -24,17 +24,17 @@ fn to_ast_expr(pte: pt::Expr) -> ast::Expr {
             let ast_left = Box::new(to_ast_expr(*left));
             let ast_right = Box::new(to_ast_expr(*right));
             let ast_op = match op {
-                pt::Operator::Minus => ast::BinaryOperator::Subtract,
-                pt::Operator::Plus => ast::BinaryOperator::Add,
-                pt::Operator::And => ast::BinaryOperator::And,
-                pt::Operator::Or => ast::BinaryOperator::Or,
-                pt::Operator::Equals => ast::BinaryOperator::Equals,
-                pt::Operator::NotEquals => ast::BinaryOperator::NotEquals,
-                pt::Operator::Greater => ast::BinaryOperator::Greater,
-                pt::Operator::GreaterEquals => ast::BinaryOperator::GreaterEquals,
-                pt::Operator::Less => ast::BinaryOperator::Less,
-                pt::Operator::LessEquals => ast::BinaryOperator::LessEquals,
-                pt::Operator::Is => ast::BinaryOperator::Is,
+                pt::Operator::Minus => BinaryOperator::Subtract,
+                pt::Operator::Plus => BinaryOperator::Add,
+                pt::Operator::And => BinaryOperator::And,
+                pt::Operator::Or => BinaryOperator::Or,
+                pt::Operator::Equals => BinaryOperator::Equals,
+                pt::Operator::NotEquals => BinaryOperator::NotEquals,
+                pt::Operator::Greater => BinaryOperator::Greater,
+                pt::Operator::GreaterEquals => BinaryOperator::GreaterEquals,
+                pt::Operator::Less => BinaryOperator::Less,
+                pt::Operator::LessEquals => BinaryOperator::LessEquals,
+                pt::Operator::Is => BinaryOperator::Is,
                 pt::Operator::Not => {
                     panic!("pt::Operator::Not should never be in a Binary expression")
                 }
@@ -45,7 +45,7 @@ fn to_ast_expr(pte: pt::Expr) -> ast::Expr {
         pt::Expr::Call(id, args) => {
             let ast_args = args.into_iter().map(to_ast_expr).collect();
 
-            ast::Expr::Call(ast::Identifier::from(id), ast_args)
+            ast::Expr::Call(Identifier::from(id), ast_args)
         }
         pt::Expr::Ternary(cond, pos, neg) => {
             let ast_cond = to_ast_expr(*cond);
@@ -69,11 +69,11 @@ pub fn to_ast_statement<'a>(
     match iter.next() {
         Some(pt::Statement::Expr(pte)) => Some(ast::Statement::Expr(to_ast_expr(pte))),
         Some(pt::Statement::Assign(name, pte)) => Some(ast::Statement::Assign(
-            ast::AssignDest::Id(ast::Identifier::from(name)),
+            AssignDest::Id(Identifier::from(name)),
             to_ast_expr(pte),
         )),
         Some(pt::Statement::SubscriptAssign(name, idx, pte)) => Some(ast::Statement::Assign(
-            ast::AssignDest::Subscript(ast::Identifier::from(name), idx),
+            AssignDest::Subscript(Identifier::from(name), idx),
             to_ast_expr(pte),
         )),
         Some(pt::Statement::If(cond, body)) => {
@@ -156,6 +156,6 @@ fn to_ast_statements(body: Vec<pt::Statement>) -> Vec<ast::Statement> {
 pub fn to_ast(ptm: pt::Module) -> ast::Module {
     ast::Module {
         body: to_ast_statements(ptm.statements),
-        types: ast::TypeEnv::new(),
+        types: TypeEnv::new(),
     }
 }

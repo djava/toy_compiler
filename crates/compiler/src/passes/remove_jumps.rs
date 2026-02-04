@@ -1,6 +1,6 @@
 use petgraph::visit::EdgeRef;
 
-use crate::{passes::X86Pass, utils::x86_block_adj_graph, x86_ast::*};
+use crate::{passes::X86Pass, utils::x86_block_adj_graph, syntax_trees::x86::*};
 
 pub struct RemoveJumps;
 

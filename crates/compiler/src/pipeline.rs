@@ -1,4 +1,4 @@
-use crate::{ast, ir, passes::*, x86_ast};
+use crate::{syntax_trees::*, passes::*};
 
 pub struct Pipeline {
     pub ast_passes: Vec<ASTtoAST>,
@@ -9,7 +9,7 @@ pub struct Pipeline {
 }
 
 impl Pipeline {
-    pub fn run(self, program: ast::Module) -> x86_ast::X86Program {
+    pub fn run(self, program: ast::Module) -> x86::X86Program {
         let final_ast = self
             .ast_passes
             .into_iter()
@@ -46,7 +46,7 @@ impl Pipeline {
         self.ast_to_ir_pass.run_pass(final_ast)
     }
 
-    pub fn run_x86_only(self, program: x86_ast::X86Program) -> x86_ast::X86Program {
+    pub fn run_x86_only(self, program: x86::X86Program) -> x86::X86Program {
         self.x86_passes
             .into_iter()
             .fold(program, |p, pass| pass.run_pass(p))

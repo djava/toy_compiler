@@ -1,4 +1,4 @@
-use compiler::ast::*;
+use compiler::syntax_trees::shared::*;
 
 pub trait ValueExt {
     fn expect_int(self) -> i64;

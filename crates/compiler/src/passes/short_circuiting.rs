@@ -1,4 +1,7 @@
-use crate::{ast::*, passes::ASTPass};
+use crate::{
+    passes::ASTPass,
+    syntax_trees::{ast::*, shared::*},
+};
 
 pub struct ShortCircuiting;
 
@@ -75,7 +78,11 @@ fn shortcircuit_expr(e: &mut Expr) {
 mod tests {
     use std::collections::VecDeque;
     use test_support::{
-        compiler::{ast::*, passes::{ASTPass, ShortCircuiting}, utils::type_check_ast_statements},
+        compiler::{
+            passes::{ASTPass, ShortCircuiting},
+            syntax_trees::{ast::*, shared::*},
+            utils::type_check_ast_statements,
+        },
         *,
     };
 

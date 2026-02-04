@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use crate::{ast::*, passes::ASTPass, utils::type_check_ast_expr};
+use crate::{syntax_trees::{shared::*, ast::*}, passes::ASTPass, utils::type_check_ast_expr};
 
 pub struct InjectAllocations;
 

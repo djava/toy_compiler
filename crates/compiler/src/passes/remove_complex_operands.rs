@@ -1,4 +1,7 @@
-use crate::{ast::*, passes::ASTPass};
+use crate::{
+    passes::ASTPass,
+    syntax_trees::{ast::*, shared::*},
+};
 
 pub struct RemoveComplexOperands;
 
@@ -342,9 +345,9 @@ mod tests {
     use test_support::{
         ast_interpreter::interpret,
         compiler::{
-            ast::*,
             passes::{ASTPass, remove_complex_operands::RemoveComplexOperands},
-            utils::type_check_ast_statements
+            syntax_trees::{ast::*, shared::*},
+            utils::type_check_ast_statements,
         },
     };
 
@@ -361,11 +364,20 @@ mod tests {
     fn check_expr_invariants(e: &Expr) {
         match e {
             Expr::BinaryOp(left, _, right) => {
-                assert!(is_atomic(left), "BinaryOp left operand must be atomic, got {left:?}");
-                assert!(is_atomic(right), "BinaryOp right operand must be atomic, got {right:?}");
+                assert!(
+                    is_atomic(left),
+                    "BinaryOp left operand must be atomic, got {left:?}"
+                );
+                assert!(
+                    is_atomic(right),
+                    "BinaryOp right operand must be atomic, got {right:?}"
+                );
             }
             Expr::UnaryOp(_, val) => {
-                assert!(is_atomic(val), "UnaryOp operand must be atomic, got {val:?}");
+                assert!(
+                    is_atomic(val),
+                    "UnaryOp operand must be atomic, got {val:?}"
+                );
             }
             Expr::Call(_, args) => {
                 for arg in args {
@@ -374,11 +386,17 @@ mod tests {
             }
             Expr::Tuple(elems) => {
                 for elem in elems {
-                    assert!(is_atomic(elem), "Tuple element must be atomic, got {elem:?}");
+                    assert!(
+                        is_atomic(elem),
+                        "Tuple element must be atomic, got {elem:?}"
+                    );
                 }
             }
             Expr::Subscript(tup, _) => {
-                assert!(is_atomic(tup), "Subscript target must be atomic, got {tup:?}");
+                assert!(
+                    is_atomic(tup),
+                    "Subscript target must be atomic, got {tup:?}"
+                );
             }
             Expr::Ternary(cond, pos, neg) => {
                 check_expr_invariants(cond);

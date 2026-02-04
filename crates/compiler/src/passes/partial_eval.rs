@@ -1,4 +1,4 @@
-use crate::{ast::*, passes::ASTPass};
+use crate::{syntax_trees::{ast::*, shared::*}, passes::ASTPass};
 
 pub struct PartialEval;
 
@@ -247,7 +247,7 @@ mod test {
     use test_support::{
         ast_interpreter::interpret,
         compiler::{
-            ast::*,
+            syntax_trees::{ast::*, shared::*},
             passes::{ASTPass, partial_eval::PartialEval},
             utils::type_check_ast_statements
         },

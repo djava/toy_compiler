@@ -1,4 +1,4 @@
-use crate::{ast::*, passes::ASTPass, utils::type_check_ast_statements};
+use crate::{syntax_trees::ast::Module, passes::ASTPass, utils::type_check_ast_statements};
 
 pub struct TypeCheck;
 

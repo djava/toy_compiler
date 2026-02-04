@@ -1,16 +1,18 @@
 use std::sync::Arc;
 
 use crate::{
-    ast::{AssignDest, ValueType},
-    ir::{self, BinaryOperator, IRProgram, Identifier, UnaryOperator},
     passes::IRtoX86Pass,
-    x86_ast::{self as x86, Instr, Register, TupleTag, X86Program},
+    syntax_trees::{
+        ir,
+        shared::*,
+        x86::{self, Instr, Register, X86Program},
+    },
 };
 
 pub struct TranslateIRtoX86;
 
 impl IRtoX86Pass for TranslateIRtoX86 {
-    fn run_pass(self, m: IRProgram) -> X86Program {
+    fn run_pass(self, m: ir::IRProgram) -> X86Program {
         let mut x86_blocks = vec![];
         for (id, block) in m.blocks {
             x86_blocks.push(translate_block(id, block));
@@ -248,7 +250,7 @@ fn translate_comparison(
         c
     } else {
         panic!(
-            "Tried to convert {cmp_op:?} to x86_ast::Comparison - Missing case in translate_expr()?"
+            "Tried to convert {cmp_op:?} to x86::Comparison - Missing case in translate_expr()?"
         );
     };
 
@@ -405,7 +407,11 @@ fn translate_unary_plus(dest: AssignDest, atom: ir::Atom) -> Vec<Instr> {
     }
 }
 
-const SPECIAL_FUNCTIONS: [(&'static str, usize, fn(Vec<ir::Atom>, Option<AssignDest>) -> Vec<Instr>); 2] = [
+const SPECIAL_FUNCTIONS: [(
+    &'static str,
+    usize,
+    fn(Vec<ir::Atom>, Option<AssignDest>) -> Vec<Instr>,
+); 2] = [
     ("__gc_collect", 1, |mut args, _dest| {
         assert!(_dest.is_none());
         vec![
@@ -418,7 +424,10 @@ const SPECIAL_FUNCTIONS: [(&'static str, usize, fn(Vec<ir::Atom>, Option<AssignD
         if let Some(dest) = dest_opt {
             vec![
                 Instr::movq(atom_to_arg(args.remove(0)), x86::Arg::Reg(Register::rax)),
-                Instr::movq(x86::Arg::Deref(Register::rax, 0), x86::Arg::Reg(Register::rax)),
+                Instr::movq(
+                    x86::Arg::Deref(Register::rax, 0),
+                    x86::Arg::Reg(Register::rax),
+                ),
                 // Shift and mask out the length field of the tuple tag
                 Instr::sarq(x86::Arg::Immediate(1), x86::Arg::Reg(Register::rax)),
                 Instr::andq(x86::Arg::Immediate(0x03Fi64), x86::Arg::Reg(Register::rax)),
@@ -428,8 +437,7 @@ const SPECIAL_FUNCTIONS: [(&'static str, usize, fn(Vec<ir::Atom>, Option<AssignD
             // No dest - no-op
             vec![]
         }
-    }
-    ),
+    }),
 ];
 
 fn translate_call(
@@ -444,7 +452,10 @@ fn translate_call(
     for (name, num_args, instr_fn) in SPECIAL_FUNCTIONS {
         if func_id == Identifier::from(name) {
             if args.len() != num_args {
-                panic!("Wrong number of args to special function `{name}` (Expected {num_args}, Got {}", args.len());
+                panic!(
+                    "Wrong number of args to special function `{name}` (Expected {num_args}, Got {}",
+                    args.len()
+                );
             }
             return instr_fn(args, dest_opt);
         }

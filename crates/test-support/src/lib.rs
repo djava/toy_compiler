@@ -1,6 +1,6 @@
 #![allow(dead_code)]
 
-use compiler::ast::{self, AssignDest, Identifier, Value};
+use compiler::syntax_trees::{ast, shared::*};
 use std::collections::HashMap;
 
 pub use compiler;
@@ -22,5 +22,5 @@ pub fn ast_print_int(e: ast::Expr) -> ast::Expr {
 }
 
 pub fn ast_const_int(i: i64) -> ast::Expr {
-    ast::Expr::Constant(ast::Value::I64(i))
+    ast::Expr::Constant(Value::I64(i))
 }

@@ -1,9 +1,6 @@
 use std::collections::VecDeque;
 
-use compiler::{
-    ast::{AssignDest, Identifier, Value},
-    ir::*,
-};
+use compiler::syntax_trees::{ir::*, shared::*};
 
 use crate::{ValueEnv, interpreter_utils::*};
 

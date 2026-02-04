@@ -1,7 +1,4 @@
-use crate::ir;
-
-use super::ast;
-use super::x86_ast;
+use crate::syntax_trees::*;
 use enum_dispatch::enum_dispatch;
 
 pub mod partial_eval;
@@ -61,7 +58,7 @@ pub enum IRtoIR {}
 
 #[enum_dispatch]
 pub trait IRtoX86Pass {
-    fn run_pass(self, m: ir::IRProgram) -> x86_ast::X86Program;
+    fn run_pass(self, m: ir::IRProgram) -> x86::X86Program;
 }
 
 #[enum_dispatch(IRtoX86Pass)]
@@ -71,7 +68,7 @@ pub enum IRtoX86 {
 
 #[enum_dispatch]
 pub trait X86Pass {
-    fn run_pass(self, m: x86_ast::X86Program) -> x86_ast::X86Program;
+    fn run_pass(self, m: x86::X86Program) -> x86::X86Program;
 }
 
 #[enum_dispatch(X86Pass)]

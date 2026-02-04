@@ -1,8 +1,9 @@
 use std::collections::HashMap;
 
-use crate::{
-    ast::{self, Identifier, ValueType},
-    x86_ast::{Block, Directive, Instr},
+use crate::syntax_trees::{
+    ast,
+    shared::*,
+    x86::{Block, Directive, Instr},
 };
 use petgraph::graph::DiGraph;
 
@@ -38,7 +39,7 @@ pub fn x86_block_adj_graph<'a>(blocks: &'a [Block]) -> DiGraph<&'a Block, ()> {
     block_graph
 }
 
-pub fn type_check_ast_expr(e: &ast::Expr, env: &mut ast::TypeEnv) -> ValueType {
+pub fn type_check_ast_expr(e: &ast::Expr, env: &mut TypeEnv) -> ValueType {
     use ast::Expr::*;
 
     match e {
@@ -52,18 +53,18 @@ pub fn type_check_ast_expr(e: &ast::Expr, env: &mut ast::TypeEnv) -> ValueType {
         UnaryOp(op, exp) => {
             let exp_type = type_check_ast_expr(&*exp, env);
             match op {
-                ast::UnaryOperator::Plus | ast::UnaryOperator::Minus => {
+                UnaryOperator::Plus | UnaryOperator::Minus => {
                     assert_eq!(exp_type, ValueType::IntType);
                     ValueType::IntType
                 }
-                ast::UnaryOperator::Not => {
+                UnaryOperator::Not => {
                     assert_eq!(exp_type, ValueType::BoolType);
                     ValueType::BoolType
                 }
             }
         }
         Id(id) => env
-            .get(&ast::AssignDest::Id(id.clone()))
+            .get(&AssignDest::Id(id.clone()))
             .expect(format!("Unknown Identifier: {id:?}").as_str())
             .clone(),
         Constant(v) => ValueType::from(v),
@@ -162,7 +163,7 @@ pub fn type_check_ast_expr(e: &ast::Expr, env: &mut ast::TypeEnv) -> ValueType {
     }
 }
 
-pub fn type_check_ast_statements(statements: &[ast::Statement], env: &mut ast::TypeEnv) {
+pub fn type_check_ast_statements(statements: &[ast::Statement], env: &mut TypeEnv) {
     use ast::Statement::*;
 
     if !statements.is_empty() {

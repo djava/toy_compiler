@@ -3,7 +3,7 @@ use std::collections::{BinaryHeap, HashMap, HashSet};
 
 use crate::{
     passes::register_allocation::{Location, Storage},
-    x86_ast::Register,
+    syntax_trees::x86::Register,
 };
 
 pub(super) const COLOR_TO_REG_STORAGE: [(i32, Storage); 16] = [

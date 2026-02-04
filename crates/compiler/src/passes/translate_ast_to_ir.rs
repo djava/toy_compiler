@@ -1,7 +1,10 @@
 use crate::{
-    ast::{self, AssignDest},
-    ir::{self, BlockMap, Identifier, Value},
     passes::ASTtoIRPass,
+    syntax_trees::{
+        ast,
+        ir::{self, BlockMap},
+        shared::*,
+    },
 };
 
 pub struct TranslateASTtoIR;
@@ -349,11 +352,11 @@ mod tests {
     use test_support::{
         ast_const_int, ast_print_int, ast_read_int,
         compiler::{
-            ast::*,
             passes::{
                 ASTPass, ASTtoIRPass, ShortCircuiting, TranslateASTtoIR, TypeCheck,
                 remove_complex_operands::RemoveComplexOperands,
             },
+            syntax_trees::{ast::*, shared::*},
         },
         ir_interpreter::interpret_irprogram,
     };

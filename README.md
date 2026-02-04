@@ -7,6 +7,4 @@ using the provided Python infrastructure though.
 TODO:
 - Multiplication/division
 - Extract constants
-- Extract syntax trees into module + do "shared" ones for
-  Identifier/AssignDest/etc
 - PatchInstructions for sarq/salq to have imm in first arg(?)
