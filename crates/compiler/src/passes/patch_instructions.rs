@@ -84,8 +84,9 @@ impl X86Pass for PatchInstructions {
                     // Dest of imulq must be a register, add a patch
                     // through rax to make it so
                     new_instrs.extend([
+                        Instr::movq(d.clone(), Arg::Reg(Register::rax)),
                         Instr::imulq(s.clone(), Arg::Reg(Register::rax)),
-                        Instr::movq(Arg::Reg(Register::rax), d.clone())
+                        Instr::movq(Arg::Reg(Register::rax), d.clone()),
                     ]);
                 }
 
@@ -153,6 +154,9 @@ mod tests {
                 }
                 Instr::cmpq(_, d) if matches!(d, Arg::Immediate(_)) => {
                     panic!("PatchInstructions should remove all cmpq's with Imm d");
+                }
+                Instr::imulq(_, d) if !matches!(d, Arg::Reg(_)) => {
+                    panic!("PatchInstructions should ensure imulq dest is always a register");
                 }
                 _ => {}
             }
@@ -415,6 +419,99 @@ mod tests {
             },
             inputs: VecDeque::from(vec![10]),
             expected_outputs: VecDeque::from(vec![10 + 2 + 40 - 2]),
+        });
+    }
+
+    #[test]
+    fn test_multiply_simple() {
+        execute_test_case(TestCase {
+            ast: Module {
+                body: vec![Statement::Expr(Expr::Call(
+                    Identifier::from("print_int"),
+                    vec![Expr::BinaryOp(
+                        Box::new(Expr::Call(Identifier::from("read_int"), vec![])),
+                        BinaryOperator::Multiply,
+                        Box::new(Expr::Call(Identifier::from("read_int"), vec![])),
+                    )],
+                ))],
+                types: TypeEnv::new(),
+            },
+            inputs: VecDeque::from(vec![6, 7]),
+            expected_outputs: VecDeque::from(vec![42]),
+        });
+    }
+
+    #[test]
+    fn test_multiply_constants() {
+        execute_test_case(TestCase {
+            ast: Module {
+                body: vec![Statement::Expr(Expr::Call(
+                    Identifier::from("print_int"),
+                    vec![Expr::BinaryOp(
+                        Box::new(Expr::Constant(Value::I64(5))),
+                        BinaryOperator::Multiply,
+                        Box::new(Expr::Constant(Value::I64(9))),
+                    )],
+                ))],
+                types: TypeEnv::new(),
+            },
+            inputs: VecDeque::new(),
+            expected_outputs: VecDeque::from(vec![45]),
+        });
+    }
+
+    #[test]
+    fn test_multiply_with_spilled_dest() {
+        // Many variables to force spills, then multiply to exercise
+        // the imulq patching path where dest is a stack location
+        let mut body: Vec<Statement> = (1..=15)
+            .map(|i| {
+                Statement::Assign(
+                    AssignDest::Id(Identifier::from(format!("v{i}").as_str())),
+                    Expr::Call(Identifier::from("read_int"), vec![]),
+                )
+            })
+            .collect();
+
+        // Multiply two of them - if dest gets spilled, patch_instructions
+        // must route through rax
+        body.push(Statement::Assign(
+            AssignDest::Id(Identifier::from("result")),
+            Expr::BinaryOp(
+                Box::new(Expr::Id(Identifier::from("v1"))),
+                BinaryOperator::Multiply,
+                Box::new(Expr::Id(Identifier::from("v2"))),
+            ),
+        ));
+
+        // Use all variables to keep them alive across the multiply
+        let mut sum_expr: Expr = Expr::Id(Identifier::from("v1"));
+        for i in 2..=15 {
+            sum_expr = Expr::BinaryOp(
+                Box::new(sum_expr),
+                BinaryOperator::Add,
+                Box::new(Expr::Id(Identifier::from(format!("v{i}").as_str()))),
+            );
+        }
+        sum_expr = Expr::BinaryOp(
+            Box::new(sum_expr),
+            BinaryOperator::Add,
+            Box::new(Expr::Id(Identifier::from("result"))),
+        );
+
+        body.push(Statement::Expr(Expr::Call(
+            Identifier::from("print_int"),
+            vec![sum_expr],
+        )));
+
+        execute_test_case(TestCase {
+            ast: Module {
+                body,
+                types: TypeEnv::new(),
+            },
+            inputs: (1..=15).collect(),
+            // sum(1..=15) = 120, result = 1*2 = 2, total = 122
+            expected_outputs: VecDeque::from(vec![120 + 2]),
         });
     }
 

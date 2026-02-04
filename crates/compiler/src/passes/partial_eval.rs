@@ -476,6 +476,99 @@ mod test {
     }
 
     #[test]
+    fn test_multiply() {
+        execute_test_case(TestCase {
+            ast: Module {
+                body: vec![Statement::Expr(Expr::Call(
+                    Identifier::from("print_int"),
+                    vec![Expr::BinaryOp(
+                        Box::new(Expr::Constant(Value::I64(6))),
+                        BinaryOperator::Multiply,
+                        Box::new(Expr::Constant(Value::I64(7))),
+                    )],
+                ))],
+                types: TypeEnv::new(),
+            },
+            inputs: VecDeque::new(),
+            expected_outputs: VecDeque::from(vec![42]),
+        })
+    }
+
+    #[test]
+    fn test_multiply_nested_fold() {
+        // print_int(read_int() * (3 * 4))
+        // The inner (3 * 4) should fold to 12, leaving read_int() * 12
+        execute_test_case(TestCase {
+            ast: Module {
+                body: vec![Statement::Expr(Expr::Call(
+                    Identifier::from("print_int"),
+                    vec![Expr::BinaryOp(
+                        Box::new(Expr::Call(Identifier::from("read_int"), vec![])),
+                        BinaryOperator::Multiply,
+                        Box::new(Expr::BinaryOp(
+                            Box::new(Expr::Constant(Value::I64(3))),
+                            BinaryOperator::Multiply,
+                            Box::new(Expr::Constant(Value::I64(4))),
+                        )),
+                    )],
+                ))],
+                types: TypeEnv::new(),
+            },
+            inputs: VecDeque::from(vec![5]),
+            expected_outputs: VecDeque::from(vec![60]),
+        })
+    }
+
+    #[test]
+    fn test_multiply_by_zero_fold() {
+        // print_int(0 * 0) should fold entirely to 0
+        execute_test_case(TestCase {
+            ast: Module {
+                body: vec![Statement::Expr(Expr::Call(
+                    Identifier::from("print_int"),
+                    vec![Expr::BinaryOp(
+                        Box::new(Expr::Constant(Value::I64(0))),
+                        BinaryOperator::Multiply,
+                        Box::new(Expr::Constant(Value::I64(0))),
+                    )],
+                ))],
+                types: TypeEnv::new(),
+            },
+            inputs: VecDeque::new(),
+            expected_outputs: VecDeque::from(vec![0]),
+        })
+    }
+
+    #[test]
+    fn test_multiply_mixed_with_add_fold() {
+        // print_int((2 * 3) + (4 * 5))
+        // Should fold entirely to 26
+        execute_test_case(TestCase {
+            ast: Module {
+                body: vec![Statement::Expr(Expr::Call(
+                    Identifier::from("print_int"),
+                    vec![Expr::BinaryOp(
+                        Box::new(Expr::BinaryOp(
+                            Box::new(Expr::Constant(Value::I64(2))),
+                            BinaryOperator::Multiply,
+                            Box::new(Expr::Constant(Value::I64(3))),
+                        )),
+                        BinaryOperator::Add,
+                        Box::new(Expr::BinaryOp(
+                            Box::new(Expr::Constant(Value::I64(4))),
+                            BinaryOperator::Multiply,
+                            Box::new(Expr::Constant(Value::I64(5))),
+                        )),
+                    )],
+                ))],
+                types: TypeEnv::new(),
+            },
+            inputs: VecDeque::new(),
+            expected_outputs: VecDeque::from(vec![26]),
+        })
+    }
+
+    #[test]
     fn test_while_loop_simple() {
         // x = 5
         // while x > 0 {

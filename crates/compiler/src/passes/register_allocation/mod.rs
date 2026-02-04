@@ -284,7 +284,10 @@ mod tests {
         for i in after_ast.blocks.iter().map(|x| &x.instrs).flatten() {
             use x86::{Arg, Instr};
             match i {
-                Instr::addq(s, d) | Instr::subq(s, d) | Instr::movq(s, d) => {
+                Instr::addq(s, d)
+                | Instr::subq(s, d)
+                | Instr::movq(s, d)
+                | Instr::imulq(s, d) => {
                     for arg in [s, d] {
                         assert!(!matches!(arg, Arg::Variable(_)));
                     }
@@ -1208,6 +1211,197 @@ mod tests {
             },
             inputs: VecDeque::new(),
             expected_outputs: VecDeque::from(vec![5, 8, 3]),
+        });
+    }
+
+    #[test]
+    fn test_multiply_simple() {
+        // print_int(read_int() * read_int())
+        execute_test_case(TestCase {
+            ast: Module {
+                body: vec![Statement::Expr(Expr::Call(
+                    Identifier::from("print_int"),
+                    vec![Expr::BinaryOp(
+                        Box::new(Expr::Call(Identifier::from("read_int"), vec![])),
+                        BinaryOperator::Multiply,
+                        Box::new(Expr::Call(Identifier::from("read_int"), vec![])),
+                    )],
+                ))],
+                types: TypeEnv::new(),
+            },
+            inputs: VecDeque::from(vec![6, 7]),
+            expected_outputs: VecDeque::from(vec![42]),
+        });
+    }
+
+    #[test]
+    fn test_multiply_constants() {
+        // print_int(3 * 4)
+        execute_test_case(TestCase {
+            ast: Module {
+                body: vec![Statement::Expr(Expr::Call(
+                    Identifier::from("print_int"),
+                    vec![Expr::BinaryOp(
+                        Box::new(Expr::Constant(Value::I64(3))),
+                        BinaryOperator::Multiply,
+                        Box::new(Expr::Constant(Value::I64(4))),
+                    )],
+                ))],
+                types: TypeEnv::new(),
+            },
+            inputs: VecDeque::new(),
+            expected_outputs: VecDeque::from(vec![12]),
+        });
+    }
+
+    #[test]
+    fn test_multiply_with_variable() {
+        // x = read_int()
+        // y = read_int()
+        // z = x * y
+        // print_int(z)
+        execute_test_case(TestCase {
+            ast: Module {
+                body: vec![
+                    Statement::Assign(
+                        AssignDest::Id(Identifier::from("x")),
+                        Expr::Call(Identifier::from("read_int"), vec![]),
+                    ),
+                    Statement::Assign(
+                        AssignDest::Id(Identifier::from("y")),
+                        Expr::Call(Identifier::from("read_int"), vec![]),
+                    ),
+                    Statement::Assign(
+                        AssignDest::Id(Identifier::from("z")),
+                        Expr::BinaryOp(
+                            Box::new(Expr::Id(Identifier::from("x"))),
+                            BinaryOperator::Multiply,
+                            Box::new(Expr::Id(Identifier::from("y"))),
+                        ),
+                    ),
+                    Statement::Expr(Expr::Call(
+                        Identifier::from("print_int"),
+                        vec![Expr::Id(Identifier::from("z"))],
+                    )),
+                ],
+                types: TypeEnv::new(),
+            },
+            inputs: VecDeque::from(vec![5, 8]),
+            expected_outputs: VecDeque::from(vec![40]),
+        });
+    }
+
+    #[test]
+    fn test_multiply_mixed_with_add() {
+        // print_int((read_int() * read_int()) + read_int())
+        execute_test_case(TestCase {
+            ast: Module {
+                body: vec![Statement::Expr(Expr::Call(
+                    Identifier::from("print_int"),
+                    vec![Expr::BinaryOp(
+                        Box::new(Expr::BinaryOp(
+                            Box::new(Expr::Call(Identifier::from("read_int"), vec![])),
+                            BinaryOperator::Multiply,
+                            Box::new(Expr::Call(Identifier::from("read_int"), vec![])),
+                        )),
+                        BinaryOperator::Add,
+                        Box::new(Expr::Call(Identifier::from("read_int"), vec![])),
+                    )],
+                ))],
+                types: TypeEnv::new(),
+            },
+            inputs: VecDeque::from(vec![3, 4, 5]),
+            expected_outputs: VecDeque::from(vec![17]),
+        });
+    }
+
+    #[test]
+    fn test_multiply_register_pressure() {
+        // a..f = read_int() (6 vars)
+        // print_int(a * b)
+        // print_int(c * d)
+        // print_int(e * f)
+        // print_int(a + b + c + d + e + f)
+        execute_test_case(TestCase {
+            ast: Module {
+                body: vec![
+                    Statement::Assign(
+                        AssignDest::Id(Identifier::from("a")),
+                        Expr::Call(Identifier::from("read_int"), vec![]),
+                    ),
+                    Statement::Assign(
+                        AssignDest::Id(Identifier::from("b")),
+                        Expr::Call(Identifier::from("read_int"), vec![]),
+                    ),
+                    Statement::Assign(
+                        AssignDest::Id(Identifier::from("c")),
+                        Expr::Call(Identifier::from("read_int"), vec![]),
+                    ),
+                    Statement::Assign(
+                        AssignDest::Id(Identifier::from("d")),
+                        Expr::Call(Identifier::from("read_int"), vec![]),
+                    ),
+                    Statement::Assign(
+                        AssignDest::Id(Identifier::from("e")),
+                        Expr::Call(Identifier::from("read_int"), vec![]),
+                    ),
+                    Statement::Assign(
+                        AssignDest::Id(Identifier::from("f")),
+                        Expr::Call(Identifier::from("read_int"), vec![]),
+                    ),
+                    Statement::Expr(Expr::Call(
+                        Identifier::from("print_int"),
+                        vec![Expr::BinaryOp(
+                            Box::new(Expr::Id(Identifier::from("a"))),
+                            BinaryOperator::Multiply,
+                            Box::new(Expr::Id(Identifier::from("b"))),
+                        )],
+                    )),
+                    Statement::Expr(Expr::Call(
+                        Identifier::from("print_int"),
+                        vec![Expr::BinaryOp(
+                            Box::new(Expr::Id(Identifier::from("c"))),
+                            BinaryOperator::Multiply,
+                            Box::new(Expr::Id(Identifier::from("d"))),
+                        )],
+                    )),
+                    Statement::Expr(Expr::Call(
+                        Identifier::from("print_int"),
+                        vec![Expr::BinaryOp(
+                            Box::new(Expr::Id(Identifier::from("e"))),
+                            BinaryOperator::Multiply,
+                            Box::new(Expr::Id(Identifier::from("f"))),
+                        )],
+                    )),
+                    Statement::Expr(Expr::Call(
+                        Identifier::from("print_int"),
+                        vec![Expr::BinaryOp(
+                            Box::new(Expr::BinaryOp(
+                                Box::new(Expr::BinaryOp(
+                                    Box::new(Expr::BinaryOp(
+                                        Box::new(Expr::BinaryOp(
+                                            Box::new(Expr::Id(Identifier::from("a"))),
+                                            BinaryOperator::Add,
+                                            Box::new(Expr::Id(Identifier::from("b"))),
+                                        )),
+                                        BinaryOperator::Add,
+                                        Box::new(Expr::Id(Identifier::from("c"))),
+                                    )),
+                                    BinaryOperator::Add,
+                                    Box::new(Expr::Id(Identifier::from("d"))),
+                                )),
+                                BinaryOperator::Add,
+                                Box::new(Expr::Id(Identifier::from("e"))),
+                            )),
+                            BinaryOperator::Add,
+                            Box::new(Expr::Id(Identifier::from("f"))),
+                        )],
+                    )),
+                ],
+                types: TypeEnv::new(),
+            },
+            inputs: VecDeque::from(vec![2, 3, 4, 5, 6, 7]),
+            expected_outputs: VecDeque::from(vec![6, 20, 42, 27]),
         });
     }
 }
