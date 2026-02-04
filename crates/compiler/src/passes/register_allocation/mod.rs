@@ -258,6 +258,8 @@ mod tests {
             ast_passes: vec![
                 ASTtoAST::from(TypeCheck),
                 ASTtoAST::from(RemoveComplexOperands),
+                ASTtoAST::from(TypeCheck),
+                ASTtoAST::from(InjectAllocations),
             ],
             ast_to_ir_pass: ASTtoIR::from(TranslateASTtoIR),
             ir_passes: vec![],
@@ -669,5 +671,535 @@ mod tests {
         inputs: VecDeque::new(),
         expected_outputs: VecDeque::from([23]),
     });
+    }
+
+    #[test]
+    fn test_tuple_simple_read() {
+        // tup = (10, 20, 30)
+        // print_int(tup[1])
+        execute_test_case(TestCase {
+            ast: Module {
+                body: vec![
+                    Statement::Assign(
+                        AssignDest::Id(Identifier::from("tup")),
+                        Expr::Tuple(vec![
+                            Expr::Constant(Value::I64(10)),
+                            Expr::Constant(Value::I64(20)),
+                            Expr::Constant(Value::I64(30)),
+                        ]),
+                    ),
+                    Statement::Expr(Expr::Call(
+                        Identifier::from("print_int"),
+                        vec![Expr::Subscript(
+                            Box::new(Expr::Id(Identifier::from("tup"))),
+                            1,
+                        )],
+                    )),
+                ],
+                types: TypeEnv::new(),
+            },
+            inputs: VecDeque::new(),
+            expected_outputs: VecDeque::from(vec![20]),
+        });
+    }
+
+    #[test]
+    fn test_tuple_read_all_elements() {
+        // tup = (10, 20, 30)
+        // print_int(tup[0])
+        // print_int(tup[1])
+        // print_int(tup[2])
+        execute_test_case(TestCase {
+            ast: Module {
+                body: vec![
+                    Statement::Assign(
+                        AssignDest::Id(Identifier::from("tup")),
+                        Expr::Tuple(vec![
+                            Expr::Constant(Value::I64(10)),
+                            Expr::Constant(Value::I64(20)),
+                            Expr::Constant(Value::I64(30)),
+                        ]),
+                    ),
+                    Statement::Expr(Expr::Call(
+                        Identifier::from("print_int"),
+                        vec![Expr::Subscript(
+                            Box::new(Expr::Id(Identifier::from("tup"))),
+                            0,
+                        )],
+                    )),
+                    Statement::Expr(Expr::Call(
+                        Identifier::from("print_int"),
+                        vec![Expr::Subscript(
+                            Box::new(Expr::Id(Identifier::from("tup"))),
+                            1,
+                        )],
+                    )),
+                    Statement::Expr(Expr::Call(
+                        Identifier::from("print_int"),
+                        vec![Expr::Subscript(
+                            Box::new(Expr::Id(Identifier::from("tup"))),
+                            2,
+                        )],
+                    )),
+                ],
+                types: TypeEnv::new(),
+            },
+            inputs: VecDeque::new(),
+            expected_outputs: VecDeque::from(vec![10, 20, 30]),
+        });
+    }
+
+    #[test]
+    fn test_tuple_single_element() {
+        // tup = (42,)
+        // print_int(tup[0])
+        execute_test_case(TestCase {
+            ast: Module {
+                body: vec![
+                    Statement::Assign(
+                        AssignDest::Id(Identifier::from("tup")),
+                        Expr::Tuple(vec![Expr::Constant(Value::I64(42))]),
+                    ),
+                    Statement::Expr(Expr::Call(
+                        Identifier::from("print_int"),
+                        vec![Expr::Subscript(
+                            Box::new(Expr::Id(Identifier::from("tup"))),
+                            0,
+                        )],
+                    )),
+                ],
+                types: TypeEnv::new(),
+            },
+            inputs: VecDeque::new(),
+            expected_outputs: VecDeque::from(vec![42]),
+        });
+    }
+
+    #[test]
+    fn test_tuple_two_alive() {
+        // t1 = (1, 2)
+        // t2 = (3, 4)
+        // print_int(t1[0] + t2[1])
+        execute_test_case(TestCase {
+            ast: Module {
+                body: vec![
+                    Statement::Assign(
+                        AssignDest::Id(Identifier::from("t1")),
+                        Expr::Tuple(vec![
+                            Expr::Constant(Value::I64(1)),
+                            Expr::Constant(Value::I64(2)),
+                        ]),
+                    ),
+                    Statement::Assign(
+                        AssignDest::Id(Identifier::from("t2")),
+                        Expr::Tuple(vec![
+                            Expr::Constant(Value::I64(3)),
+                            Expr::Constant(Value::I64(4)),
+                        ]),
+                    ),
+                    Statement::Expr(Expr::Call(
+                        Identifier::from("print_int"),
+                        vec![Expr::BinaryOp(
+                            Box::new(Expr::Subscript(
+                                Box::new(Expr::Id(Identifier::from("t1"))),
+                                0,
+                            )),
+                            BinaryOperator::Add,
+                            Box::new(Expr::Subscript(
+                                Box::new(Expr::Id(Identifier::from("t2"))),
+                                1,
+                            )),
+                        )],
+                    )),
+                ],
+                types: TypeEnv::new(),
+            },
+            inputs: VecDeque::new(),
+            expected_outputs: VecDeque::from(vec![5]),
+        });
+    }
+
+    #[test]
+    fn test_tuple_subscript_write() {
+        // tup = (1, 2, 3)
+        // tup[0] = 99
+        // print_int(tup[0])
+        // print_int(tup[1])
+        execute_test_case(TestCase {
+            ast: Module {
+                body: vec![
+                    Statement::Assign(
+                        AssignDest::Id(Identifier::from("tup")),
+                        Expr::Tuple(vec![
+                            Expr::Constant(Value::I64(1)),
+                            Expr::Constant(Value::I64(2)),
+                            Expr::Constant(Value::I64(3)),
+                        ]),
+                    ),
+                    Statement::Assign(
+                        AssignDest::Subscript(Identifier::from("tup"), 0),
+                        Expr::Constant(Value::I64(99)),
+                    ),
+                    Statement::Expr(Expr::Call(
+                        Identifier::from("print_int"),
+                        vec![Expr::Subscript(
+                            Box::new(Expr::Id(Identifier::from("tup"))),
+                            0,
+                        )],
+                    )),
+                    Statement::Expr(Expr::Call(
+                        Identifier::from("print_int"),
+                        vec![Expr::Subscript(
+                            Box::new(Expr::Id(Identifier::from("tup"))),
+                            1,
+                        )],
+                    )),
+                ],
+                types: TypeEnv::new(),
+            },
+            inputs: VecDeque::new(),
+            expected_outputs: VecDeque::from(vec![99, 2]),
+        });
+    }
+
+    #[test]
+    fn test_tuple_element_arithmetic() {
+        // tup = (10, 20)
+        // x = tup[0] + tup[1]
+        // print_int(x)
+        execute_test_case(TestCase {
+            ast: Module {
+                body: vec![
+                    Statement::Assign(
+                        AssignDest::Id(Identifier::from("tup")),
+                        Expr::Tuple(vec![
+                            Expr::Constant(Value::I64(10)),
+                            Expr::Constant(Value::I64(20)),
+                        ]),
+                    ),
+                    Statement::Assign(
+                        AssignDest::Id(Identifier::from("x")),
+                        Expr::BinaryOp(
+                            Box::new(Expr::Subscript(
+                                Box::new(Expr::Id(Identifier::from("tup"))),
+                                0,
+                            )),
+                            BinaryOperator::Add,
+                            Box::new(Expr::Subscript(
+                                Box::new(Expr::Id(Identifier::from("tup"))),
+                                1,
+                            )),
+                        ),
+                    ),
+                    Statement::Expr(Expr::Call(
+                        Identifier::from("print_int"),
+                        vec![Expr::Id(Identifier::from("x"))],
+                    )),
+                ],
+                types: TypeEnv::new(),
+            },
+            inputs: VecDeque::new(),
+            expected_outputs: VecDeque::from(vec![30]),
+        });
+    }
+
+    #[test]
+    fn test_tuple_with_input() {
+        // tup = (read_int(), read_int(), read_int())
+        // print_int(tup[0] + tup[1] + tup[2])
+        execute_test_case(TestCase {
+            ast: Module {
+                body: vec![
+                    Statement::Assign(
+                        AssignDest::Id(Identifier::from("tup")),
+                        Expr::Tuple(vec![
+                            Expr::Call(Identifier::from("read_int"), vec![]),
+                            Expr::Call(Identifier::from("read_int"), vec![]),
+                            Expr::Call(Identifier::from("read_int"), vec![]),
+                        ]),
+                    ),
+                    Statement::Expr(Expr::Call(
+                        Identifier::from("print_int"),
+                        vec![Expr::BinaryOp(
+                            Box::new(Expr::Subscript(
+                                Box::new(Expr::Id(Identifier::from("tup"))),
+                                0,
+                            )),
+                            BinaryOperator::Add,
+                            Box::new(Expr::BinaryOp(
+                                Box::new(Expr::Subscript(
+                                    Box::new(Expr::Id(Identifier::from("tup"))),
+                                    1,
+                                )),
+                                BinaryOperator::Add,
+                                Box::new(Expr::Subscript(
+                                    Box::new(Expr::Id(Identifier::from("tup"))),
+                                    2,
+                                )),
+                            )),
+                        )],
+                    )),
+                ],
+                types: TypeEnv::new(),
+            },
+            inputs: VecDeque::from(vec![10, 20, 30]),
+            expected_outputs: VecDeque::from(vec![60]),
+        });
+    }
+
+    #[test]
+    fn test_tuple_with_scalars_register_pressure() {
+        // x1..x10 = 1..10
+        // tup = (100, 200)
+        // print_int(x1 + x2 + x3 + x4 + x5 + x6 + x7 + x8 + x9 + x10 + tup[0])
+        let mut body: Vec<Statement> = (1..=10)
+            .map(|i| {
+                Statement::Assign(
+                    AssignDest::Id(Identifier::from(format!("x{i}").as_str())),
+                    Expr::Constant(Value::I64(i)),
+                )
+            })
+            .collect();
+
+        body.push(Statement::Assign(
+            AssignDest::Id(Identifier::from("tup")),
+            Expr::Tuple(vec![
+                Expr::Constant(Value::I64(100)),
+                Expr::Constant(Value::I64(200)),
+            ]),
+        ));
+
+        // Build x1 + x2 + ... + x10 + tup[0]
+        let mut sum_expr: Expr = Expr::Id(Identifier::from("x1"));
+        for i in 2..=10 {
+            sum_expr = Expr::BinaryOp(
+                Box::new(sum_expr),
+                BinaryOperator::Add,
+                Box::new(Expr::Id(Identifier::from(format!("x{i}").as_str()))),
+            );
+        }
+        sum_expr = Expr::BinaryOp(
+            Box::new(sum_expr),
+            BinaryOperator::Add,
+            Box::new(Expr::Subscript(
+                Box::new(Expr::Id(Identifier::from("tup"))),
+                0,
+            )),
+        );
+
+        body.push(Statement::Expr(Expr::Call(
+            Identifier::from("print_int"),
+            vec![sum_expr],
+        )));
+
+        execute_test_case(TestCase {
+            ast: Module {
+                body,
+                types: TypeEnv::new(),
+            },
+            inputs: VecDeque::new(),
+            // 1+2+...+10 = 55, + 100 = 155
+            expected_outputs: VecDeque::from(vec![155]),
+        });
+    }
+
+    #[test]
+    fn test_tuple_in_loop() {
+        // tup = (0, 1)
+        // i = 3
+        // while i > 0 {
+        //     print_int(tup[0] + tup[1])
+        //     i = i - 1
+        // }
+        execute_test_case(TestCase {
+            ast: Module {
+                body: vec![
+                    Statement::Assign(
+                        AssignDest::Id(Identifier::from("tup")),
+                        Expr::Tuple(vec![
+                            Expr::Constant(Value::I64(7)),
+                            Expr::Constant(Value::I64(3)),
+                        ]),
+                    ),
+                    Statement::Assign(
+                        AssignDest::Id(Identifier::from("i")),
+                        Expr::Constant(Value::I64(3)),
+                    ),
+                    Statement::WhileLoop(
+                        Expr::BinaryOp(
+                            Box::new(Expr::Id(Identifier::from("i"))),
+                            BinaryOperator::Greater,
+                            Box::new(Expr::Constant(Value::I64(0))),
+                        ),
+                        vec![
+                            Statement::Expr(Expr::Call(
+                                Identifier::from("print_int"),
+                                vec![Expr::BinaryOp(
+                                    Box::new(Expr::Subscript(
+                                        Box::new(Expr::Id(Identifier::from("tup"))),
+                                        0,
+                                    )),
+                                    BinaryOperator::Add,
+                                    Box::new(Expr::Subscript(
+                                        Box::new(Expr::Id(Identifier::from("tup"))),
+                                        1,
+                                    )),
+                                )],
+                            )),
+                            Statement::Assign(
+                                AssignDest::Id(Identifier::from("i")),
+                                Expr::BinaryOp(
+                                    Box::new(Expr::Id(Identifier::from("i"))),
+                                    BinaryOperator::Subtract,
+                                    Box::new(Expr::Constant(Value::I64(1))),
+                                ),
+                            ),
+                        ],
+                    ),
+                ],
+                types: TypeEnv::new(),
+            },
+            inputs: VecDeque::new(),
+            expected_outputs: VecDeque::from(vec![10, 10, 10]),
+        });
+    }
+
+    #[test]
+    fn test_tuple_multiple_simultaneous() {
+        // t1 = (1, 2, 3)
+        // t2 = (10, 20, 30)
+        // t3 = (100, 200, 300)
+        // print_int(t1[0] + t2[1] + t3[2])
+        execute_test_case(TestCase {
+            ast: Module {
+                body: vec![
+                    Statement::Assign(
+                        AssignDest::Id(Identifier::from("t1")),
+                        Expr::Tuple(vec![
+                            Expr::Constant(Value::I64(1)),
+                            Expr::Constant(Value::I64(2)),
+                            Expr::Constant(Value::I64(3)),
+                        ]),
+                    ),
+                    Statement::Assign(
+                        AssignDest::Id(Identifier::from("t2")),
+                        Expr::Tuple(vec![
+                            Expr::Constant(Value::I64(10)),
+                            Expr::Constant(Value::I64(20)),
+                            Expr::Constant(Value::I64(30)),
+                        ]),
+                    ),
+                    Statement::Assign(
+                        AssignDest::Id(Identifier::from("t3")),
+                        Expr::Tuple(vec![
+                            Expr::Constant(Value::I64(100)),
+                            Expr::Constant(Value::I64(200)),
+                            Expr::Constant(Value::I64(300)),
+                        ]),
+                    ),
+                    Statement::Expr(Expr::Call(
+                        Identifier::from("print_int"),
+                        vec![Expr::BinaryOp(
+                            Box::new(Expr::Subscript(
+                                Box::new(Expr::Id(Identifier::from("t1"))),
+                                0,
+                            )),
+                            BinaryOperator::Add,
+                            Box::new(Expr::BinaryOp(
+                                Box::new(Expr::Subscript(
+                                    Box::new(Expr::Id(Identifier::from("t2"))),
+                                    1,
+                                )),
+                                BinaryOperator::Add,
+                                Box::new(Expr::Subscript(
+                                    Box::new(Expr::Id(Identifier::from("t3"))),
+                                    2,
+                                )),
+                            )),
+                        )],
+                    )),
+                ],
+                types: TypeEnv::new(),
+            },
+            inputs: VecDeque::new(),
+            // 1 + 20 + 300 = 321
+            expected_outputs: VecDeque::from(vec![321]),
+        });
+    }
+
+    #[test]
+    fn test_tuple_mutate_and_sum() {
+        // tup = (1, 2, 3)
+        // tup[0] = tup[1] + tup[2]   // tup = (5, 2, 3)
+        // tup[1] = tup[0] + tup[2]   // tup = (5, 8, 3)
+        // print_int(tup[0])
+        // print_int(tup[1])
+        // print_int(tup[2])
+        execute_test_case(TestCase {
+            ast: Module {
+                body: vec![
+                    Statement::Assign(
+                        AssignDest::Id(Identifier::from("tup")),
+                        Expr::Tuple(vec![
+                            Expr::Constant(Value::I64(1)),
+                            Expr::Constant(Value::I64(2)),
+                            Expr::Constant(Value::I64(3)),
+                        ]),
+                    ),
+                    Statement::Assign(
+                        AssignDest::Subscript(Identifier::from("tup"), 0),
+                        Expr::BinaryOp(
+                            Box::new(Expr::Subscript(
+                                Box::new(Expr::Id(Identifier::from("tup"))),
+                                1,
+                            )),
+                            BinaryOperator::Add,
+                            Box::new(Expr::Subscript(
+                                Box::new(Expr::Id(Identifier::from("tup"))),
+                                2,
+                            )),
+                        ),
+                    ),
+                    Statement::Assign(
+                        AssignDest::Subscript(Identifier::from("tup"), 1),
+                        Expr::BinaryOp(
+                            Box::new(Expr::Subscript(
+                                Box::new(Expr::Id(Identifier::from("tup"))),
+                                0,
+                            )),
+                            BinaryOperator::Add,
+                            Box::new(Expr::Subscript(
+                                Box::new(Expr::Id(Identifier::from("tup"))),
+                                2,
+                            )),
+                        ),
+                    ),
+                    Statement::Expr(Expr::Call(
+                        Identifier::from("print_int"),
+                        vec![Expr::Subscript(
+                            Box::new(Expr::Id(Identifier::from("tup"))),
+                            0,
+                        )],
+                    )),
+                    Statement::Expr(Expr::Call(
+                        Identifier::from("print_int"),
+                        vec![Expr::Subscript(
+                            Box::new(Expr::Id(Identifier::from("tup"))),
+                            1,
+                        )],
+                    )),
+                    Statement::Expr(Expr::Call(
+                        Identifier::from("print_int"),
+                        vec![Expr::Subscript(
+                            Box::new(Expr::Id(Identifier::from("tup"))),
+                            2,
+                        )],
+                    )),
+                ],
+                types: TypeEnv::new(),
+            },
+            inputs: VecDeque::new(),
+            expected_outputs: VecDeque::from(vec![5, 8, 3]),
+        });
     }
 }

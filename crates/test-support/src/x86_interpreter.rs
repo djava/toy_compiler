@@ -64,11 +64,18 @@ impl X86Env {
             }
             Arg::Deref(reg, offset) => {
                 let base = self.regs[*reg as usize];
-                let addr: usize = (base + (*offset as i64)).try_into().unwrap();
+                let mut addr: usize = (base + (*offset as i64)).try_into().unwrap();
+
+                let memory = if addr & 0x10000 != 0 {
+                    &mut self.heap
+                } else {
+                    &mut self.stack
+                };
+                addr &= !0x10000;
 
                 let bytes = value.to_le_bytes();
                 for (idx, byte) in bytes.iter().enumerate() {
-                    self.stack[addr + idx] = *byte;
+                    memory[addr + idx] = *byte;
                 }
             }
             Arg::ByteReg(reg) => match reg {
