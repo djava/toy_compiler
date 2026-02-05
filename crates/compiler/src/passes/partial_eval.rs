@@ -1,4 +1,7 @@
-use crate::{syntax_trees::{ast::*, shared::*}, passes::ASTPass};
+use crate::{
+    passes::ASTPass,
+    syntax_trees::{ast::*, shared::*},
+};
 
 pub struct PartialEval;
 
@@ -87,6 +90,67 @@ fn partial_eval_expr(e: &mut Expr) {
                 && let Constant(r_val) = &**right
             {
                 *e = Constant(op.eval(l_val, r_val))
+            } else {
+                // There are some evals we can do with even a single
+                // constant out of the two args, ie multiply by 0 or add
+                // with 0.
+
+                let maybe_single_constant = {
+                    if let Constant(l_val) = &**left {
+                        Some((l_val, right))
+                    } else if let Constant(r_val) = &**right {
+                        Some((r_val, left))
+                    } else {
+                        None
+                    }
+                };
+                if let Some((constant, var)) = maybe_single_constant {
+                    match op {
+                        BinaryOperator::Add | BinaryOperator::Subtract
+                            if constant == &Value::I64(0) =>
+                        {
+                            // x + 0 = 0, x - 0 = 0
+                            *e = *var.to_owned();
+                        }
+
+                        BinaryOperator::And => match constant {
+                            // x && true == x
+                            Value::Bool(true) => {
+                                *e = *var.to_owned();
+                            }
+                            // x && false == false
+                            Value::Bool(false) => {
+                                *e = Constant(Value::Bool(false));
+                            }
+                            _ => {}
+                        },
+
+                        BinaryOperator::Or => match constant {
+                            // x || false == x
+                            Value::Bool(false) => {
+                                *e = *var.to_owned();
+                            }
+                            // x || true == true
+                            Value::Bool(true) => {
+                                *e = Constant(Value::Bool(true));
+                            }
+                            _ => {}
+                        },
+
+                        BinaryOperator::Multiply => match constant {
+                            // x * 0 == 0
+                            Value::I64(0) => {
+                                *e = Constant(Value::I64(0));
+                            }
+                            // x * 1 == 1
+                            Value::I64(1) => {
+                                *e = *var.to_owned();
+                            }
+                            _ => {}
+                        },
+                        _ => {}
+                    }
+                }
             }
         }
         UnaryOp(op, expr) => {
@@ -248,9 +312,9 @@ mod test {
     use test_support::{
         ast_interpreter::interpret,
         compiler::{
-            syntax_trees::{ast::*, shared::*},
             passes::{ASTPass, partial_eval::PartialEval},
-            utils::type_check_ast_statements
+            syntax_trees::{ast::*, shared::*},
+            utils::type_check_ast_statements,
         },
     };
 

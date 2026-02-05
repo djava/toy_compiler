@@ -5,7 +5,6 @@ by Jeremy G. Siek. I decided to write it from scratch in Rust instead of
 using the provided Python infrastructure though.
 
 TODO:
-- Partial eval multiply by 0 or 1
 - Variable indexing
 - Variable shift
 - Division
