@@ -7,7 +7,7 @@ use crate::{
         ir,
         shared::*,
         x86::{self, Instr, Register, X86Program},
-    },
+    }, utils::id,
 };
 
 pub struct TranslateIRtoX86;
@@ -57,7 +57,7 @@ fn translate_statement(s: ir::Statement) -> Vec<Instr> {
         ir::Statement::Assign(dest_id, expr) => translate_assign(dest_id, expr),
         ir::Statement::Return(atom) => vec![
             Instr::movq(atom_to_arg(atom), x86::Arg::Reg(Register::rax)),
-            Instr::jmp(Identifier::from(LABEL_EXIT)),
+            Instr::jmp(id!(LABEL_EXIT)),
         ],
         ir::Statement::Goto(label) => vec![Instr::jmp(label)],
         ir::Statement::If(cond, pos_label, neg_label) => {
@@ -455,7 +455,7 @@ const SPECIAL_FUNCTIONS: [(
         vec![
             Instr::movq(x86::Arg::Reg(Register::r15), x86::Arg::Reg(Register::rdi)),
             Instr::movq(atom_to_arg(args.remove(0)), x86::Arg::Reg(Register::rsi)),
-            Instr::callq(Identifier::from(GC_COLLECT), 2),
+            Instr::callq(id!(GC_COLLECT), 2),
         ]
     }),
     (FN_LEN, 1, |mut args, dest_opt| {
@@ -488,7 +488,7 @@ fn translate_call(
     }
 
     for (name, num_args, instr_fn) in SPECIAL_FUNCTIONS {
-        if func_id == Identifier::from(name) {
+        if func_id == id!(name) {
             if args.len() != num_args {
                 panic!(
                     "Wrong number of args to special function `{name}` (Expected {num_args}, Got {}",

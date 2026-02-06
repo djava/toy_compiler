@@ -150,10 +150,18 @@ impl UnaryOperatorExt for UnaryOperator {
     }
 }
 
-
 macro_rules! id {
     ($name:expr) => {
         compiler::syntax_trees::shared::Identifier::Named(std::sync::Arc::from($name))
     };
 }
 pub(crate) use id;
+
+macro_rules! label {
+    ($name:expr) => {
+        compiler::syntax_trees::x86::Directive::Label(compiler::syntax_trees::shared::Identifier::Named(
+            std::sync::Arc::from($name),
+        ))
+    };
+}
+pub(crate) use label;

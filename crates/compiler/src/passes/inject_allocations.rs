@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use crate::{constants::*, syntax_trees::{shared::*, ast::*}, passes::ASTPass};
+use crate::{constants::*, passes::ASTPass, syntax_trees::{ast::*, shared::*}, utils::id};
 
 pub struct InjectAllocations;
 
@@ -90,7 +90,7 @@ fn get_initialize_tuple_expr(elems: &mut Vec<Expr>, tup_type: ValueType) -> Expr
     let fromspace_end = Expr::GlobalSymbol(Arc::from(GC_FROMSPACE_END));
     let collect = |n| {
         Expr::Call(
-            Identifier::from(GC_COLLECT),
+            id!(GC_COLLECT),
             vec![Expr::Constant(Value::I64(n))],
         )
     };

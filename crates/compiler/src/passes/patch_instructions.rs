@@ -1,7 +1,7 @@
 use crate::{
     constants::*,
     passes::X86Pass,
-    syntax_trees::{shared::*, x86::*},
+    syntax_trees::x86::*,
     utils::label
 };
 
@@ -104,6 +104,7 @@ impl X86Pass for PatchInstructions {
 mod tests {
     use std::collections::VecDeque;
 
+    use crate::utils::t_id;
     use test_support::{
         compiler::{
             constants::LABEL_MAIN,
@@ -194,9 +195,9 @@ mod tests {
     #[test]
     fn test_add() {
         execute_test_case(TestCase {
-            ast: Program { functions: vec![Function { name: Identifier::from(LABEL_MAIN),
+            ast: Program { functions: vec![Function { name: t_id!(LABEL_MAIN),
                 body: vec![Statement::Expr(Expr::Call(
-                    Identifier::from("print_int"),
+                    t_id!("print_int"),
                     vec![Expr::BinaryOp(
                         Box::new(Expr::Constant(Value::I64(40))),
                         BinaryOperator::Add,
@@ -213,10 +214,10 @@ mod tests {
     #[test]
     fn test_input() {
         execute_test_case(TestCase {
-            ast: Program { functions: vec![Function { name: Identifier::from(LABEL_MAIN),
+            ast: Program { functions: vec![Function { name: t_id!(LABEL_MAIN),
                 body: vec![Statement::Expr(Expr::Call(
-                    Identifier::from("print_int"),
-                    vec![Expr::Call(Identifier::from("read_int"), vec![])],
+                    t_id!("print_int"),
+                    vec![Expr::Call(t_id!("read_int"), vec![])],
                 ))],
                 types: TypeEnv::new(),
             }]},
@@ -228,13 +229,13 @@ mod tests {
     #[test]
     fn test_subinput() {
         execute_test_case(TestCase {
-            ast: Program { functions: vec![Function { name: Identifier::from(LABEL_MAIN),
+            ast: Program { functions: vec![Function { name: t_id!(LABEL_MAIN),
                 body: vec![Statement::Expr(Expr::Call(
-                    Identifier::from("print_int"),
+                    t_id!("print_int"),
                     vec![Expr::BinaryOp(
-                        Box::new(Expr::Call(Identifier::from("read_int"), vec![])),
+                        Box::new(Expr::Call(t_id!("read_int"), vec![])),
                         BinaryOperator::Subtract,
-                        Box::new(Expr::Call(Identifier::from("read_int"), vec![])),
+                        Box::new(Expr::Call(t_id!("read_int"), vec![])),
                     )],
                 ))],
                 types: TypeEnv::new(),
@@ -247,9 +248,9 @@ mod tests {
     #[test]
     fn test_zero() {
         execute_test_case(TestCase {
-            ast: Program { functions: vec![Function { name: Identifier::from(LABEL_MAIN),
+            ast: Program { functions: vec![Function { name: t_id!(LABEL_MAIN),
                 body: vec![Statement::Expr(Expr::Call(
-                    Identifier::from("print_int"),
+                    t_id!("print_int"),
                     vec![Expr::Constant(Value::I64(0))],
                 ))],
                 types: TypeEnv::new(),
@@ -262,9 +263,9 @@ mod tests {
     #[test]
     fn test_nested() {
         execute_test_case(TestCase {
-            ast: Program { functions: vec![Function { name: Identifier::from(LABEL_MAIN),
+            ast: Program { functions: vec![Function { name: t_id!(LABEL_MAIN),
                 body: vec![Statement::Expr(Expr::Call(
-                    Identifier::from("print_int"),
+                    t_id!("print_int"),
                     vec![Expr::BinaryOp(
                         Box::new(Expr::BinaryOp(
                             Box::new(Expr::Constant(Value::I64(40))),
@@ -289,12 +290,12 @@ mod tests {
     #[test]
     fn test_mixed() {
         execute_test_case(TestCase {
-            ast: Program { functions: vec![Function { name: Identifier::from(LABEL_MAIN),
+            ast: Program { functions: vec![Function { name: t_id!(LABEL_MAIN),
                 body: vec![Statement::Expr(Expr::Call(
-                    Identifier::from("print_int"),
+                    t_id!("print_int"),
                     vec![Expr::BinaryOp(
                         Box::new(Expr::BinaryOp(
-                            Box::new(Expr::Call(Identifier::from("read_int"), vec![])),
+                            Box::new(Expr::Call(t_id!("read_int"), vec![])),
                             BinaryOperator::Add,
                             Box::new(Expr::Constant(Value::I64(2))),
                         )),
@@ -316,15 +317,15 @@ mod tests {
     #[test]
     fn test_simple_assignment() {
         execute_test_case(TestCase {
-            ast: Program { functions: vec![Function { name: Identifier::from(LABEL_MAIN),
+            ast: Program { functions: vec![Function { name: t_id!(LABEL_MAIN),
                 body: vec![
                     Statement::Assign(
-                        AssignDest::Id(Identifier::from("x")),
+                        AssignDest::Id(t_id!("x")),
                         Expr::Constant(Value::I64(1000)),
                     ),
                     Statement::Expr(Expr::Call(
-                        Identifier::from("print_int"),
-                        vec![Expr::Id(Identifier::from("x"))],
+                        t_id!("print_int"),
+                        vec![Expr::Id(t_id!("x"))],
                     )),
                 ],
                 types: TypeEnv::new(),
@@ -337,15 +338,15 @@ mod tests {
     #[test]
     fn test_simple_assignment_imm64() {
         execute_test_case(TestCase {
-            ast: Program { functions: vec![Function { name: Identifier::from(LABEL_MAIN),
+            ast: Program { functions: vec![Function { name: t_id!(LABEL_MAIN),
                 body: vec![
                     Statement::Assign(
-                        AssignDest::Id(Identifier::from("x")),
+                        AssignDest::Id(t_id!("x")),
                         Expr::Constant(Value::I64(i64::MAX)),
                     ),
                     Statement::Expr(Expr::Call(
-                        Identifier::from("print_int"),
-                        vec![Expr::Id(Identifier::from("x"))],
+                        t_id!("print_int"),
+                        vec![Expr::Id(t_id!("x"))],
                     )),
                 ],
                 types: TypeEnv::new(),
@@ -367,13 +368,13 @@ mod tests {
         // e3 = e1 + e2
         // print(e3)
         execute_test_case(TestCase {
-            ast: Program { functions: vec![Function { name: Identifier::from(LABEL_MAIN),
+            ast: Program { functions: vec![Function { name: t_id!(LABEL_MAIN),
                 body: vec![
                     Statement::Assign(
-                        AssignDest::Id(Identifier::from("foofoo")),
+                        AssignDest::Id(t_id!("foofoo")),
                         Expr::BinaryOp(
                             Box::new(Expr::BinaryOp(
-                                Box::new(Expr::Call(Identifier::from("read_int"), vec![])),
+                                Box::new(Expr::Call(t_id!("read_int"), vec![])),
                                 BinaryOperator::Add,
                                 Box::new(Expr::Constant(Value::I64(2))),
                             )),
@@ -386,8 +387,8 @@ mod tests {
                         ),
                     ),
                     Statement::Expr(Expr::Call(
-                        Identifier::from("print_int"),
-                        vec![Expr::Id(Identifier::from("foofoo"))],
+                        t_id!("print_int"),
+                        vec![Expr::Id(t_id!("foofoo"))],
                     )),
                 ],
                 types: TypeEnv::new(),
@@ -400,12 +401,12 @@ mod tests {
     #[test]
     fn test_complex_args() {
         execute_test_case(TestCase {
-            ast: Program { functions: vec![Function { name: Identifier::from(LABEL_MAIN),
+            ast: Program { functions: vec![Function { name: t_id!(LABEL_MAIN),
                 body: vec![Statement::Expr(Expr::Call(
-                    Identifier::from("print_int"),
+                    t_id!("print_int"),
                     vec![Expr::BinaryOp(
                         Box::new(Expr::BinaryOp(
-                            Box::new(Expr::Call(Identifier::from("read_int"), vec![])),
+                            Box::new(Expr::Call(t_id!("read_int"), vec![])),
                             BinaryOperator::Add,
                             Box::new(Expr::Constant(Value::I64(2))),
                         )),
@@ -427,13 +428,13 @@ mod tests {
     #[test]
     fn test_multiply_simple() {
         execute_test_case(TestCase {
-            ast: Program { functions: vec![Function { name: Identifier::from(LABEL_MAIN),
+            ast: Program { functions: vec![Function { name: t_id!(LABEL_MAIN),
                 body: vec![Statement::Expr(Expr::Call(
-                    Identifier::from("print_int"),
+                    t_id!("print_int"),
                     vec![Expr::BinaryOp(
-                        Box::new(Expr::Call(Identifier::from("read_int"), vec![])),
+                        Box::new(Expr::Call(t_id!("read_int"), vec![])),
                         BinaryOperator::Multiply,
-                        Box::new(Expr::Call(Identifier::from("read_int"), vec![])),
+                        Box::new(Expr::Call(t_id!("read_int"), vec![])),
                     )],
                 ))],
                 types: TypeEnv::new(),
@@ -446,9 +447,9 @@ mod tests {
     #[test]
     fn test_multiply_constants() {
         execute_test_case(TestCase {
-            ast: Program { functions: vec![Function { name: Identifier::from(LABEL_MAIN),
+            ast: Program { functions: vec![Function { name: t_id!(LABEL_MAIN),
                 body: vec![Statement::Expr(Expr::Call(
-                    Identifier::from("print_int"),
+                    t_id!("print_int"),
                     vec![Expr::BinaryOp(
                         Box::new(Expr::Constant(Value::I64(5))),
                         BinaryOperator::Multiply,
@@ -469,8 +470,8 @@ mod tests {
         let mut body: Vec<Statement> = (1..=15)
             .map(|i| {
                 Statement::Assign(
-                    AssignDest::Id(Identifier::from(format!("v{i}").as_str())),
-                    Expr::Call(Identifier::from("read_int"), vec![]),
+                    AssignDest::Id(t_id!(format!("v{i}").as_str())),
+                    Expr::Call(t_id!("read_int"), vec![]),
                 )
             })
             .collect();
@@ -478,36 +479,36 @@ mod tests {
         // Multiply two of them - if dest gets spilled, patch_instructions
         // must route through rax
         body.push(Statement::Assign(
-            AssignDest::Id(Identifier::from("result")),
+            AssignDest::Id(t_id!("result")),
             Expr::BinaryOp(
-                Box::new(Expr::Id(Identifier::from("v1"))),
+                Box::new(Expr::Id(t_id!("v1"))),
                 BinaryOperator::Multiply,
-                Box::new(Expr::Id(Identifier::from("v2"))),
+                Box::new(Expr::Id(t_id!("v2"))),
             ),
         ));
 
         // Use all variables to keep them alive across the multiply
-        let mut sum_expr: Expr = Expr::Id(Identifier::from("v1"));
+        let mut sum_expr: Expr = Expr::Id(t_id!("v1"));
         for i in 2..=15 {
             sum_expr = Expr::BinaryOp(
                 Box::new(sum_expr),
                 BinaryOperator::Add,
-                Box::new(Expr::Id(Identifier::from(format!("v{i}").as_str()))),
+                Box::new(Expr::Id(t_id!(format!("v{i}").as_str()))),
             );
         }
         sum_expr = Expr::BinaryOp(
             Box::new(sum_expr),
             BinaryOperator::Add,
-            Box::new(Expr::Id(Identifier::from("result"))),
+            Box::new(Expr::Id(t_id!("result"))),
         );
 
         body.push(Statement::Expr(Expr::Call(
-            Identifier::from("print_int"),
+            t_id!("print_int"),
             vec![sum_expr],
         )));
 
         execute_test_case(TestCase {
-            ast: Program { functions: vec![Function { name: Identifier::from(LABEL_MAIN),
+            ast: Program { functions: vec![Function { name: t_id!(LABEL_MAIN),
                 body,
                 types: TypeEnv::new(),
             }]},
@@ -539,46 +540,46 @@ mod tests {
         // print(e4)
 
         execute_test_case(TestCase {
-            ast: Program { functions: vec![Function { name: Identifier::from(LABEL_MAIN),
+            ast: Program { functions: vec![Function { name: t_id!(LABEL_MAIN),
                 body: vec![
                     Statement::Assign(
-                        AssignDest::Id(Identifier::from("foo")),
-                        Expr::Call(Identifier::from("read_int"), vec![]),
+                        AssignDest::Id(t_id!("foo")),
+                        Expr::Call(t_id!("read_int"), vec![]),
                     ),
                     Statement::Assign(
-                        AssignDest::Id(Identifier::from("bar")),
+                        AssignDest::Id(t_id!("bar")),
                         Expr::BinaryOp(
-                            Box::new(Expr::Call(Identifier::from("read_int"), vec![])),
+                            Box::new(Expr::Call(t_id!("read_int"), vec![])),
                             BinaryOperator::Add,
-                            Box::new(Expr::Id(Identifier::from("foo"))),
+                            Box::new(Expr::Id(t_id!("foo"))),
                         ),
                     ),
                     Statement::Assign(
-                        AssignDest::Id(Identifier::from("baz")),
+                        AssignDest::Id(t_id!("baz")),
                         Expr::BinaryOp(
-                            Box::new(Expr::Call(Identifier::from("read_int"), vec![])),
+                            Box::new(Expr::Call(t_id!("read_int"), vec![])),
                             BinaryOperator::Add,
-                            Box::new(Expr::Id(Identifier::from("bar"))),
+                            Box::new(Expr::Id(t_id!("bar"))),
                         ),
                     ),
                     Statement::Assign(
-                        AssignDest::Id(Identifier::from("bop")),
+                        AssignDest::Id(t_id!("bop")),
                         Expr::BinaryOp(
                             Box::new(Expr::BinaryOp(
-                                Box::new(Expr::Id(Identifier::from("foo"))),
+                                Box::new(Expr::Id(t_id!("foo"))),
                                 BinaryOperator::Add,
-                                Box::new(Expr::Id(Identifier::from("bar"))),
+                                Box::new(Expr::Id(t_id!("bar"))),
                             )),
                             BinaryOperator::Add,
-                            Box::new(Expr::Id(Identifier::from("baz"))),
+                            Box::new(Expr::Id(t_id!("baz"))),
                         ),
                     ),
                     Statement::Expr(Expr::Call(
-                        Identifier::from("print_int"),
+                        t_id!("print_int"),
                         vec![Expr::BinaryOp(
-                            Box::new(Expr::Call(Identifier::from("read_int"), vec![])),
+                            Box::new(Expr::Call(t_id!("read_int"), vec![])),
                             BinaryOperator::Add,
-                            Box::new(Expr::Id(Identifier::from("bop"))),
+                            Box::new(Expr::Id(t_id!("bop"))),
                         )],
                     )),
                 ],

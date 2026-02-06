@@ -9,7 +9,7 @@ fn to_ast_expr(pte: pt::Expr) -> ast::Expr {
     match pte {
         pt::Expr::Int(val) => ast::Expr::Constant(Value::I64(val)),
         pt::Expr::Bool(val) => ast::Expr::Constant(Value::Bool(val)),
-        pt::Expr::Id(name) => ast::Expr::Id(Identifier::from(name)),
+        pt::Expr::Id(name) => ast::Expr::Id(id!(name)),
         pt::Expr::Unary(op, val) => {
             let ast_val = Box::new(to_ast_expr(*val));
             let ast_op = match op {
@@ -48,7 +48,7 @@ fn to_ast_expr(pte: pt::Expr) -> ast::Expr {
         pt::Expr::Call(id, args) => {
             let ast_args = args.into_iter().map(to_ast_expr).collect();
 
-            ast::Expr::Call(Identifier::from(id), ast_args)
+            ast::Expr::Call(id!(id), ast_args)
         }
         pt::Expr::Ternary(cond, pos, neg) => {
             let ast_cond = to_ast_expr(*cond);
@@ -72,11 +72,11 @@ pub fn to_ast_statement<'a>(
     match iter.next() {
         Some(pt::Statement::Expr(pte)) => Some(ast::Statement::Expr(to_ast_expr(pte))),
         Some(pt::Statement::Assign(name, pte)) => Some(ast::Statement::Assign(
-            AssignDest::Id(Identifier::from(name)),
+            AssignDest::Id(id!(name)),
             to_ast_expr(pte),
         )),
         Some(pt::Statement::SubscriptAssign(name, idx, pte)) => Some(ast::Statement::Assign(
-            AssignDest::Subscript(Identifier::from(name), idx),
+            AssignDest::Subscript(id!(name), idx),
             to_ast_expr(pte),
         )),
         Some(pt::Statement::If(cond, body)) => {

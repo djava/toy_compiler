@@ -81,6 +81,8 @@ fn shortcircuit_expr(e: &mut Expr) {
 #[cfg(test)]
 mod tests {
     use std::collections::VecDeque;
+
+    use crate::utils::t_id;
     use test_support::{
         compiler::{
             constants::LABEL_MAIN,
@@ -162,7 +164,7 @@ mod tests {
     #[test]
     fn test_simple() {
         let tc = TestCase {
-            ast: Program { functions: vec![Function { name: Identifier::from(LABEL_MAIN),
+            ast: Program { functions: vec![Function { name: t_id!(LABEL_MAIN),
                 body: vec![Statement::Expr(Expr::BinaryOp(
                     Box::new(Expr::Constant(Value::Bool(true))),
                     BinaryOperator::And,
@@ -180,7 +182,7 @@ mod tests {
     #[test]
     fn test_nested() {
         let tc = TestCase {
-            ast: Program { functions: vec![Function { name: Identifier::from(LABEL_MAIN),
+            ast: Program { functions: vec![Function { name: t_id!(LABEL_MAIN),
                 body: vec![Statement::Expr(Expr::BinaryOp(
                     Box::new(Expr::Constant(Value::Bool(true))),
                     BinaryOperator::And,
@@ -214,7 +216,7 @@ mod tests {
     #[test]
     fn test_comparisons_and() {
         let tc = TestCase {
-            ast: Program { functions: vec![Function { name: Identifier::from(LABEL_MAIN),
+            ast: Program { functions: vec![Function { name: t_id!(LABEL_MAIN),
                 body: vec![
                     Statement::Expr(Expr::BinaryOp(
                         Box::new(Expr::Constant(Value::Bool(true))),
@@ -222,7 +224,7 @@ mod tests {
                         Box::new(Expr::BinaryOp(
                             Box::new(Expr::Constant(Value::I64(1))),
                             BinaryOperator::Equals,
-                            Box::new(Expr::Call(Identifier::from("read_int"), vec![])),
+                            Box::new(Expr::Call(t_id!("read_int"), vec![])),
                         )),
                     )),
                     Statement::Expr(Expr::BinaryOp(
@@ -231,7 +233,7 @@ mod tests {
                         Box::new(Expr::BinaryOp(
                             Box::new(Expr::Constant(Value::I64(1))),
                             BinaryOperator::Equals,
-                            Box::new(Expr::Call(Identifier::from("read_int"), vec![])),
+                            Box::new(Expr::Call(t_id!("read_int"), vec![])),
                         )),
                     )),
                 ],
@@ -247,7 +249,7 @@ mod tests {
     #[test]
     fn test_comparisons_or() {
         let tc = TestCase {
-            ast: Program { functions: vec![Function { name: Identifier::from(LABEL_MAIN),
+            ast: Program { functions: vec![Function { name: t_id!(LABEL_MAIN),
                 body: vec![
                     Statement::Expr(Expr::BinaryOp(
                         Box::new(Expr::Constant(Value::Bool(true))),
@@ -255,7 +257,7 @@ mod tests {
                         Box::new(Expr::BinaryOp(
                             Box::new(Expr::Constant(Value::I64(1))),
                             BinaryOperator::Equals,
-                            Box::new(Expr::Call(Identifier::from("read_int"), vec![])),
+                            Box::new(Expr::Call(t_id!("read_int"), vec![])),
                         )),
                     )),
                     Statement::Expr(Expr::BinaryOp(
@@ -264,7 +266,7 @@ mod tests {
                         Box::new(Expr::BinaryOp(
                             Box::new(Expr::Constant(Value::I64(1))),
                             BinaryOperator::Equals,
-                            Box::new(Expr::Call(Identifier::from("read_int"), vec![])),
+                            Box::new(Expr::Call(t_id!("read_int"), vec![])),
                         )),
                     )),
                 ],

@@ -47,7 +47,7 @@ fn interpret_expr(
             op.try_eval(&l_val, &r_val).unwrap()
         }
         Expr::Call(func_name, args) => {
-            if func_name == &Identifier::from("print_int") {
+            if func_name == &id!("print_int") {
                 if args.len() != 1 {
                     panic!("Wrong number of arguments to print_int()");
                 }
@@ -59,7 +59,7 @@ fn interpret_expr(
                 }
 
                 Value::None
-            } else if func_name == &Identifier::from("read_int") {
+            } else if func_name == &id!("read_int") {
                 if args.len() != 0 {
                     panic!("Wrong number of args to read_int()");
                 }
@@ -136,7 +136,7 @@ pub fn interpret_irprogram(p: &IRProgram, inputs: &mut VecDeque<i64>, outputs: &
 
     let mut block_idx = p
         .blocks
-        .get_index_of(&Identifier::from("user_entry"))
+        .get_index_of(&id!("user_entry"))
         .unwrap();
     loop {
         println!("===Executing: {:?}", p.blocks.get_index(block_idx));

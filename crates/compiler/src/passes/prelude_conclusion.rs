@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use crate::{constants::*, passes::X86Pass, syntax_trees::{shared::*, x86::*}, utils::id};
+use crate::{constants::*, passes::X86Pass, syntax_trees::{x86::*}, utils::{id, label}};
 
 pub struct PreludeConclusion;
 
@@ -8,7 +8,7 @@ impl X86Pass for PreludeConclusion {
     fn run_pass(self, mut m: X86Program) -> X86Program {
         let prelude_directives: [Directive; 2] = [
             Directive::AttSyntax,
-            Directive::Globl(Identifier::from(LABEL_MAIN)),
+            Directive::Globl(id!(LABEL_MAIN)),
         ];
 
         let mut prelude_instrs = vec![
@@ -44,12 +44,12 @@ impl X86Pass for PreludeConclusion {
         m.header = Vec::from(prelude_directives);
 
         let main_block = Block {
-            label: Directive::Label(id!(LABEL_MAIN)),
+            label: label!(LABEL_MAIN),
             instrs: prelude_instrs,
         };
 
         let exit_block = Block {
-            label: Directive::Label(Identifier::from(LABEL_EXIT)),
+            label: label!(LABEL_EXIT),
             instrs: conclusion_instrs,
         };
 

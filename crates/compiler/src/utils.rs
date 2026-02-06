@@ -42,6 +42,15 @@ macro_rules! id {
 }
 pub(crate) use id;
 
+#[cfg(test)]
+macro_rules! t_id {
+    ($name:expr) => {
+        test_support::compiler::syntax_trees::shared::Identifier::Named(std::sync::Arc::from($name))
+    };
+}
+#[cfg(test)]
+pub(crate) use t_id;
+
 macro_rules! label {
     ($name:expr) => {
         crate::syntax_trees::x86::Directive::Label(crate::syntax_trees::shared::Identifier::Named(

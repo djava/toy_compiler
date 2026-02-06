@@ -25,6 +25,8 @@ pub fn parse<'a>(input: &'a str) -> Result<ast::Program, ParserError<'a>> {
 #[cfg(test)]
 mod tests {
     use std::collections::HashMap;
+
+    use crate::utils::t_id;
     use test_support::compiler::{constants::LABEL_MAIN, syntax_trees::{ast, parser::*, shared::*}};
 
     use parse_tree as pt;
@@ -57,7 +59,7 @@ mod tests {
             expected_parse_tree: pt::Module {
                 statements: vec![pt::Statement::Expr(pt::Expr::Int(1))],
             },
-            expected_ast: ast::Program { functions: vec![ast::Function { name: Identifier::from(LABEL_MAIN),
+            expected_ast: ast::Program { functions: vec![ast::Function { name: t_id!(LABEL_MAIN),
                 body: vec![ast::Statement::Expr(ast::Expr::Constant(Value::I64(
                     1,
                 )))],
@@ -76,7 +78,7 @@ mod tests {
             expected_parse_tree: pt::Module {
                 statements: vec![pt::Statement::Expr(pt::Expr::Int(-100))],
             },
-            expected_ast: ast::Program { functions: vec![ast::Function { name: Identifier::from(LABEL_MAIN),
+            expected_ast: ast::Program { functions: vec![ast::Function { name: t_id!(LABEL_MAIN),
                 body: vec![ast::Statement::Expr(ast::Expr::Constant(Value::I64(
                     -100,
                 )))],
@@ -99,7 +101,7 @@ mod tests {
                     Box::new(pt::Expr::Int(2)),
                 ))],
             },
-            expected_ast: ast::Program { functions: vec![ast::Function { name: Identifier::from(LABEL_MAIN),
+            expected_ast: ast::Program { functions: vec![ast::Function { name: t_id!(LABEL_MAIN),
                 body: vec![ast::Statement::Expr(ast::Expr::BinaryOp(
                     Box::new(ast::Expr::Constant(Value::I64(1))),
                     BinaryOperator::Add,
@@ -136,7 +138,7 @@ mod tests {
                     )))),
                 ))],
             },
-            expected_ast: ast::Program { functions: vec![ast::Function { name: Identifier::from(LABEL_MAIN),
+            expected_ast: ast::Program { functions: vec![ast::Function { name: t_id!(LABEL_MAIN),
                 body: vec![ast::Statement::Expr(ast::Expr::BinaryOp(
                     Box::new(ast::Expr::Constant(Value::I64(1))),
                     BinaryOperator::Add,
@@ -169,7 +171,7 @@ mod tests {
                     Box::new(pt::Expr::Parens(Box::new(pt::Expr::Int(1)))),
                 ))],
             },
-            expected_ast: ast::Program { functions: vec![ast::Function { name: Identifier::from(LABEL_MAIN),
+            expected_ast: ast::Program { functions: vec![ast::Function { name: t_id!(LABEL_MAIN),
                 body: vec![ast::Statement::Expr(ast::Expr::UnaryOp(
                     UnaryOperator::Minus,
                     Box::new(ast::Expr::Constant(Value::I64(1))),
@@ -202,9 +204,9 @@ mod tests {
                     ),
                 )],
             },
-            expected_ast: ast::Program { functions: vec![ast::Function { name: Identifier::from(LABEL_MAIN),
+            expected_ast: ast::Program { functions: vec![ast::Function { name: t_id!(LABEL_MAIN),
                 body: vec![ast::Statement::Assign(
-                    AssignDest::Id(Identifier::from("x")),
+                    AssignDest::Id(t_id!("x")),
                     ast::Expr::BinaryOp(
                         Box::new(ast::Expr::Constant(Value::I64(1000))),
                         BinaryOperator::Add,
@@ -233,10 +235,10 @@ mod tests {
                     vec![pt::Expr::Id("x")],
                 ))],
             },
-            expected_ast: ast::Program { functions: vec![ast::Function { name: Identifier::from(LABEL_MAIN),
+            expected_ast: ast::Program { functions: vec![ast::Function { name: t_id!(LABEL_MAIN),
                 body: vec![ast::Statement::Expr(ast::Expr::Call(
-                    Identifier::from("print"),
-                    vec![ast::Expr::Id(Identifier::from("x"))],
+                    t_id!("print"),
+                    vec![ast::Expr::Id(t_id!("x"))],
                 ))],
                 types: HashMap::new(),
             }]},
@@ -256,9 +258,9 @@ mod tests {
             expected_parse_tree: pt::Module {
                 statements: vec![pt::Statement::Expr(pt::Expr::Call("oogabooga", vec![]))],
             },
-            expected_ast: ast::Program { functions: vec![ast::Function { name: Identifier::from(LABEL_MAIN),
+            expected_ast: ast::Program { functions: vec![ast::Function { name: t_id!(LABEL_MAIN),
                 body: vec![ast::Statement::Expr(ast::Expr::Call(
-                    Identifier::from("oogabooga"),
+                    t_id!("oogabooga"),
                     vec![],
                 ))],
                 types: HashMap::new(),
@@ -307,9 +309,9 @@ mod tests {
                     )],
                 ))],
             },
-            expected_ast: ast::Program { functions: vec![ast::Function { name: Identifier::from(LABEL_MAIN),
+            expected_ast: ast::Program { functions: vec![ast::Function { name: t_id!(LABEL_MAIN),
                 body: vec![ast::Statement::Expr(ast::Expr::Call(
-                    Identifier::from("print"),
+                    t_id!("print"),
                     vec![ast::Expr::BinaryOp(
                         Box::new(ast::Expr::BinaryOp(
                             Box::new(ast::Expr::Constant(Value::I64(1))),
@@ -321,7 +323,7 @@ mod tests {
                             )),
                         )),
                         BinaryOperator::Subtract,
-                        Box::new(ast::Expr::Call(Identifier::from("read_int"), vec![])),
+                        Box::new(ast::Expr::Call(t_id!("read_int"), vec![])),
                     )],
                 ))],
                 types: HashMap::new(),
@@ -360,12 +362,12 @@ mod tests {
                     ],
                 ))],
             },
-            expected_ast: ast::Program { functions: vec![ast::Function { name: Identifier::from(LABEL_MAIN),
+            expected_ast: ast::Program { functions: vec![ast::Function { name: t_id!(LABEL_MAIN),
                 body: vec![ast::Statement::Expr(ast::Expr::Call(
-                    Identifier::from("print"),
+                    t_id!("print"),
                     vec![
-                        ast::Expr::Id(Identifier::from("x")),
-                        ast::Expr::Id(Identifier::from("y")),
+                        ast::Expr::Id(t_id!("x")),
+                        ast::Expr::Id(t_id!("y")),
                         ast::Expr::Constant(Value::I64(1)),
                         ast::Expr::Constant(Value::I64(3)),
                         ast::Expr::Constant(Value::I64(1000)),
@@ -395,11 +397,11 @@ mod tests {
                     pt::Expr::Call("Fffoo", vec![pt::Expr::Int(1)]),
                 )],
             },
-            expected_ast: ast::Program { functions: vec![ast::Function { name: Identifier::from(LABEL_MAIN),
+            expected_ast: ast::Program { functions: vec![ast::Function { name: t_id!(LABEL_MAIN),
                 body: vec![ast::Statement::Assign(
-                    AssignDest::Id(Identifier::from("x")),
+                    AssignDest::Id(t_id!("x")),
                     ast::Expr::Call(
-                        Identifier::from("Fffoo"),
+                        t_id!("Fffoo"),
                         vec![ast::Expr::Constant(Value::I64(1))],
                     ),
                 )],
@@ -449,19 +451,19 @@ mod tests {
                     )),
                 ],
             },
-            expected_ast: ast::Program { functions: vec![ast::Function { name: Identifier::from(LABEL_MAIN),
+            expected_ast: ast::Program { functions: vec![ast::Function { name: t_id!(LABEL_MAIN),
                 body: vec![
                     ast::Statement::Assign(
-                        AssignDest::Id(Identifier::from("x")),
+                        AssignDest::Id(t_id!("x")),
                         ast::Expr::Constant(Value::I64(100)),
                     ),
                     ast::Statement::Expr(ast::Expr::Call(
-                        Identifier::from("print"),
+                        t_id!("print"),
                         vec![ast::Expr::Constant(Value::I64(1000))],
                     )),
                     ast::Statement::Assign(
-                        AssignDest::Id(Identifier::from("whatevn")),
-                        ast::Expr::Id(Identifier::from("x")),
+                        AssignDest::Id(t_id!("whatevn")),
+                        ast::Expr::Id(t_id!("x")),
                     ),
                     ast::Statement::Expr(ast::Expr::BinaryOp(
                         Box::new(ast::Expr::Constant(Value::I64(101010))),
@@ -491,7 +493,7 @@ mod tests {
                     )),
                 ))],
             },
-            expected_ast: ast::Program { functions: vec![ast::Function { name: Identifier::from(LABEL_MAIN),
+            expected_ast: ast::Program { functions: vec![ast::Function { name: t_id!(LABEL_MAIN),
                 body: vec![ast::Statement::Expr(ast::Expr::BinaryOp(
                     Box::new(ast::Expr::Constant(Value::I64(2))),
                     BinaryOperator::Add,
@@ -518,7 +520,7 @@ mod tests {
                     Box::new(pt::Expr::Bool(true)),
                 ))],
             },
-            expected_ast: ast::Program { functions: vec![ast::Function { name: Identifier::from(LABEL_MAIN),
+            expected_ast: ast::Program { functions: vec![ast::Function { name: t_id!(LABEL_MAIN),
                 body: vec![ast::Statement::Expr(ast::Expr::BinaryOp(
                     Box::new(ast::Expr::Constant(Value::Bool(false))),
                     BinaryOperator::And,
@@ -586,9 +588,9 @@ mod tests {
                     )],
                 ))],
             },
-            expected_ast: ast::Program { functions: vec![ast::Function { name: Identifier::from(LABEL_MAIN),
+            expected_ast: ast::Program { functions: vec![ast::Function { name: t_id!(LABEL_MAIN),
                 body: vec![ast::Statement::Expr(ast::Expr::Call(
-                    Identifier::from("truefoofalse"),
+                    t_id!("truefoofalse"),
                     vec![ast::Expr::BinaryOp(
                         Box::new(ast::Expr::BinaryOp(
                             Box::new(ast::Expr::UnaryOp(
@@ -638,7 +640,7 @@ mod tests {
                     Box::new(pt::Expr::Int(2)),
                 ))],
             },
-            expected_ast: ast::Program { functions: vec![ast::Function { name: Identifier::from(LABEL_MAIN),
+            expected_ast: ast::Program { functions: vec![ast::Function { name: t_id!(LABEL_MAIN),
                 body: vec![ast::Statement::Expr(ast::Expr::Ternary(
                     Box::new(ast::Expr::Constant(Value::Bool(true))),
                     Box::new(ast::Expr::Constant(Value::I64(1))),
@@ -677,7 +679,7 @@ mod tests {
                     )),
                 ))],
             },
-            expected_ast: ast::Program { functions: vec![ast::Function { name: Identifier::from(LABEL_MAIN),
+            expected_ast: ast::Program { functions: vec![ast::Function { name: t_id!(LABEL_MAIN),
                 body: vec![ast::Statement::Expr(ast::Expr::Ternary(
                     Box::new(ast::Expr::Constant(Value::Bool(true))),
                     Box::new(ast::Expr::Constant(Value::I64(1))),
@@ -718,7 +720,7 @@ mod tests {
                     Box::new(pt::Expr::Int(4)),
                 ))],
             },
-            expected_ast: ast::Program { functions: vec![ast::Function { name: Identifier::from(LABEL_MAIN),
+            expected_ast: ast::Program { functions: vec![ast::Function { name: t_id!(LABEL_MAIN),
                 body: vec![ast::Statement::Expr(ast::Expr::Ternary(
                     Box::new(ast::Expr::BinaryOp(
                         Box::new(ast::Expr::Constant(Value::I64(1))),
@@ -751,7 +753,7 @@ mod tests {
                     vec![pt::Statement::Expr(pt::Expr::Int(1))],
                 )],
             },
-            expected_ast: ast::Program { functions: vec![ast::Function { name: Identifier::from(LABEL_MAIN),
+            expected_ast: ast::Program { functions: vec![ast::Function { name: t_id!(LABEL_MAIN),
                 body: vec![ast::Statement::Conditional(
                     ast::Expr::Constant(Value::Bool(true)),
                     vec![ast::Statement::Expr(ast::Expr::Constant(Value::I64(
@@ -791,7 +793,7 @@ else { 2 }",
                     pt::Statement::Else(vec![pt::Statement::Expr(pt::Expr::Int(2))]),
                 ],
             },
-            expected_ast: ast::Program { functions: vec![ast::Function { name: Identifier::from(LABEL_MAIN),
+            expected_ast: ast::Program { functions: vec![ast::Function { name: t_id!(LABEL_MAIN),
                 body: vec![ast::Statement::Conditional(
                     ast::Expr::Constant(Value::Bool(true)),
                     vec![ast::Statement::Expr(ast::Expr::Constant(Value::I64(
@@ -845,7 +847,7 @@ else { 3 }",
                     pt::Statement::Else(vec![pt::Statement::Expr(pt::Expr::Int(3))]),
                 ],
             },
-            expected_ast: ast::Program { functions: vec![ast::Function { name: Identifier::from(LABEL_MAIN),
+            expected_ast: ast::Program { functions: vec![ast::Function { name: t_id!(LABEL_MAIN),
                 body: vec![ast::Statement::Conditional(
                     ast::Expr::Constant(Value::Bool(true)),
                     vec![ast::Statement::Expr(ast::Expr::Constant(Value::I64(
@@ -896,16 +898,16 @@ else { 3 }",
                     ))],
                 )],
             },
-            expected_ast: ast::Program { functions: vec![ast::Function { name: Identifier::from(LABEL_MAIN),
+            expected_ast: ast::Program { functions: vec![ast::Function { name: t_id!(LABEL_MAIN),
                 body: vec![ast::Statement::Conditional(
                     ast::Expr::BinaryOp(
-                        Box::new(ast::Expr::Id(Identifier::from("x"))),
+                        Box::new(ast::Expr::Id(t_id!("x"))),
                         BinaryOperator::Equals,
                         Box::new(ast::Expr::Constant(Value::I64(1))),
                     ),
                     vec![ast::Statement::Expr(ast::Expr::Call(
-                        Identifier::from("print"),
-                        vec![ast::Expr::Id(Identifier::from("x"))],
+                        t_id!("print"),
+                        vec![ast::Expr::Id(t_id!("x"))],
                     ))],
                     vec![],
                 )],
@@ -947,17 +949,17 @@ else { 3 }",
                     ],
                 )],
             },
-            expected_ast: ast::Program { functions: vec![ast::Function { name: Identifier::from(LABEL_MAIN),
+            expected_ast: ast::Program { functions: vec![ast::Function { name: t_id!(LABEL_MAIN),
                 body: vec![ast::Statement::Conditional(
                     ast::Expr::Constant(Value::Bool(true)),
                     vec![
                         ast::Statement::Assign(
-                            AssignDest::Id(Identifier::from("x")),
+                            AssignDest::Id(t_id!("x")),
                             ast::Expr::Constant(Value::I64(1)),
                         ),
                         ast::Statement::Expr(ast::Expr::Call(
-                            Identifier::from("print"),
-                            vec![ast::Expr::Id(Identifier::from("x"))],
+                            t_id!("print"),
+                            vec![ast::Expr::Id(t_id!("x"))],
                         )),
                     ],
                     vec![],
@@ -981,7 +983,7 @@ else { 3 }",
             expected_parse_tree: pt::Module {
                 statements: vec![pt::Statement::If(pt::Expr::Bool(true), vec![])],
             },
-            expected_ast: ast::Program { functions: vec![ast::Function { name: Identifier::from(LABEL_MAIN),
+            expected_ast: ast::Program { functions: vec![ast::Function { name: t_id!(LABEL_MAIN),
                 body: vec![ast::Statement::Conditional(
                     ast::Expr::Constant(Value::Bool(true)),
                     vec![],
@@ -1079,10 +1081,10 @@ else { 5 }",
                     pt::Statement::Else(vec![pt::Statement::Expr(pt::Expr::Int(5))]),
                 ],
             },
-            expected_ast: ast::Program { functions: vec![ast::Function { name: Identifier::from(LABEL_MAIN),
+            expected_ast: ast::Program { functions: vec![ast::Function { name: t_id!(LABEL_MAIN),
                 body: vec![ast::Statement::Conditional(
                     ast::Expr::BinaryOp(
-                        Box::new(ast::Expr::Id(Identifier::from("x"))),
+                        Box::new(ast::Expr::Id(t_id!("x"))),
                         BinaryOperator::Equals,
                         Box::new(ast::Expr::Constant(Value::I64(1))),
                     ),
@@ -1091,7 +1093,7 @@ else { 5 }",
                     )))],
                     vec![ast::Statement::Conditional(
                         ast::Expr::BinaryOp(
-                            Box::new(ast::Expr::Id(Identifier::from("x"))),
+                            Box::new(ast::Expr::Id(t_id!("x"))),
                             BinaryOperator::Equals,
                             Box::new(ast::Expr::Constant(Value::I64(2))),
                         ),
@@ -1100,7 +1102,7 @@ else { 5 }",
                         )))],
                         vec![ast::Statement::Conditional(
                             ast::Expr::BinaryOp(
-                                Box::new(ast::Expr::Id(Identifier::from("x"))),
+                                Box::new(ast::Expr::Id(t_id!("x"))),
                                 BinaryOperator::Equals,
                                 Box::new(ast::Expr::Constant(Value::I64(3))),
                             ),
@@ -1109,7 +1111,7 @@ else { 5 }",
                             )))],
                             vec![ast::Statement::Conditional(
                                 ast::Expr::BinaryOp(
-                                    Box::new(ast::Expr::Id(Identifier::from("x"))),
+                                    Box::new(ast::Expr::Id(t_id!("x"))),
                                     BinaryOperator::Equals,
                                     Box::new(ast::Expr::Constant(Value::I64(4))),
                                 ),
@@ -1154,7 +1156,7 @@ else { 5 }",
                     pt::Statement::Else(vec![pt::Statement::Expr(pt::Expr::Int(2))]),
                 ],
             },
-            expected_ast: ast::Program { functions: vec![ast::Function { name: Identifier::from(LABEL_MAIN),
+            expected_ast: ast::Program { functions: vec![ast::Function { name: t_id!(LABEL_MAIN),
                 body: vec![ast::Statement::Conditional(
                     ast::Expr::Constant(Value::Bool(true)),
                     vec![ast::Statement::Expr(ast::Expr::Constant(Value::I64(
@@ -1204,7 +1206,7 @@ else { 5 }",
                     pt::Statement::Else(vec![pt::Statement::Expr(pt::Expr::Int(3))]),
                 ],
             },
-            expected_ast: ast::Program { functions: vec![ast::Function { name: Identifier::from(LABEL_MAIN),
+            expected_ast: ast::Program { functions: vec![ast::Function { name: t_id!(LABEL_MAIN),
                 body: vec![ast::Statement::Conditional(
                     ast::Expr::Constant(Value::Bool(true)),
                     vec![ast::Statement::Expr(ast::Expr::Constant(Value::I64(
@@ -1243,7 +1245,7 @@ else { 5 }",
                     pt::Expr::Int(2),
                 ]))],
             },
-            expected_ast: ast::Program { functions: vec![ast::Function { name: Identifier::from(LABEL_MAIN),
+            expected_ast: ast::Program { functions: vec![ast::Function { name: t_id!(LABEL_MAIN),
                 body: vec![ast::Statement::Expr(ast::Expr::Tuple(vec![
                     ast::Expr::Constant(Value::I64(1)),
                     ast::Expr::Constant(Value::I64(2)),
@@ -1269,7 +1271,7 @@ else { 5 }",
                     42,
                 )]))],
             },
-            expected_ast: ast::Program { functions: vec![ast::Function { name: Identifier::from(LABEL_MAIN),
+            expected_ast: ast::Program { functions: vec![ast::Function { name: t_id!(LABEL_MAIN),
                 body: vec![ast::Statement::Expr(ast::Expr::Tuple(vec![
                     ast::Expr::Constant(Value::I64(42)),
                 ]))],
@@ -1312,16 +1314,16 @@ else { 5 }",
                     ]),
                 )],
             },
-            expected_ast: ast::Program { functions: vec![ast::Function { name: Identifier::from(LABEL_MAIN),
+            expected_ast: ast::Program { functions: vec![ast::Function { name: t_id!(LABEL_MAIN),
                 body: vec![ast::Statement::Assign(
-                    AssignDest::Id(Identifier::from("x")),
+                    AssignDest::Id(t_id!("x")),
                     ast::Expr::Tuple(vec![
                         ast::Expr::BinaryOp(
                             Box::new(ast::Expr::Constant(Value::I64(1))),
                             BinaryOperator::Add,
                             Box::new(ast::Expr::Constant(Value::I64(2))),
                         ),
-                        ast::Expr::Call(Identifier::from("read_int"), vec![]),
+                        ast::Expr::Call(t_id!("read_int"), vec![]),
                         ast::Expr::Constant(Value::Bool(true)),
                     ]),
                 )],
@@ -1356,7 +1358,7 @@ else { 5 }",
                     pt::Expr::Tuple(vec![pt::Expr::Int(3), pt::Expr::Int(4)]),
                 ]))],
             },
-            expected_ast: ast::Program { functions: vec![ast::Function { name: Identifier::from(LABEL_MAIN),
+            expected_ast: ast::Program { functions: vec![ast::Function { name: t_id!(LABEL_MAIN),
                 body: vec![ast::Statement::Expr(ast::Expr::Tuple(vec![
                     ast::Expr::Tuple(vec![
                         ast::Expr::Constant(Value::I64(1)),
@@ -1391,7 +1393,7 @@ else { 5 }",
                     pt::Expr::Int(2),
                 ]))],
             },
-            expected_ast: ast::Program { functions: vec![ast::Function { name: Identifier::from(LABEL_MAIN),
+            expected_ast: ast::Program { functions: vec![ast::Function { name: t_id!(LABEL_MAIN),
                 body: vec![ast::Statement::Expr(ast::Expr::Tuple(vec![
                     ast::Expr::Constant(Value::I64(1)),
                     ast::Expr::Constant(Value::I64(2)),
@@ -1423,9 +1425,9 @@ else { 5 }",
                     vec![pt::Expr::Tuple(vec![pt::Expr::Int(1), pt::Expr::Int(2)])],
                 ))],
             },
-            expected_ast: ast::Program { functions: vec![ast::Function { name: Identifier::from(LABEL_MAIN),
+            expected_ast: ast::Program { functions: vec![ast::Function { name: t_id!(LABEL_MAIN),
                 body: vec![ast::Statement::Expr(ast::Expr::Call(
-                    Identifier::from("print"),
+                    t_id!("print"),
                     vec![ast::Expr::Tuple(vec![
                         ast::Expr::Constant(Value::I64(1)),
                         ast::Expr::Constant(Value::I64(2)),
@@ -1455,9 +1457,9 @@ else { 5 }",
                     0,
                 ))],
             },
-            expected_ast: ast::Program { functions: vec![ast::Function { name: Identifier::from(LABEL_MAIN),
+            expected_ast: ast::Program { functions: vec![ast::Function { name: t_id!(LABEL_MAIN),
                 body: vec![ast::Statement::Expr(ast::Expr::Subscript(
-                    Box::new(ast::Expr::Id(Identifier::from("x"))),
+                    Box::new(ast::Expr::Id(t_id!("x"))),
                     0,
                 ))],
                 types: HashMap::new(),
@@ -1482,9 +1484,9 @@ else { 5 }",
                     2,
                 ))],
             },
-            expected_ast: ast::Program { functions: vec![ast::Function { name: Identifier::from(LABEL_MAIN),
+            expected_ast: ast::Program { functions: vec![ast::Function { name: t_id!(LABEL_MAIN),
                 body: vec![ast::Statement::Expr(ast::Expr::Subscript(
-                    Box::new(ast::Expr::Id(Identifier::from("myvar"))),
+                    Box::new(ast::Expr::Id(t_id!("myvar"))),
                     2,
                 ))],
                 types: HashMap::new(),
@@ -1509,9 +1511,9 @@ else { 5 }",
                     -1,
                 ))],
             },
-            expected_ast: ast::Program { functions: vec![ast::Function { name: Identifier::from(LABEL_MAIN),
+            expected_ast: ast::Program { functions: vec![ast::Function { name: t_id!(LABEL_MAIN),
                 body: vec![ast::Statement::Expr(ast::Expr::Subscript(
-                    Box::new(ast::Expr::Id(Identifier::from("x"))),
+                    Box::new(ast::Expr::Id(t_id!("x"))),
                     -1,
                 ))],
                 types: HashMap::new(),
@@ -1540,10 +1542,10 @@ else { 5 }",
                     1,
                 ))],
             },
-            expected_ast: ast::Program { functions: vec![ast::Function { name: Identifier::from(LABEL_MAIN),
+            expected_ast: ast::Program { functions: vec![ast::Function { name: t_id!(LABEL_MAIN),
                 body: vec![ast::Statement::Expr(ast::Expr::Subscript(
                     Box::new(ast::Expr::Subscript(
-                        Box::new(ast::Expr::Id(Identifier::from("x"))),
+                        Box::new(ast::Expr::Id(t_id!("x"))),
                         0,
                     )),
                     1,
@@ -1573,9 +1575,9 @@ else { 5 }",
                     0,
                 ))],
             },
-            expected_ast: ast::Program { functions: vec![ast::Function { name: Identifier::from(LABEL_MAIN),
+            expected_ast: ast::Program { functions: vec![ast::Function { name: t_id!(LABEL_MAIN),
                 body: vec![ast::Statement::Expr(ast::Expr::Subscript(
-                    Box::new(ast::Expr::Call(Identifier::from("foo"), vec![])),
+                    Box::new(ast::Expr::Call(t_id!("foo"), vec![])),
                     0,
                 ))],
                 types: HashMap::new(),
@@ -1604,10 +1606,10 @@ else { 5 }",
                     Box::new(pt::Expr::Int(1)),
                 ))],
             },
-            expected_ast: ast::Program { functions: vec![ast::Function { name: Identifier::from(LABEL_MAIN),
+            expected_ast: ast::Program { functions: vec![ast::Function { name: t_id!(LABEL_MAIN),
                 body: vec![ast::Statement::Expr(ast::Expr::BinaryOp(
                     Box::new(ast::Expr::Subscript(
-                        Box::new(ast::Expr::Id(Identifier::from("x"))),
+                        Box::new(ast::Expr::Id(t_id!("x"))),
                         0,
                     )),
                     BinaryOperator::Add,
@@ -1645,7 +1647,7 @@ else { 5 }",
                     0,
                 ))],
             },
-            expected_ast: ast::Program { functions: vec![ast::Function { name: Identifier::from(LABEL_MAIN),
+            expected_ast: ast::Program { functions: vec![ast::Function { name: t_id!(LABEL_MAIN),
                 body: vec![ast::Statement::Expr(ast::Expr::Subscript(
                     Box::new(ast::Expr::Tuple(vec![
                         ast::Expr::Constant(Value::I64(1)),
@@ -1681,10 +1683,10 @@ else { 5 }",
                     Box::new(pt::Expr::Int(2)),
                 ))],
             },
-            expected_ast: ast::Program { functions: vec![ast::Function { name: Identifier::from(LABEL_MAIN),
+            expected_ast: ast::Program { functions: vec![ast::Function { name: t_id!(LABEL_MAIN),
                 body: vec![ast::Statement::Expr(ast::Expr::Ternary(
                     Box::new(ast::Expr::Subscript(
-                        Box::new(ast::Expr::Id(Identifier::from("x"))),
+                        Box::new(ast::Expr::Id(t_id!("x"))),
                         0,
                     )),
                     Box::new(ast::Expr::Constant(Value::I64(1))),
@@ -1713,9 +1715,9 @@ else { 5 }",
             expected_parse_tree: pt::Module {
                 statements: vec![pt::Statement::SubscriptAssign("x", 0, pt::Expr::Int(1))],
             },
-            expected_ast: ast::Program { functions: vec![ast::Function { name: Identifier::from(LABEL_MAIN),
+            expected_ast: ast::Program { functions: vec![ast::Function { name: t_id!(LABEL_MAIN),
                 body: vec![ast::Statement::Assign(
-                    AssignDest::Subscript(Identifier::from("x"), 0),
+                    AssignDest::Subscript(t_id!("x"), 0),
                     ast::Expr::Constant(Value::I64(1)),
                 )],
                 types: HashMap::new(),
@@ -1739,9 +1741,9 @@ else { 5 }",
             expected_parse_tree: pt::Module {
                 statements: vec![pt::Statement::SubscriptAssign("tup", 3, pt::Expr::Int(42))],
             },
-            expected_ast: ast::Program { functions: vec![ast::Function { name: Identifier::from(LABEL_MAIN),
+            expected_ast: ast::Program { functions: vec![ast::Function { name: t_id!(LABEL_MAIN),
                 body: vec![ast::Statement::Assign(
-                    AssignDest::Subscript(Identifier::from("tup"), 3),
+                    AssignDest::Subscript(t_id!("tup"), 3),
                     ast::Expr::Constant(Value::I64(42)),
                 )],
                 types: HashMap::new(),
@@ -1776,11 +1778,11 @@ else { 5 }",
                     ),
                 )],
             },
-            expected_ast: ast::Program { functions: vec![ast::Function { name: Identifier::from(LABEL_MAIN),
+            expected_ast: ast::Program { functions: vec![ast::Function { name: t_id!(LABEL_MAIN),
                 body: vec![ast::Statement::Assign(
-                    AssignDest::Subscript(Identifier::from("x"), 1),
+                    AssignDest::Subscript(t_id!("x"), 1),
                     ast::Expr::BinaryOp(
-                        Box::new(ast::Expr::Id(Identifier::from("y"))),
+                        Box::new(ast::Expr::Id(t_id!("y"))),
                         BinaryOperator::Add,
                         Box::new(ast::Expr::Constant(Value::I64(1))),
                     ),
@@ -1815,9 +1817,9 @@ else { 5 }",
                     pt::Expr::Tuple(vec![pt::Expr::Int(1), pt::Expr::Int(2)]),
                 )],
             },
-            expected_ast: ast::Program { functions: vec![ast::Function { name: Identifier::from(LABEL_MAIN),
+            expected_ast: ast::Program { functions: vec![ast::Function { name: t_id!(LABEL_MAIN),
                 body: vec![ast::Statement::Assign(
-                    AssignDest::Subscript(Identifier::from("x"), 0),
+                    AssignDest::Subscript(t_id!("x"), 0),
                     ast::Expr::Tuple(vec![
                         ast::Expr::Constant(Value::I64(1)),
                         ast::Expr::Constant(Value::I64(2)),
@@ -1844,9 +1846,9 @@ else { 5 }",
             expected_parse_tree: pt::Module {
                 statements: vec![pt::Statement::SubscriptAssign("x", -1, pt::Expr::Int(99))],
             },
-            expected_ast: ast::Program { functions: vec![ast::Function { name: Identifier::from(LABEL_MAIN),
+            expected_ast: ast::Program { functions: vec![ast::Function { name: t_id!(LABEL_MAIN),
                 body: vec![ast::Statement::Assign(
-                    AssignDest::Subscript(Identifier::from("x"), -1),
+                    AssignDest::Subscript(t_id!("x"), -1),
                     ast::Expr::Constant(Value::I64(99)),
                 )],
                 types: HashMap::new(),
@@ -1877,11 +1879,11 @@ else { 5 }",
                     vec![pt::Statement::SubscriptAssign("x", 0, pt::Expr::Int(1))],
                 )],
             },
-            expected_ast: ast::Program { functions: vec![ast::Function { name: Identifier::from(LABEL_MAIN),
+            expected_ast: ast::Program { functions: vec![ast::Function { name: t_id!(LABEL_MAIN),
                 body: vec![ast::Statement::Conditional(
                     ast::Expr::Constant(Value::Bool(true)),
                     vec![ast::Statement::Assign(
-                        AssignDest::Subscript(Identifier::from("x"), 0),
+                        AssignDest::Subscript(t_id!("x"), 0),
                         ast::Expr::Constant(Value::I64(1)),
                     )],
                     vec![],
@@ -1915,10 +1917,10 @@ else { 5 }",
                     pt::Expr::Subscript(Box::new(pt::Expr::Id("y")), 1),
                 )],
             },
-            expected_ast: ast::Program { functions: vec![ast::Function { name: Identifier::from(LABEL_MAIN),
+            expected_ast: ast::Program { functions: vec![ast::Function { name: t_id!(LABEL_MAIN),
                 body: vec![ast::Statement::Assign(
-                    AssignDest::Subscript(Identifier::from("x"), 0),
-                    ast::Expr::Subscript(Box::new(ast::Expr::Id(Identifier::from("y"))), 1),
+                    AssignDest::Subscript(t_id!("x"), 0),
+                    ast::Expr::Subscript(Box::new(ast::Expr::Id(t_id!("y"))), 1),
                 )],
                 types: HashMap::new(),
             }]},
@@ -1957,17 +1959,17 @@ x[0] = 42",
                     pt::Statement::SubscriptAssign("x", 0, pt::Expr::Int(42)),
                 ],
             },
-            expected_ast: ast::Program { functions: vec![ast::Function { name: Identifier::from(LABEL_MAIN),
+            expected_ast: ast::Program { functions: vec![ast::Function { name: t_id!(LABEL_MAIN),
                 body: vec![
                     ast::Statement::Assign(
-                        AssignDest::Id(Identifier::from("x")),
+                        AssignDest::Id(t_id!("x")),
                         ast::Expr::Tuple(vec![
                             ast::Expr::Constant(Value::I64(1)),
                             ast::Expr::Constant(Value::I64(2)),
                         ]),
                     ),
                     ast::Statement::Assign(
-                        AssignDest::Subscript(Identifier::from("x"), 0),
+                        AssignDest::Subscript(t_id!("x"), 0),
                         ast::Expr::Constant(Value::I64(42)),
                     ),
                 ],

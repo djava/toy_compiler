@@ -1,6 +1,6 @@
 use std::collections::VecDeque;
 
-use crate::ValueEnv;
+use crate::{ValueEnv, interpreter_utils::{id, label}};
 
 use compiler::syntax_trees::{shared::*, x86::*};
 
@@ -217,18 +217,18 @@ fn execute_runtime_calls(
     outputs: &mut VecDeque<i64>,
     env: &mut X86Env,
 ) -> bool {
-    if label == &Identifier::from("print_int") {
+    if label == &id!("print_int") {
         let int = env.read_arg(&Arg::Reg(Register::rdi));
         outputs.push_back(int);
         return true;
-    } else if label == &Identifier::from("read_int") {
+    } else if label == &id!("read_int") {
         let int = inputs.pop_front().expect("Overflowed input values");
         env.write_arg(&Arg::Reg(Register::rax), int);
         return true;
-    } else if label == &Identifier::from("__gc_initialize") {
+    } else if label == &id!("__gc_initialize") {
         // Don't need to do anything in sim
         return true;
-    } else if label == &Identifier::from("__gc_collect") {
+    } else if label == &id!("__gc_collect") {
         // Don't need to do anything in sim
         return true;
     } else {
@@ -339,7 +339,7 @@ pub fn interpret_x86(m: &X86Program, inputs: &mut VecDeque<i64>, outputs: &mut V
     let main_instrs = &m
         .blocks
         .iter()
-        .find(|block| block.label == Directive::Label(Identifier::from("main")))
+        .find(|block| block.label == label!("main"))
         .unwrap();
 
     let mut curr_instr_iter = main_instrs.instrs.iter();

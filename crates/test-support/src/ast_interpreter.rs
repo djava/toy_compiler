@@ -29,9 +29,9 @@ fn interpret_expr(
         }
         Constant(v) => Some(v.clone()),
         Call(name, args) => {
-            if name == &Identifier::from("read_int") && args.is_empty() {
+            if name == &id!("read_int") && args.is_empty() {
                 Some(Value::I64(inputs.pop_front().expect("Ran out of inputs")))
-            } else if name == &Identifier::from("print_int") && args.len() == 1 {
+            } else if name == &id!("print_int") && args.len() == 1 {
                 let val = interpret_expr(&args[0], inputs, outputs, env).expect_int();
                 outputs.push_back(val);
 
