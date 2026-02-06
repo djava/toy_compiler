@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use crate::{constants::*, syntax_trees::{shared::*, ast::*}, passes::ASTPass, utils::type_check_ast_expr};
+use crate::{constants::*, syntax_trees::{shared::*, ast::*}, passes::ASTPass};
 
 pub struct InjectAllocations;
 
@@ -69,7 +69,7 @@ fn replace_tuples_in_expr(expr: &mut Expr, type_env: &mut TypeEnv) {
             let tup_type = ValueType::TupleType(
                 elems
                     .iter()
-                    .map(|e| type_check_ast_expr(e, type_env))
+                    .map(|e| e.type_check(type_env))
                     .collect(),
             );
             *expr = get_initialize_tuple_expr(elems, tup_type);

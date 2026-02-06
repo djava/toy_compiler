@@ -81,7 +81,6 @@ mod tests {
         compiler::{
             passes::{ASTPass, ShortCircuiting},
             syntax_trees::{ast::*, shared::*},
-            utils::type_check_ast_statements,
         },
         *,
     };
@@ -134,13 +133,13 @@ mod tests {
     }
 
     fn execute_test_case(mut tc: TestCase) {
-        type_check_ast_statements(&tc.ast.body, &mut TypeEnv::new());
+        tc.ast.type_check();
 
         println!("AST before Short Circuiting: {:?}", tc.ast);
-        let post_run_ast = ShortCircuiting.run_pass(tc.ast);
+        let mut post_run_ast = ShortCircuiting.run_pass(tc.ast);
         println!("AST after Short Circuiting: {:?}", post_run_ast);
 
-        type_check_ast_statements(&post_run_ast.body, &mut TypeEnv::new());
+        post_run_ast.type_check();
 
         post_run_ast
             .body

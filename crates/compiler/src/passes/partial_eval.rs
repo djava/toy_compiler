@@ -314,7 +314,6 @@ mod test {
         compiler::{
             passes::{ASTPass, partial_eval::PartialEval},
             syntax_trees::{ast::*, shared::*},
-            utils::type_check_ast_statements,
         },
     };
 
@@ -402,13 +401,12 @@ mod test {
     }
 
     fn execute_test_case(mut tc: TestCase) {
-        type_check_ast_statements(&tc.ast.body, &mut TypeEnv::new());
+        tc.ast.type_check();
 
         println!("AST before Partial Eval: {:?}", tc.ast);
         let post_run_ast = PartialEval.run_pass(tc.ast);
         println!("AST after Partial Eval: {:?}", post_run_ast);
 
-        type_check_ast_statements(&post_run_ast.body, &mut TypeEnv::new());
         check_invariants(&post_run_ast);
 
         let mut outputs = VecDeque::<i64>::new();

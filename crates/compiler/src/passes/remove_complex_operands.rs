@@ -347,7 +347,6 @@ mod tests {
         compiler::{
             passes::{ASTPass, remove_complex_operands::RemoveComplexOperands},
             syntax_trees::{ast::*, shared::*},
-            utils::type_check_ast_statements,
         },
     };
 
@@ -432,13 +431,13 @@ mod tests {
     }
 
     fn execute_test_case(mut tc: TestCase) {
-        type_check_ast_statements(&tc.ast.body, &mut TypeEnv::new());
+        tc.ast.type_check();
 
         println!("AST before RCO: {:#?}", tc.ast);
-        let post_run_ast = RemoveComplexOperands.run_pass(tc.ast);
+        let mut post_run_ast = RemoveComplexOperands.run_pass(tc.ast);
         println!("AST after RCO: {:#?}", post_run_ast);
 
-        type_check_ast_statements(&post_run_ast.body, &mut TypeEnv::new());
+        post_run_ast.type_check();
         check_invariants(&post_run_ast);
 
         let mut outputs = VecDeque::<i64>::new();
