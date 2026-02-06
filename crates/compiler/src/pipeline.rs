@@ -9,7 +9,7 @@ pub struct Pipeline {
 }
 
 impl Pipeline {
-    pub fn run(self, program: ast::Module) -> x86::X86Program {
+    pub fn run(self, program: ast::Program) -> x86::X86Program {
         let final_ast = self
             .ast_passes
             .into_iter()
@@ -32,13 +32,13 @@ impl Pipeline {
         final_x86
     }
 
-    pub fn run_ast_only(self, program: ast::Module) -> ast::Module {
+    pub fn run_ast_only(self, program: ast::Program) -> ast::Program {
         self.ast_passes
             .into_iter()
             .fold(program, |p, pass| pass.run_pass(p))
     }
 
-    pub fn run_up_to_ir_only(self, program: ast::Module) -> ir::IRProgram {
+    pub fn run_up_to_ir_only(self, program: ast::Program) -> ir::IRProgram {
         let final_ast = self
             .ast_passes
             .into_iter()

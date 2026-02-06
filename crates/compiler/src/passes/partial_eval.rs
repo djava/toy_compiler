@@ -6,13 +6,20 @@ use crate::{
 pub struct PartialEval;
 
 impl ASTPass for PartialEval {
-    fn run_pass(self, mut m: Module) -> Module {
-        let mut new_body = Vec::new();
-        for s in m.body {
-            partial_eval_statement(s, &mut new_body);
+    fn run_pass(self, mut m: Program) -> Program {
+        let mut new_functions = vec![];
+        for mut f in m.functions {
+            let mut new_body = vec![];
+
+            for s in f.body {
+                partial_eval_statement(s, &mut new_body);
+            }
+
+            f.body = new_body;
+            new_functions.push(f);
         }
 
-        m.body = new_body;
+        m.functions = new_functions;
         m
     }
 }
@@ -312,13 +319,14 @@ mod test {
     use test_support::{
         ast_interpreter::interpret,
         compiler::{
+            constants::LABEL_MAIN,
             passes::{ASTPass, partial_eval::PartialEval},
             syntax_trees::{ast::*, shared::*},
         },
     };
 
     struct TestCase {
-        ast: Module,
+        ast: Program,
         inputs: VecDeque<i64>,
         expected_outputs: VecDeque<i64>,
     }
@@ -396,8 +404,8 @@ mod test {
         }
     }
 
-    fn check_invariants(m: &Module) {
-        m.body.iter().for_each(check_statement_invariants);
+    fn check_invariants(m: &Program) {
+        m.functions.iter().map(|f| &f.body).flatten().for_each(check_statement_invariants);
     }
 
     fn execute_test_case(mut tc: TestCase) {
@@ -418,7 +426,7 @@ mod test {
     #[test]
     fn test_add() {
         execute_test_case(TestCase {
-            ast: Module {
+            ast: Program { functions: vec![Function { name: Identifier::from(LABEL_MAIN),
                 body: vec![Statement::Expr(Expr::Call(
                     Identifier::from("print_int"),
                     vec![Expr::BinaryOp(
@@ -428,7 +436,7 @@ mod test {
                     )],
                 ))],
                 types: TypeEnv::new(),
-            },
+            }]},
             inputs: VecDeque::new(),
             expected_outputs: VecDeque::from(vec![42]),
         })
@@ -437,13 +445,13 @@ mod test {
     #[test]
     fn test_input() {
         execute_test_case(TestCase {
-            ast: Module {
+            ast: Program { functions: vec![Function { name: Identifier::from(LABEL_MAIN),
                 body: vec![Statement::Expr(Expr::Call(
                     Identifier::from("print_int"),
                     vec![Expr::Call(Identifier::from("read_int"), vec![])],
                 ))],
                 types: TypeEnv::new(),
-            },
+            }]},
             inputs: VecDeque::from(vec![42]),
             expected_outputs: VecDeque::from(vec![42]),
         })
@@ -452,7 +460,7 @@ mod test {
     #[test]
     fn test_subinput() {
         execute_test_case(TestCase {
-            ast: Module {
+            ast: Program { functions: vec![Function { name: Identifier::from(LABEL_MAIN),
                 body: vec![Statement::Expr(Expr::Call(
                     Identifier::from("print_int"),
                     vec![Expr::BinaryOp(
@@ -462,7 +470,7 @@ mod test {
                     )],
                 ))],
                 types: TypeEnv::new(),
-            },
+            }]},
             inputs: VecDeque::from(vec![5, 3]),
             expected_outputs: VecDeque::from(vec![2]),
         });
@@ -471,13 +479,13 @@ mod test {
     #[test]
     fn test_zero() {
         execute_test_case(TestCase {
-            ast: Module {
+            ast: Program { functions: vec![Function { name: Identifier::from(LABEL_MAIN),
                 body: vec![Statement::Expr(Expr::Call(
                     Identifier::from("print_int"),
                     vec![Expr::Constant(Value::I64(0))],
                 ))],
                 types: TypeEnv::new(),
-            },
+            }]},
             inputs: VecDeque::from(vec![]),
             expected_outputs: VecDeque::from(vec![0]),
         });
@@ -486,7 +494,7 @@ mod test {
     #[test]
     fn test_nested() {
         execute_test_case(TestCase {
-            ast: Module {
+            ast: Program { functions: vec![Function { name: Identifier::from(LABEL_MAIN),
                 body: vec![Statement::Expr(Expr::Call(
                     Identifier::from("print_int"),
                     vec![Expr::BinaryOp(
@@ -504,7 +512,7 @@ mod test {
                     )],
                 ))],
                 types: TypeEnv::new(),
-            },
+            }]},
             inputs: VecDeque::from(vec![]),
             expected_outputs: VecDeque::from(vec![84]),
         });
@@ -513,7 +521,7 @@ mod test {
     #[test]
     fn test_mixed() {
         execute_test_case(TestCase {
-            ast: Module {
+            ast: Program { functions: vec![Function { name: Identifier::from(LABEL_MAIN),
                 body: vec![Statement::Expr(Expr::Call(
                     Identifier::from("print_int"),
                     vec![Expr::BinaryOp(
@@ -531,7 +539,7 @@ mod test {
                     )],
                 ))],
                 types: TypeEnv::new(),
-            },
+            }]},
             inputs: VecDeque::from(vec![-100]),
             expected_outputs: VecDeque::from(vec![44 - 100]),
         });
@@ -540,7 +548,7 @@ mod test {
     #[test]
     fn test_multiply() {
         execute_test_case(TestCase {
-            ast: Module {
+            ast: Program { functions: vec![Function { name: Identifier::from(LABEL_MAIN),
                 body: vec![Statement::Expr(Expr::Call(
                     Identifier::from("print_int"),
                     vec![Expr::BinaryOp(
@@ -550,7 +558,7 @@ mod test {
                     )],
                 ))],
                 types: TypeEnv::new(),
-            },
+            }]},
             inputs: VecDeque::new(),
             expected_outputs: VecDeque::from(vec![42]),
         })
@@ -561,7 +569,7 @@ mod test {
         // print_int(read_int() * (3 * 4))
         // The inner (3 * 4) should fold to 12, leaving read_int() * 12
         execute_test_case(TestCase {
-            ast: Module {
+            ast: Program { functions: vec![Function { name: Identifier::from(LABEL_MAIN),
                 body: vec![Statement::Expr(Expr::Call(
                     Identifier::from("print_int"),
                     vec![Expr::BinaryOp(
@@ -575,7 +583,7 @@ mod test {
                     )],
                 ))],
                 types: TypeEnv::new(),
-            },
+            }]},
             inputs: VecDeque::from(vec![5]),
             expected_outputs: VecDeque::from(vec![60]),
         })
@@ -585,7 +593,7 @@ mod test {
     fn test_multiply_by_zero_fold() {
         // print_int(0 * 0) should fold entirely to 0
         execute_test_case(TestCase {
-            ast: Module {
+            ast: Program { functions: vec![Function { name: Identifier::from(LABEL_MAIN),
                 body: vec![Statement::Expr(Expr::Call(
                     Identifier::from("print_int"),
                     vec![Expr::BinaryOp(
@@ -595,7 +603,7 @@ mod test {
                     )],
                 ))],
                 types: TypeEnv::new(),
-            },
+            }]},
             inputs: VecDeque::new(),
             expected_outputs: VecDeque::from(vec![0]),
         })
@@ -606,7 +614,7 @@ mod test {
         // print_int((2 * 3) + (4 * 5))
         // Should fold entirely to 26
         execute_test_case(TestCase {
-            ast: Module {
+            ast: Program { functions: vec![Function { name: Identifier::from(LABEL_MAIN),
                 body: vec![Statement::Expr(Expr::Call(
                     Identifier::from("print_int"),
                     vec![Expr::BinaryOp(
@@ -624,7 +632,7 @@ mod test {
                     )],
                 ))],
                 types: TypeEnv::new(),
-            },
+            }]},
             inputs: VecDeque::new(),
             expected_outputs: VecDeque::from(vec![26]),
         })
@@ -638,7 +646,7 @@ mod test {
         //     x = x - 1
         // }
         execute_test_case(TestCase {
-            ast: Module {
+            ast: Program { functions: vec![Function { name: Identifier::from(LABEL_MAIN),
                 body: vec![
                     Statement::Assign(
                         AssignDest::Id(Identifier::from("x")),
@@ -667,7 +675,7 @@ mod test {
                     ),
                 ],
                 types: TypeEnv::new(),
-            },
+            }]},
             inputs: VecDeque::new(),
             expected_outputs: VecDeque::from(vec![5, 4, 3, 2, 1]),
         });
@@ -680,7 +688,7 @@ mod test {
         // }
         // print_int(42)
         execute_test_case(TestCase {
-            ast: Module {
+            ast: Program { functions: vec![Function { name: Identifier::from(LABEL_MAIN),
                 body: vec![
                     Statement::WhileLoop(
                         Expr::Constant(Value::Bool(false)),
@@ -695,7 +703,7 @@ mod test {
                     )),
                 ],
                 types: TypeEnv::new(),
-            },
+            }]},
             inputs: VecDeque::new(),
             expected_outputs: VecDeque::from(vec![42]), // Loop should be removed entirely
         });
@@ -709,7 +717,7 @@ mod test {
         //     x = x - 1
         // }
         execute_test_case(TestCase {
-            ast: Module {
+            ast: Program { functions: vec![Function { name: Identifier::from(LABEL_MAIN),
                 body: vec![
                     Statement::Assign(
                         AssignDest::Id(Identifier::from("x")),
@@ -742,7 +750,7 @@ mod test {
                     ),
                 ],
                 types: TypeEnv::new(),
-            },
+            }]},
             inputs: VecDeque::new(),
             expected_outputs: VecDeque::from(vec![20, 20, 20]),
         });

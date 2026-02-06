@@ -1,5 +1,7 @@
-use crate::syntax_trees::{ast, shared::*};
 use super::parse_tree as pt;
+use crate::constants::LABEL_MAIN;
+use crate::syntax_trees::{ast, shared::*};
+use crate::utils::id;
 use std::iter::Peekable;
 use std::vec::IntoIter;
 
@@ -154,9 +156,12 @@ fn to_ast_statements(body: Vec<pt::Statement>) -> Vec<ast::Statement> {
     statements
 }
 
-pub fn to_ast(ptm: pt::Module) -> ast::Module {
-    ast::Module {
-        body: to_ast_statements(ptm.statements),
-        types: TypeEnv::new(),
+pub fn to_ast(ptm: pt::Module) -> ast::Program {
+    ast::Program {
+        functions: vec![ast::Function {
+            name: id!(LABEL_MAIN),
+            body: to_ast_statements(ptm.statements),
+            types: TypeEnv::new(),
+        }],
     }
 }

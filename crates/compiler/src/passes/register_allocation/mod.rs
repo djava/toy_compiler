@@ -7,7 +7,7 @@ use std::mem::size_of;
 use crate::{
     constants::*,
     passes::{X86Pass, register_allocation::graph_coloring::COLOR_TO_REG_STORAGE},
-    syntax_trees::{shared::*, x86},
+    syntax_trees::{shared::*, x86}, utils::label,
 };
 use dataflow_analysis::LivenessMap;
 use graph_coloring::color_location_graph;
@@ -38,7 +38,7 @@ impl X86Pass for RegisterAllocation {
         if let Some(user_entry) = m
             .blocks
             .iter_mut()
-            .find(|b| b.label == Directive::Label(Identifier::from(LABEL_USER_ENTRY)))
+            .find(|b| b.label == label!(LABEL_USER_ENTRY))
         {
             let callee_pushqs = callee_saved_used.iter().filter_map(|loc| {
                 if let Storage::Reg(reg) = loc {
@@ -248,6 +248,7 @@ mod tests {
 
     use test_support::{
         compiler::{
+            constants::LABEL_MAIN,
             passes::*,
             pipeline::Pipeline,
             syntax_trees::{ast::*, shared::*, x86},
@@ -256,7 +257,7 @@ mod tests {
     };
 
     struct TestCase {
-        ast: Module,
+        ast: Program,
         inputs: VecDeque<i64>,
         expected_outputs: VecDeque<i64>,
     }
@@ -309,7 +310,7 @@ mod tests {
     #[test]
     fn test_add() {
         execute_test_case(TestCase {
-            ast: Module {
+            ast: Program { functions: vec![Function { name: Identifier::from(LABEL_MAIN),
                 body: vec![Statement::Expr(Expr::Call(
                     Identifier::from("print_int"),
                     vec![Expr::BinaryOp(
@@ -319,7 +320,7 @@ mod tests {
                     )],
                 ))],
                 types: TypeEnv::new(),
-            },
+            }]},
             inputs: VecDeque::new(),
             expected_outputs: VecDeque::from(vec![42]),
         })
@@ -328,13 +329,13 @@ mod tests {
     #[test]
     fn test_input() {
         execute_test_case(TestCase {
-            ast: Module {
+            ast: Program { functions: vec![Function { name: Identifier::from(LABEL_MAIN),
                 body: vec![Statement::Expr(Expr::Call(
                     Identifier::from("print_int"),
                     vec![Expr::Call(Identifier::from("read_int"), vec![])],
                 ))],
                 types: TypeEnv::new(),
-            },
+            }]},
             inputs: VecDeque::from(vec![42]),
             expected_outputs: VecDeque::from(vec![42]),
         })
@@ -343,7 +344,7 @@ mod tests {
     #[test]
     fn test_subinput() {
         execute_test_case(TestCase {
-            ast: Module {
+            ast: Program { functions: vec![Function { name: Identifier::from(LABEL_MAIN),
                 body: vec![Statement::Expr(Expr::Call(
                     Identifier::from("print_int"),
                     vec![Expr::BinaryOp(
@@ -353,7 +354,7 @@ mod tests {
                     )],
                 ))],
                 types: TypeEnv::new(),
-            },
+            }]},
             inputs: VecDeque::from(vec![5, 3]),
             expected_outputs: VecDeque::from(vec![2]),
         });
@@ -362,13 +363,13 @@ mod tests {
     #[test]
     fn test_zero() {
         execute_test_case(TestCase {
-            ast: Module {
+            ast: Program { functions: vec![Function { name: Identifier::from(LABEL_MAIN),
                 body: vec![Statement::Expr(Expr::Call(
                     Identifier::from("print_int"),
                     vec![Expr::Constant(Value::I64(0))],
                 ))],
                 types: TypeEnv::new(),
-            },
+            }]},
             inputs: VecDeque::from(vec![]),
             expected_outputs: VecDeque::from(vec![0]),
         });
@@ -377,7 +378,7 @@ mod tests {
     #[test]
     fn test_nested() {
         execute_test_case(TestCase {
-            ast: Module {
+            ast: Program { functions: vec![Function { name: Identifier::from(LABEL_MAIN),
                 body: vec![Statement::Expr(Expr::Call(
                     Identifier::from("print_int"),
                     vec![Expr::BinaryOp(
@@ -395,7 +396,7 @@ mod tests {
                     )],
                 ))],
                 types: TypeEnv::new(),
-            },
+            }]},
             inputs: VecDeque::from(vec![]),
             expected_outputs: VecDeque::from(vec![84]),
         });
@@ -404,7 +405,7 @@ mod tests {
     #[test]
     fn test_mixed() {
         execute_test_case(TestCase {
-            ast: Module {
+            ast: Program { functions: vec![Function { name: Identifier::from(LABEL_MAIN),
                 body: vec![Statement::Expr(Expr::Call(
                     Identifier::from("print_int"),
                     vec![Expr::BinaryOp(
@@ -422,7 +423,7 @@ mod tests {
                     )],
                 ))],
                 types: TypeEnv::new(),
-            },
+            }]},
             inputs: VecDeque::from(vec![-100]),
             expected_outputs: VecDeque::from(vec![44 - 100]),
         });
@@ -431,7 +432,7 @@ mod tests {
     #[test]
     fn test_simple_assignment() {
         execute_test_case(TestCase {
-            ast: Module {
+            ast: Program { functions: vec![Function { name: Identifier::from(LABEL_MAIN),
                 body: vec![
                     Statement::Assign(
                         AssignDest::Id(Identifier::from("x")),
@@ -443,7 +444,7 @@ mod tests {
                     )),
                 ],
                 types: TypeEnv::new(),
-            },
+            }]},
             inputs: VecDeque::from(vec![]),
             expected_outputs: VecDeque::from(vec![1000]),
         });
@@ -461,7 +462,7 @@ mod tests {
         // e3 = e1 + e2
         // print(e3)
         execute_test_case(TestCase {
-            ast: Module {
+            ast: Program { functions: vec![Function { name: Identifier::from(LABEL_MAIN),
                 body: vec![
                     Statement::Assign(
                         AssignDest::Id(Identifier::from("foofoo")),
@@ -485,7 +486,7 @@ mod tests {
                     )),
                 ],
                 types: TypeEnv::new(),
-            },
+            }]},
             inputs: VecDeque::from(vec![10]),
             expected_outputs: VecDeque::from(vec![10 + 2 + 40 - 2]),
         });
@@ -494,7 +495,7 @@ mod tests {
     #[test]
     fn test_complex_args() {
         execute_test_case(TestCase {
-            ast: Module {
+            ast: Program { functions: vec![Function { name: Identifier::from(LABEL_MAIN),
                 body: vec![Statement::Expr(Expr::Call(
                     Identifier::from("print_int"),
                     vec![Expr::BinaryOp(
@@ -512,7 +513,7 @@ mod tests {
                     )],
                 ))],
                 types: TypeEnv::new(),
-            },
+            }]},
             inputs: VecDeque::from(vec![10]),
             expected_outputs: VecDeque::from(vec![10 + 2 + 40 - 2]),
         });
@@ -540,7 +541,7 @@ mod tests {
         // print(e4)
 
         execute_test_case(TestCase {
-            ast: Module {
+            ast: Program { functions: vec![Function { name: Identifier::from(LABEL_MAIN),
                 body: vec![
                     Statement::Assign(
                         AssignDest::Id(Identifier::from("finger")),
@@ -584,7 +585,7 @@ mod tests {
                     )),
                 ],
                 types: TypeEnv::new(),
-            },
+            }]},
             inputs: VecDeque::from(vec![10, 20, 30, 40]),
             expected_outputs: VecDeque::from(vec![10 + (10 + 20) + (10 + 20 + 30) + 40]),
         });
@@ -593,7 +594,7 @@ mod tests {
     #[test]
     fn test_force_spills() {
         execute_test_case(TestCase {
-        ast: Module { body: vec![
+        ast: Program { functions: vec![Function { name: Identifier::from(LABEL_MAIN), body: vec![
             Statement::Expr(Expr::Call(Identifier::from("print_int"), vec![
                 Expr::BinaryOp(Box::new(Expr::Call(Identifier::from("read_int"), vec![])), BinaryOperator::Add,
                 Box::new(Expr::BinaryOp(Box::new(Expr::Call(Identifier::from("read_int"), vec![])), BinaryOperator::Add,
@@ -619,7 +620,7 @@ mod tests {
                 Box::new(Expr::BinaryOp(Box::new(Expr::Call(Identifier::from("read_int"), vec![])), BinaryOperator::Add,
                 Box::new(Expr::Call(Identifier::from("read_int"), vec![])))))))))))))))))))))))))))))))))))))))))))))
             ]))
-        ], types: TypeEnv::new() },
+        ], types: TypeEnv::new() }]},
         inputs: (0..23).collect(),
         expected_outputs: VecDeque::from([(0..23).sum::<i64>()]),
     });
@@ -628,7 +629,7 @@ mod tests {
     #[test]
     fn test_force_spills_constants() {
         execute_test_case(TestCase {
-        ast: Module { body: vec![
+        ast: Program { functions: vec![Function { name: Identifier::from(LABEL_MAIN), body: vec![
             Statement::Assign(AssignDest::Id(Identifier::from("x1")), Expr::Constant(Value::I64(1))),
             Statement::Assign(AssignDest::Id(Identifier::from("x2")), Expr::Constant(Value::I64(1))),
             Statement::Assign(AssignDest::Id(Identifier::from("x3")), Expr::Constant(Value::I64(1))),
@@ -678,7 +679,7 @@ mod tests {
                                         Box::new(Expr::Id(Identifier::from("x23")
             )))))))))))))))))))))))))))))))))))))))))))))
             ]))
-        ], types: TypeEnv::new() },
+        ], types: TypeEnv::new() }]},
         inputs: VecDeque::new(),
         expected_outputs: VecDeque::from([23]),
     });
@@ -689,7 +690,7 @@ mod tests {
         // tup = (10, 20, 30)
         // print_int(tup[1])
         execute_test_case(TestCase {
-            ast: Module {
+            ast: Program { functions: vec![Function { name: Identifier::from(LABEL_MAIN),
                 body: vec![
                     Statement::Assign(
                         AssignDest::Id(Identifier::from("tup")),
@@ -708,7 +709,7 @@ mod tests {
                     )),
                 ],
                 types: TypeEnv::new(),
-            },
+            }]},
             inputs: VecDeque::new(),
             expected_outputs: VecDeque::from(vec![20]),
         });
@@ -721,7 +722,7 @@ mod tests {
         // print_int(tup[1])
         // print_int(tup[2])
         execute_test_case(TestCase {
-            ast: Module {
+            ast: Program { functions: vec![Function { name: Identifier::from(LABEL_MAIN),
                 body: vec![
                     Statement::Assign(
                         AssignDest::Id(Identifier::from("tup")),
@@ -754,7 +755,7 @@ mod tests {
                     )),
                 ],
                 types: TypeEnv::new(),
-            },
+            }]},
             inputs: VecDeque::new(),
             expected_outputs: VecDeque::from(vec![10, 20, 30]),
         });
@@ -765,7 +766,7 @@ mod tests {
         // tup = (42,)
         // print_int(tup[0])
         execute_test_case(TestCase {
-            ast: Module {
+            ast: Program { functions: vec![Function { name: Identifier::from(LABEL_MAIN),
                 body: vec![
                     Statement::Assign(
                         AssignDest::Id(Identifier::from("tup")),
@@ -780,7 +781,7 @@ mod tests {
                     )),
                 ],
                 types: TypeEnv::new(),
-            },
+            }]},
             inputs: VecDeque::new(),
             expected_outputs: VecDeque::from(vec![42]),
         });
@@ -792,7 +793,7 @@ mod tests {
         // t2 = (3, 4)
         // print_int(t1[0] + t2[1])
         execute_test_case(TestCase {
-            ast: Module {
+            ast: Program { functions: vec![Function { name: Identifier::from(LABEL_MAIN),
                 body: vec![
                     Statement::Assign(
                         AssignDest::Id(Identifier::from("t1")),
@@ -824,7 +825,7 @@ mod tests {
                     )),
                 ],
                 types: TypeEnv::new(),
-            },
+            }]},
             inputs: VecDeque::new(),
             expected_outputs: VecDeque::from(vec![5]),
         });
@@ -837,7 +838,7 @@ mod tests {
         // print_int(tup[0])
         // print_int(tup[1])
         execute_test_case(TestCase {
-            ast: Module {
+            ast: Program { functions: vec![Function { name: Identifier::from(LABEL_MAIN),
                 body: vec![
                     Statement::Assign(
                         AssignDest::Id(Identifier::from("tup")),
@@ -867,7 +868,7 @@ mod tests {
                     )),
                 ],
                 types: TypeEnv::new(),
-            },
+            }]},
             inputs: VecDeque::new(),
             expected_outputs: VecDeque::from(vec![99, 2]),
         });
@@ -879,7 +880,7 @@ mod tests {
         // x = tup[0] + tup[1]
         // print_int(x)
         execute_test_case(TestCase {
-            ast: Module {
+            ast: Program { functions: vec![Function { name: Identifier::from(LABEL_MAIN),
                 body: vec![
                     Statement::Assign(
                         AssignDest::Id(Identifier::from("tup")),
@@ -908,7 +909,7 @@ mod tests {
                     )),
                 ],
                 types: TypeEnv::new(),
-            },
+            }]},
             inputs: VecDeque::new(),
             expected_outputs: VecDeque::from(vec![30]),
         });
@@ -919,7 +920,7 @@ mod tests {
         // tup = (read_int(), read_int(), read_int())
         // print_int(tup[0] + tup[1] + tup[2])
         execute_test_case(TestCase {
-            ast: Module {
+            ast: Program { functions: vec![Function { name: Identifier::from(LABEL_MAIN),
                 body: vec![
                     Statement::Assign(
                         AssignDest::Id(Identifier::from("tup")),
@@ -952,7 +953,7 @@ mod tests {
                     )),
                 ],
                 types: TypeEnv::new(),
-            },
+            }]},
             inputs: VecDeque::from(vec![10, 20, 30]),
             expected_outputs: VecDeque::from(vec![60]),
         });
@@ -1004,10 +1005,10 @@ mod tests {
         )));
 
         execute_test_case(TestCase {
-            ast: Module {
+            ast: Program { functions: vec![Function { name: Identifier::from(LABEL_MAIN),
                 body,
                 types: TypeEnv::new(),
-            },
+            }]},
             inputs: VecDeque::new(),
             // 1+2+...+10 = 55, + 100 = 155
             expected_outputs: VecDeque::from(vec![155]),
@@ -1023,7 +1024,7 @@ mod tests {
         //     i = i - 1
         // }
         execute_test_case(TestCase {
-            ast: Module {
+            ast: Program { functions: vec![Function { name: Identifier::from(LABEL_MAIN),
                 body: vec![
                     Statement::Assign(
                         AssignDest::Id(Identifier::from("tup")),
@@ -1069,7 +1070,7 @@ mod tests {
                     ),
                 ],
                 types: TypeEnv::new(),
-            },
+            }]},
             inputs: VecDeque::new(),
             expected_outputs: VecDeque::from(vec![10, 10, 10]),
         });
@@ -1082,7 +1083,7 @@ mod tests {
         // t3 = (100, 200, 300)
         // print_int(t1[0] + t2[1] + t3[2])
         execute_test_case(TestCase {
-            ast: Module {
+            ast: Program { functions: vec![Function { name: Identifier::from(LABEL_MAIN),
                 body: vec![
                     Statement::Assign(
                         AssignDest::Id(Identifier::from("t1")),
@@ -1131,7 +1132,7 @@ mod tests {
                     )),
                 ],
                 types: TypeEnv::new(),
-            },
+            }]},
             inputs: VecDeque::new(),
             // 1 + 20 + 300 = 321
             expected_outputs: VecDeque::from(vec![321]),
@@ -1147,7 +1148,7 @@ mod tests {
         // print_int(tup[1])
         // print_int(tup[2])
         execute_test_case(TestCase {
-            ast: Module {
+            ast: Program { functions: vec![Function { name: Identifier::from(LABEL_MAIN),
                 body: vec![
                     Statement::Assign(
                         AssignDest::Id(Identifier::from("tup")),
@@ -1208,7 +1209,7 @@ mod tests {
                     )),
                 ],
                 types: TypeEnv::new(),
-            },
+            }]},
             inputs: VecDeque::new(),
             expected_outputs: VecDeque::from(vec![5, 8, 3]),
         });
@@ -1218,7 +1219,7 @@ mod tests {
     fn test_multiply_simple() {
         // print_int(read_int() * read_int())
         execute_test_case(TestCase {
-            ast: Module {
+            ast: Program { functions: vec![Function { name: Identifier::from(LABEL_MAIN),
                 body: vec![Statement::Expr(Expr::Call(
                     Identifier::from("print_int"),
                     vec![Expr::BinaryOp(
@@ -1228,7 +1229,7 @@ mod tests {
                     )],
                 ))],
                 types: TypeEnv::new(),
-            },
+            }]},
             inputs: VecDeque::from(vec![6, 7]),
             expected_outputs: VecDeque::from(vec![42]),
         });
@@ -1238,7 +1239,7 @@ mod tests {
     fn test_multiply_constants() {
         // print_int(3 * 4)
         execute_test_case(TestCase {
-            ast: Module {
+            ast: Program { functions: vec![Function { name: Identifier::from(LABEL_MAIN),
                 body: vec![Statement::Expr(Expr::Call(
                     Identifier::from("print_int"),
                     vec![Expr::BinaryOp(
@@ -1248,7 +1249,7 @@ mod tests {
                     )],
                 ))],
                 types: TypeEnv::new(),
-            },
+            }]},
             inputs: VecDeque::new(),
             expected_outputs: VecDeque::from(vec![12]),
         });
@@ -1261,7 +1262,7 @@ mod tests {
         // z = x * y
         // print_int(z)
         execute_test_case(TestCase {
-            ast: Module {
+            ast: Program { functions: vec![Function { name: Identifier::from(LABEL_MAIN),
                 body: vec![
                     Statement::Assign(
                         AssignDest::Id(Identifier::from("x")),
@@ -1285,7 +1286,7 @@ mod tests {
                     )),
                 ],
                 types: TypeEnv::new(),
-            },
+            }]},
             inputs: VecDeque::from(vec![5, 8]),
             expected_outputs: VecDeque::from(vec![40]),
         });
@@ -1295,7 +1296,7 @@ mod tests {
     fn test_multiply_mixed_with_add() {
         // print_int((read_int() * read_int()) + read_int())
         execute_test_case(TestCase {
-            ast: Module {
+            ast: Program { functions: vec![Function { name: Identifier::from(LABEL_MAIN),
                 body: vec![Statement::Expr(Expr::Call(
                     Identifier::from("print_int"),
                     vec![Expr::BinaryOp(
@@ -1309,7 +1310,7 @@ mod tests {
                     )],
                 ))],
                 types: TypeEnv::new(),
-            },
+            }]},
             inputs: VecDeque::from(vec![3, 4, 5]),
             expected_outputs: VecDeque::from(vec![17]),
         });
@@ -1323,7 +1324,7 @@ mod tests {
         // print_int(e * f)
         // print_int(a + b + c + d + e + f)
         execute_test_case(TestCase {
-            ast: Module {
+            ast: Program { functions: vec![Function { name: Identifier::from(LABEL_MAIN),
                 body: vec![
                     Statement::Assign(
                         AssignDest::Id(Identifier::from("a")),
@@ -1399,7 +1400,7 @@ mod tests {
                     )),
                 ],
                 types: TypeEnv::new(),
-            },
+            }]},
             inputs: VecDeque::from(vec![2, 3, 4, 5, 6, 7]),
             expected_outputs: VecDeque::from(vec![6, 20, 42, 27]),
         });

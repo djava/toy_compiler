@@ -164,10 +164,12 @@ impl ast::Statement {
     }
 }
 
-impl ast::Module {
+impl ast::Program {
     pub fn type_check(&mut self) {
-        for s in &self.body {
-            s.type_check(&mut self.types);
+        for f in self.functions.iter_mut() {
+            for s in &f.body {
+                s.type_check(&mut f.types);
+            }
         }
     }
 }

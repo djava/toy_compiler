@@ -1,6 +1,6 @@
 use crate::{ValueEnv, interpreter_utils::*};
-use compiler::syntax_trees::{shared::*, ast::*};
-use std::collections::VecDeque;
+use compiler::{constants::LABEL_MAIN, syntax_trees::{ast::*, shared::*}};
+use std::{collections::VecDeque};
 
 fn interpret_expr(
     e: &Expr,
@@ -155,9 +155,21 @@ fn interpret_statement(
     };
 }
 
-pub fn interpret(m: &Module, inputs: &mut VecDeque<i64>, outputs: &mut VecDeque<i64>) {
-    if !m.body.is_empty() {
+pub fn interpret(m: &Program, inputs: &mut VecDeque<i64>, outputs: &mut VecDeque<i64>) {
+    let main_function = m
+        .functions
+        .iter()
+        .find(|f| f.name == id!(LABEL_MAIN))
+        .expect("Couldn't find main function");
+
+    if !main_function.body.is_empty() {
         let mut env = ValueEnv::new();
-        interpret_statement(&m.body[0], inputs, outputs, &m.body[1..], &mut env);
+        interpret_statement(
+            &main_function.body[0],
+            inputs,
+            outputs,
+            &main_function.body[1..],
+            &mut env,
+        );
     }
 }

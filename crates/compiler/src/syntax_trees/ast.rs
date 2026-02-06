@@ -26,7 +26,13 @@ pub enum Statement {
 }
 
 #[derive(Debug, Clone, PartialEq)]
-pub struct Module {
+pub struct Function {
+    pub name: Identifier,
     pub body: Vec<Statement>,
     pub types: TypeEnv,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct Program {
+    pub functions: Vec<Function>
 }

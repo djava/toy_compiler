@@ -5,9 +5,11 @@ use crate::{constants::*, syntax_trees::{shared::*, ast::*}, passes::ASTPass};
 pub struct InjectAllocations;
 
 impl ASTPass for InjectAllocations {
-    fn run_pass(self, mut m: Module) -> Module {
-        for s in m.body.iter_mut() {
-            replace_tuples_in_statement(s, &mut m.types);
+    fn run_pass(self, mut m: Program) -> Program {
+        for f in m.functions.iter_mut() {
+            for s in f.body.iter_mut() {
+                replace_tuples_in_statement(s, &mut f.types);
+            }
         }
 
         m

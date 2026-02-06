@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use crate::{constants::*, passes::X86Pass, syntax_trees::{shared::*, x86::*}};
+use crate::{constants::*, passes::X86Pass, syntax_trees::{shared::*, x86::*}, utils::id};
 
 pub struct PreludeConclusion;
 
@@ -20,7 +20,7 @@ impl X86Pass for PreludeConclusion {
             // Initialize GC Stack/Heap
             Instr::movq(Arg::Immediate(GC_STACK_SIZE), Arg::Reg(Register::rdi)),
             Instr::movq(Arg::Immediate(GC_HEAP_SIZE), Arg::Reg(Register::rsi)),
-            Instr::callq(Identifier::from(GC_INITIALIZE), 2),
+            Instr::callq(id!(GC_INITIALIZE), 2),
             Instr::movq(Arg::Global(Arc::from(GC_ROOTSTACK_BEGIN)), Arg::Reg(Register::r15)),
         ];
 
@@ -32,7 +32,7 @@ impl X86Pass for PreludeConclusion {
         prelude_instrs.push(Instr::addq(Arg::Immediate(m.gc_stack_size as _), Arg::Reg(Register::r15)));
 
         // Jump to user program
-        prelude_instrs.push(Instr::jmp(Identifier::from(LABEL_USER_ENTRY)));
+        prelude_instrs.push(Instr::jmp(id!(LABEL_USER_ENTRY)));
 
         let conclusion_instrs = vec![
             Instr::subq(Arg::Immediate(m.gc_stack_size as _), Arg::Reg(Register::r15)),
@@ -44,7 +44,7 @@ impl X86Pass for PreludeConclusion {
         m.header = Vec::from(prelude_directives);
 
         let main_block = Block {
-            label: Directive::Label(Identifier::from(LABEL_MAIN)),
+            label: Directive::Label(id!(LABEL_MAIN)),
             instrs: prelude_instrs,
         };
 

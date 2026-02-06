@@ -6,8 +6,12 @@ use crate::{
 pub struct ShortCircuiting;
 
 impl ASTPass for ShortCircuiting {
-    fn run_pass(self, mut m: Module) -> Module {
-        m.body.iter_mut().for_each(shortcircuit_statement);
+    fn run_pass(self, mut m: Program) -> Program {
+        for f in m.functions.iter_mut() {
+            for s in f.body.iter_mut() {
+                shortcircuit_statement(s)
+            }
+        }
 
         m
     }
@@ -79,6 +83,7 @@ mod tests {
     use std::collections::VecDeque;
     use test_support::{
         compiler::{
+            constants::LABEL_MAIN,
             passes::{ASTPass, ShortCircuiting},
             syntax_trees::{ast::*, shared::*},
         },
@@ -86,7 +91,7 @@ mod tests {
     };
 
     struct TestCase {
-        ast: Module,
+        ast: Program,
         inputs: VecDeque<i64>,
         expected_outputs: VecDeque<i64>,
     }
@@ -142,8 +147,9 @@ mod tests {
         post_run_ast.type_check();
 
         post_run_ast
-            .body
+            .functions
             .iter()
+            .flat_map(|f| &f.body)
             .for_each(assert_statement_no_and_or);
 
         let mut outputs = VecDeque::<i64>::new();
@@ -156,14 +162,14 @@ mod tests {
     #[test]
     fn test_simple() {
         let tc = TestCase {
-            ast: Module {
+            ast: Program { functions: vec![Function { name: Identifier::from(LABEL_MAIN),
                 body: vec![Statement::Expr(Expr::BinaryOp(
                     Box::new(Expr::Constant(Value::Bool(true))),
                     BinaryOperator::And,
                     Box::new(Expr::Constant(Value::Bool(false))),
                 ))],
                 types: TypeEnv::new(),
-            },
+            }]},
             inputs: VecDeque::new(),
             expected_outputs: VecDeque::new(),
         };
@@ -174,7 +180,7 @@ mod tests {
     #[test]
     fn test_nested() {
         let tc = TestCase {
-            ast: Module {
+            ast: Program { functions: vec![Function { name: Identifier::from(LABEL_MAIN),
                 body: vec![Statement::Expr(Expr::BinaryOp(
                     Box::new(Expr::Constant(Value::Bool(true))),
                     BinaryOperator::And,
@@ -197,7 +203,7 @@ mod tests {
                     )),
                 ))],
                 types: TypeEnv::new(),
-            },
+            }]},
             inputs: VecDeque::new(),
             expected_outputs: VecDeque::new(),
         };
@@ -208,7 +214,7 @@ mod tests {
     #[test]
     fn test_comparisons_and() {
         let tc = TestCase {
-            ast: Module {
+            ast: Program { functions: vec![Function { name: Identifier::from(LABEL_MAIN),
                 body: vec![
                     Statement::Expr(Expr::BinaryOp(
                         Box::new(Expr::Constant(Value::Bool(true))),
@@ -230,7 +236,7 @@ mod tests {
                     )),
                 ],
                 types: TypeEnv::new(),
-            },
+            }]},
             inputs: VecDeque::from([1]),
             expected_outputs: VecDeque::new(),
         };
@@ -241,7 +247,7 @@ mod tests {
     #[test]
     fn test_comparisons_or() {
         let tc = TestCase {
-            ast: Module {
+            ast: Program { functions: vec![Function { name: Identifier::from(LABEL_MAIN),
                 body: vec![
                     Statement::Expr(Expr::BinaryOp(
                         Box::new(Expr::Constant(Value::Bool(true))),
@@ -263,7 +269,7 @@ mod tests {
                     )),
                 ],
                 types: TypeEnv::new(),
-            },
+            }]},
             inputs: VecDeque::from([1]),
             expected_outputs: VecDeque::new(),
         };

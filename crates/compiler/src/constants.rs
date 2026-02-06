@@ -1,4 +1,4 @@
-use crate::syntax_trees::x86::Register;
+use crate::syntax_trees::{x86::Register};
 
 // Block labels
 pub const LABEL_USER_ENTRY: &str = "user_entry";

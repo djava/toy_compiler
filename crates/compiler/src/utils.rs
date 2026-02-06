@@ -34,3 +34,19 @@ pub fn x86_block_adj_graph<'a>(blocks: &'a [Block]) -> DiGraph<&'a Block, ()> {
 
     block_graph
 }
+
+macro_rules! id {
+    ($name:expr) => {
+        crate::syntax_trees::shared::Identifier::Named(std::sync::Arc::from($name))
+    };
+}
+pub(crate) use id;
+
+macro_rules! label {
+    ($name:expr) => {
+        crate::syntax_trees::x86::Directive::Label(crate::syntax_trees::shared::Identifier::Named(
+            std::sync::Arc::from($name),
+        ))
+    };
+}
+pub(crate) use label;

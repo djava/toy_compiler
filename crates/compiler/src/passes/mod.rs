@@ -26,7 +26,7 @@ pub use inject_allocations::InjectAllocations;
 
 #[enum_dispatch]
 pub trait ASTPass {
-    fn run_pass(self, m: ast::Module) -> ast::Module;
+    fn run_pass(self, m: ast::Program) -> ast::Program;
 }
 
 #[enum_dispatch(ASTPass)]
@@ -40,7 +40,7 @@ pub enum ASTtoAST {
 
 #[enum_dispatch]
 pub trait ASTtoIRPass {
-    fn run_pass(self, m: ast::Module) -> ir::IRProgram;
+    fn run_pass(self, m: ast::Program) -> ir::IRProgram;
 }
 
 #[enum_dispatch(ASTtoIRPass)]
