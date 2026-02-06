@@ -106,12 +106,20 @@ pub struct Block {
 }
 
 #[derive(Debug, Clone, PartialEq)]
-pub struct X86Program {
-    pub header: Vec<Directive>,
+pub struct Function {
+    pub name: Identifier,
     pub blocks: Vec<Block>,
+    pub entry_block: Identifier,
     pub(crate) stack_size: usize,
     pub(crate) gc_stack_size: usize,
     pub(crate) types: TypeEnv,
+    pub(crate) callee_saved_used: Vec<Register>
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct X86Program {
+    pub header: Vec<Directive>,
+    pub functions: Vec<Function>
 }
 
 impl Display for Register {
@@ -228,10 +236,12 @@ impl Display for X86Program {
         for dir in &self.header {
             writeln!(f, "{dir}")?;
         }
-        for block in &self.blocks {
-            writeln!(f, "{}", block.label)?;
-            for i in block.instrs.iter() {
-                writeln!(f, "\t{i}")?;
+        for func in &self.functions {
+            for block in &func.blocks {
+                writeln!(f, "{}", block.label)?;
+                for i in block.instrs.iter() {
+                    writeln!(f, "\t{i}")?;
+                }
             }
         }
         Ok(())

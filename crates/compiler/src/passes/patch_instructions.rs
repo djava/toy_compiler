@@ -1,103 +1,102 @@
-use crate::{
-    constants::*,
-    passes::X86Pass,
-    syntax_trees::x86::*,
-    utils::label
-};
+use crate::{passes::X86Pass, syntax_trees::x86::*};
 
 pub struct PatchInstructions;
 
 impl X86Pass for PatchInstructions {
     fn run_pass(self, mut m: X86Program) -> X86Program {
-        let main_instrs = &mut m
-            .blocks
-            .iter_mut()
-            .find(|block| block.label == label!(LABEL_USER_ENTRY))
-            .expect("Didn't find an entry function")
-            .instrs;
-
-        let mut new_instrs = vec![];
-        // Reserve for worst case because why not
-        new_instrs.reserve(main_instrs.len() * 2);
-
-        for i in main_instrs.iter_mut() {
-            match &i {
-                // If both args to an instr are derefs, we need to add a
-                // patch instruction
-                Instr::addq(s, d)
-                | Instr::subq(s, d)
-                | Instr::movq(s, d)
-                | Instr::xorq(s, d)
-                | Instr::cmpq(s, d)
-                | Instr::sarq(s, d)
-                | Instr::salq(s, d)
-                | Instr::andq(s, d)
-                    if matches!(s, Arg::Deref(_, _)) && matches!(d, Arg::Deref(_, _)) =>
-                {
-                    new_instrs.push(Instr::movq(s.clone(), Arg::Reg(Register::rax)));
-                    new_instrs.push(match &i {
-                        Instr::addq(_, dest) => Instr::addq(Arg::Reg(Register::rax), dest.clone()),
-                        Instr::subq(_, dest) => Instr::subq(Arg::Reg(Register::rax), dest.clone()),
-                        Instr::movq(_, dest) => Instr::movq(Arg::Reg(Register::rax), dest.clone()),
-                        _ => unreachable!(),
-                    });
-                }
-
-                // If the instruction has an immediate > 32 bits and
-                // also accesses memory, need a patch instr
-                Instr::addq(s, d)
-                | Instr::subq(s, d)
-                | Instr::movq(s, d)
-                | Instr::xorq(s, d)
-                | Instr::cmpq(s, d)
-                | Instr::sarq(s, d)
-                | Instr::salq(s, d)
-                | Instr::andq(s, d)
-                    if matches!(s, Arg::Immediate(v) if i32::try_from(*v).is_err())
-                        && matches!(d, Arg::Deref(_, _)) =>
-                {
-                    new_instrs.push(Instr::movq(s.clone(), Arg::Reg(Register::rax)));
-                    new_instrs.push(match &i {
-                        Instr::addq(_, dest) => Instr::addq(Arg::Reg(Register::rax), dest.clone()),
-                        Instr::subq(_, dest) => Instr::subq(Arg::Reg(Register::rax), dest.clone()),
-                        Instr::movq(_, dest) => Instr::movq(Arg::Reg(Register::rax), dest.clone()),
-                        _ => unreachable!(),
-                    });
-                }
-
-                Instr::movq(s, d) if s == d => {
-                    // Trival mov to itself, don't keep this instruction
-                }
-
-                Instr::cmpq(s, imm @ Arg::Immediate(_)) => {
-                    // Second arg of cmpq can't be an immediate
-                    new_instrs.push(Instr::movq(imm.clone(), Arg::Reg(Register::rax)));
-                    new_instrs.push(Instr::cmpq(s.clone(), Arg::Reg(Register::rax)));
-                }
-
-                Instr::sarq(s, _) | Instr::salq(s, _) if matches!(s, Arg::Reg(_)) => {
-                    // TODO: Need to move `s` into `%cl` to do variable
-                    // shifts (or set to 0 or something if s > 64)
-                    todo!("Non-constant shifts aren't implemented");
-                }
-
-                Instr::imulq(s, d) if !matches!(d, Arg::Reg(_)) => {
-                    // Dest of imulq must be a register, add a patch
-                    // through rax to make it so
-                    new_instrs.extend([
-                        Instr::movq(d.clone(), Arg::Reg(Register::rax)),
-                        Instr::imulq(s.clone(), Arg::Reg(Register::rax)),
-                        Instr::movq(Arg::Reg(Register::rax), d.clone()),
-                    ]);
-                }
-
-                _ => new_instrs.push(i.clone()),
+        for f in m.functions.iter_mut() {
+            for b in f.blocks.iter_mut() {
+                patch_block(b);
             }
         }
 
-        *main_instrs = new_instrs;
         m
     }
+}
+
+fn patch_block(b: &mut Block) {
+    let instrs = &mut b.instrs;
+
+    let mut new_instrs = vec![];
+    // Reserve for worst case because why not
+    new_instrs.reserve(instrs.len() * 2);
+
+    for i in instrs.iter_mut() {
+        match &i {
+            // If both args to an instr are derefs, we need to add a
+            // patch instruction
+            Instr::addq(s, d)
+            | Instr::subq(s, d)
+            | Instr::movq(s, d)
+            | Instr::xorq(s, d)
+            | Instr::cmpq(s, d)
+            | Instr::sarq(s, d)
+            | Instr::salq(s, d)
+            | Instr::andq(s, d)
+                if matches!(s, Arg::Deref(_, _)) && matches!(d, Arg::Deref(_, _)) =>
+            {
+                new_instrs.push(Instr::movq(s.clone(), Arg::Reg(Register::rax)));
+                new_instrs.push(match &i {
+                    Instr::addq(_, dest) => Instr::addq(Arg::Reg(Register::rax), dest.clone()),
+                    Instr::subq(_, dest) => Instr::subq(Arg::Reg(Register::rax), dest.clone()),
+                    Instr::movq(_, dest) => Instr::movq(Arg::Reg(Register::rax), dest.clone()),
+                    _ => unreachable!(),
+                });
+            }
+
+            // If the instruction has an immediate > 32 bits and
+            // also accesses memory, need a patch instr
+            Instr::addq(s, d)
+            | Instr::subq(s, d)
+            | Instr::movq(s, d)
+            | Instr::xorq(s, d)
+            | Instr::cmpq(s, d)
+            | Instr::sarq(s, d)
+            | Instr::salq(s, d)
+            | Instr::andq(s, d)
+                if matches!(s, Arg::Immediate(v) if i32::try_from(*v).is_err())
+                    && matches!(d, Arg::Deref(_, _)) =>
+            {
+                new_instrs.push(Instr::movq(s.clone(), Arg::Reg(Register::rax)));
+                new_instrs.push(match &i {
+                    Instr::addq(_, dest) => Instr::addq(Arg::Reg(Register::rax), dest.clone()),
+                    Instr::subq(_, dest) => Instr::subq(Arg::Reg(Register::rax), dest.clone()),
+                    Instr::movq(_, dest) => Instr::movq(Arg::Reg(Register::rax), dest.clone()),
+                    _ => unreachable!(),
+                });
+            }
+
+            Instr::movq(s, d) if s == d => {
+                // Trival mov to itself, don't keep this instruction
+            }
+
+            Instr::cmpq(s, imm @ Arg::Immediate(_)) => {
+                // Second arg of cmpq can't be an immediate
+                new_instrs.push(Instr::movq(imm.clone(), Arg::Reg(Register::rax)));
+                new_instrs.push(Instr::cmpq(s.clone(), Arg::Reg(Register::rax)));
+            }
+
+            Instr::sarq(s, _) | Instr::salq(s, _) if matches!(s, Arg::Reg(_)) => {
+                // TODO: Need to move `s` into `%cl` to do variable
+                // shifts (or set to 0 or something if s > 64)
+                todo!("Non-constant shifts aren't implemented");
+            }
+
+            Instr::imulq(s, d) if !matches!(d, Arg::Reg(_)) => {
+                // Dest of imulq must be a register, add a patch
+                // through rax to make it so
+                new_instrs.extend([
+                    Instr::movq(d.clone(), Arg::Reg(Register::rax)),
+                    Instr::imulq(s.clone(), Arg::Reg(Register::rax)),
+                    Instr::movq(Arg::Reg(Register::rax), d.clone()),
+                ]);
+            }
+
+            _ => new_instrs.push(i.clone()),
+        }
+    }
+
+    *instrs = new_instrs;
 }
 
 #[cfg(test)]
@@ -122,7 +121,7 @@ mod tests {
     }
 
     fn check_invariants(p: &x86::X86Program) {
-        for i in p.blocks.iter().map(|x| &x.instrs).flatten() {
+        for i in p.functions.iter().map(|f| &f.blocks).flatten().map(|x| &x.instrs).flatten() {
             use x86::{Arg, Instr};
             match i {
                 Instr::addq(s, d)
@@ -195,17 +194,20 @@ mod tests {
     #[test]
     fn test_add() {
         execute_test_case(TestCase {
-            ast: Program { functions: vec![Function { name: t_id!(LABEL_MAIN),
-                body: vec![Statement::Expr(Expr::Call(
-                    t_id!("print_int"),
-                    vec![Expr::BinaryOp(
-                        Box::new(Expr::Constant(Value::I64(40))),
-                        BinaryOperator::Add,
-                        Box::new(Expr::Constant(Value::I64(2))),
-                    )],
-                ))],
-                types: TypeEnv::new(),
-            }]},
+            ast: Program {
+                functions: vec![Function {
+                    name: t_id!(LABEL_MAIN),
+                    body: vec![Statement::Expr(Expr::Call(
+                        t_id!("print_int"),
+                        vec![Expr::BinaryOp(
+                            Box::new(Expr::Constant(Value::I64(40))),
+                            BinaryOperator::Add,
+                            Box::new(Expr::Constant(Value::I64(2))),
+                        )],
+                    ))],
+                    types: TypeEnv::new(),
+                }],
+            },
             inputs: VecDeque::new(),
             expected_outputs: VecDeque::from(vec![42]),
         })
@@ -214,13 +216,16 @@ mod tests {
     #[test]
     fn test_input() {
         execute_test_case(TestCase {
-            ast: Program { functions: vec![Function { name: t_id!(LABEL_MAIN),
-                body: vec![Statement::Expr(Expr::Call(
-                    t_id!("print_int"),
-                    vec![Expr::Call(t_id!("read_int"), vec![])],
-                ))],
-                types: TypeEnv::new(),
-            }]},
+            ast: Program {
+                functions: vec![Function {
+                    name: t_id!(LABEL_MAIN),
+                    body: vec![Statement::Expr(Expr::Call(
+                        t_id!("print_int"),
+                        vec![Expr::Call(t_id!("read_int"), vec![])],
+                    ))],
+                    types: TypeEnv::new(),
+                }],
+            },
             inputs: VecDeque::from(vec![42]),
             expected_outputs: VecDeque::from(vec![42]),
         })
@@ -229,17 +234,20 @@ mod tests {
     #[test]
     fn test_subinput() {
         execute_test_case(TestCase {
-            ast: Program { functions: vec![Function { name: t_id!(LABEL_MAIN),
-                body: vec![Statement::Expr(Expr::Call(
-                    t_id!("print_int"),
-                    vec![Expr::BinaryOp(
-                        Box::new(Expr::Call(t_id!("read_int"), vec![])),
-                        BinaryOperator::Subtract,
-                        Box::new(Expr::Call(t_id!("read_int"), vec![])),
-                    )],
-                ))],
-                types: TypeEnv::new(),
-            }]},
+            ast: Program {
+                functions: vec![Function {
+                    name: t_id!(LABEL_MAIN),
+                    body: vec![Statement::Expr(Expr::Call(
+                        t_id!("print_int"),
+                        vec![Expr::BinaryOp(
+                            Box::new(Expr::Call(t_id!("read_int"), vec![])),
+                            BinaryOperator::Subtract,
+                            Box::new(Expr::Call(t_id!("read_int"), vec![])),
+                        )],
+                    ))],
+                    types: TypeEnv::new(),
+                }],
+            },
             inputs: VecDeque::from(vec![5, 3]),
             expected_outputs: VecDeque::from(vec![2]),
         });
@@ -248,13 +256,16 @@ mod tests {
     #[test]
     fn test_zero() {
         execute_test_case(TestCase {
-            ast: Program { functions: vec![Function { name: t_id!(LABEL_MAIN),
-                body: vec![Statement::Expr(Expr::Call(
-                    t_id!("print_int"),
-                    vec![Expr::Constant(Value::I64(0))],
-                ))],
-                types: TypeEnv::new(),
-            }]},
+            ast: Program {
+                functions: vec![Function {
+                    name: t_id!(LABEL_MAIN),
+                    body: vec![Statement::Expr(Expr::Call(
+                        t_id!("print_int"),
+                        vec![Expr::Constant(Value::I64(0))],
+                    ))],
+                    types: TypeEnv::new(),
+                }],
+            },
             inputs: VecDeque::from(vec![]),
             expected_outputs: VecDeque::from(vec![0]),
         });
@@ -263,25 +274,28 @@ mod tests {
     #[test]
     fn test_nested() {
         execute_test_case(TestCase {
-            ast: Program { functions: vec![Function { name: t_id!(LABEL_MAIN),
-                body: vec![Statement::Expr(Expr::Call(
-                    t_id!("print_int"),
-                    vec![Expr::BinaryOp(
-                        Box::new(Expr::BinaryOp(
-                            Box::new(Expr::Constant(Value::I64(40))),
+            ast: Program {
+                functions: vec![Function {
+                    name: t_id!(LABEL_MAIN),
+                    body: vec![Statement::Expr(Expr::Call(
+                        t_id!("print_int"),
+                        vec![Expr::BinaryOp(
+                            Box::new(Expr::BinaryOp(
+                                Box::new(Expr::Constant(Value::I64(40))),
+                                BinaryOperator::Add,
+                                Box::new(Expr::Constant(Value::I64(2))),
+                            )),
                             BinaryOperator::Add,
-                            Box::new(Expr::Constant(Value::I64(2))),
-                        )),
-                        BinaryOperator::Add,
-                        Box::new(Expr::BinaryOp(
-                            Box::new(Expr::Constant(Value::I64(40))),
-                            BinaryOperator::Add,
-                            Box::new(Expr::Constant(Value::I64(2))),
-                        )),
-                    )],
-                ))],
-                types: TypeEnv::new(),
-            }]},
+                            Box::new(Expr::BinaryOp(
+                                Box::new(Expr::Constant(Value::I64(40))),
+                                BinaryOperator::Add,
+                                Box::new(Expr::Constant(Value::I64(2))),
+                            )),
+                        )],
+                    ))],
+                    types: TypeEnv::new(),
+                }],
+            },
             inputs: VecDeque::from(vec![]),
             expected_outputs: VecDeque::from(vec![84]),
         });
@@ -290,25 +304,28 @@ mod tests {
     #[test]
     fn test_mixed() {
         execute_test_case(TestCase {
-            ast: Program { functions: vec![Function { name: t_id!(LABEL_MAIN),
-                body: vec![Statement::Expr(Expr::Call(
-                    t_id!("print_int"),
-                    vec![Expr::BinaryOp(
-                        Box::new(Expr::BinaryOp(
-                            Box::new(Expr::Call(t_id!("read_int"), vec![])),
+            ast: Program {
+                functions: vec![Function {
+                    name: t_id!(LABEL_MAIN),
+                    body: vec![Statement::Expr(Expr::Call(
+                        t_id!("print_int"),
+                        vec![Expr::BinaryOp(
+                            Box::new(Expr::BinaryOp(
+                                Box::new(Expr::Call(t_id!("read_int"), vec![])),
+                                BinaryOperator::Add,
+                                Box::new(Expr::Constant(Value::I64(2))),
+                            )),
                             BinaryOperator::Add,
-                            Box::new(Expr::Constant(Value::I64(2))),
-                        )),
-                        BinaryOperator::Add,
-                        Box::new(Expr::BinaryOp(
-                            Box::new(Expr::Constant(Value::I64(40))),
-                            BinaryOperator::Add,
-                            Box::new(Expr::Constant(Value::I64(2))),
-                        )),
-                    )],
-                ))],
-                types: TypeEnv::new(),
-            }]},
+                            Box::new(Expr::BinaryOp(
+                                Box::new(Expr::Constant(Value::I64(40))),
+                                BinaryOperator::Add,
+                                Box::new(Expr::Constant(Value::I64(2))),
+                            )),
+                        )],
+                    ))],
+                    types: TypeEnv::new(),
+                }],
+            },
             inputs: VecDeque::from(vec![-100]),
             expected_outputs: VecDeque::from(vec![44 - 100]),
         });
@@ -317,19 +334,19 @@ mod tests {
     #[test]
     fn test_simple_assignment() {
         execute_test_case(TestCase {
-            ast: Program { functions: vec![Function { name: t_id!(LABEL_MAIN),
-                body: vec![
-                    Statement::Assign(
-                        AssignDest::Id(t_id!("x")),
-                        Expr::Constant(Value::I64(1000)),
-                    ),
-                    Statement::Expr(Expr::Call(
-                        t_id!("print_int"),
-                        vec![Expr::Id(t_id!("x"))],
-                    )),
-                ],
-                types: TypeEnv::new(),
-            }]},
+            ast: Program {
+                functions: vec![Function {
+                    name: t_id!(LABEL_MAIN),
+                    body: vec![
+                        Statement::Assign(
+                            AssignDest::Id(t_id!("x")),
+                            Expr::Constant(Value::I64(1000)),
+                        ),
+                        Statement::Expr(Expr::Call(t_id!("print_int"), vec![Expr::Id(t_id!("x"))])),
+                    ],
+                    types: TypeEnv::new(),
+                }],
+            },
             inputs: VecDeque::from(vec![]),
             expected_outputs: VecDeque::from(vec![1000]),
         });
@@ -338,19 +355,19 @@ mod tests {
     #[test]
     fn test_simple_assignment_imm64() {
         execute_test_case(TestCase {
-            ast: Program { functions: vec![Function { name: t_id!(LABEL_MAIN),
-                body: vec![
-                    Statement::Assign(
-                        AssignDest::Id(t_id!("x")),
-                        Expr::Constant(Value::I64(i64::MAX)),
-                    ),
-                    Statement::Expr(Expr::Call(
-                        t_id!("print_int"),
-                        vec![Expr::Id(t_id!("x"))],
-                    )),
-                ],
-                types: TypeEnv::new(),
-            }]},
+            ast: Program {
+                functions: vec![Function {
+                    name: t_id!(LABEL_MAIN),
+                    body: vec![
+                        Statement::Assign(
+                            AssignDest::Id(t_id!("x")),
+                            Expr::Constant(Value::I64(i64::MAX)),
+                        ),
+                        Statement::Expr(Expr::Call(t_id!("print_int"), vec![Expr::Id(t_id!("x"))])),
+                    ],
+                    types: TypeEnv::new(),
+                }],
+            },
             inputs: VecDeque::from(vec![]),
             expected_outputs: VecDeque::from(vec![i64::MAX]),
         });
@@ -368,11 +385,48 @@ mod tests {
         // e3 = e1 + e2
         // print(e3)
         execute_test_case(TestCase {
-            ast: Program { functions: vec![Function { name: t_id!(LABEL_MAIN),
-                body: vec![
-                    Statement::Assign(
-                        AssignDest::Id(t_id!("foofoo")),
-                        Expr::BinaryOp(
+            ast: Program {
+                functions: vec![Function {
+                    name: t_id!(LABEL_MAIN),
+                    body: vec![
+                        Statement::Assign(
+                            AssignDest::Id(t_id!("foofoo")),
+                            Expr::BinaryOp(
+                                Box::new(Expr::BinaryOp(
+                                    Box::new(Expr::Call(t_id!("read_int"), vec![])),
+                                    BinaryOperator::Add,
+                                    Box::new(Expr::Constant(Value::I64(2))),
+                                )),
+                                BinaryOperator::Add,
+                                Box::new(Expr::BinaryOp(
+                                    Box::new(Expr::Constant(Value::I64(40))),
+                                    BinaryOperator::Subtract,
+                                    Box::new(Expr::Constant(Value::I64(2))),
+                                )),
+                            ),
+                        ),
+                        Statement::Expr(Expr::Call(
+                            t_id!("print_int"),
+                            vec![Expr::Id(t_id!("foofoo"))],
+                        )),
+                    ],
+                    types: TypeEnv::new(),
+                }],
+            },
+            inputs: VecDeque::from(vec![10]),
+            expected_outputs: VecDeque::from(vec![10 + 2 + 40 - 2]),
+        });
+    }
+
+    #[test]
+    fn test_complex_args() {
+        execute_test_case(TestCase {
+            ast: Program {
+                functions: vec![Function {
+                    name: t_id!(LABEL_MAIN),
+                    body: vec![Statement::Expr(Expr::Call(
+                        t_id!("print_int"),
+                        vec![Expr::BinaryOp(
                             Box::new(Expr::BinaryOp(
                                 Box::new(Expr::Call(t_id!("read_int"), vec![])),
                                 BinaryOperator::Add,
@@ -384,42 +438,11 @@ mod tests {
                                 BinaryOperator::Subtract,
                                 Box::new(Expr::Constant(Value::I64(2))),
                             )),
-                        ),
-                    ),
-                    Statement::Expr(Expr::Call(
-                        t_id!("print_int"),
-                        vec![Expr::Id(t_id!("foofoo"))],
-                    )),
-                ],
-                types: TypeEnv::new(),
-            }]},
-            inputs: VecDeque::from(vec![10]),
-            expected_outputs: VecDeque::from(vec![10 + 2 + 40 - 2]),
-        });
-    }
-
-    #[test]
-    fn test_complex_args() {
-        execute_test_case(TestCase {
-            ast: Program { functions: vec![Function { name: t_id!(LABEL_MAIN),
-                body: vec![Statement::Expr(Expr::Call(
-                    t_id!("print_int"),
-                    vec![Expr::BinaryOp(
-                        Box::new(Expr::BinaryOp(
-                            Box::new(Expr::Call(t_id!("read_int"), vec![])),
-                            BinaryOperator::Add,
-                            Box::new(Expr::Constant(Value::I64(2))),
-                        )),
-                        BinaryOperator::Add,
-                        Box::new(Expr::BinaryOp(
-                            Box::new(Expr::Constant(Value::I64(40))),
-                            BinaryOperator::Subtract,
-                            Box::new(Expr::Constant(Value::I64(2))),
-                        )),
-                    )],
-                ))],
-                types: TypeEnv::new(),
-            }]},
+                        )],
+                    ))],
+                    types: TypeEnv::new(),
+                }],
+            },
             inputs: VecDeque::from(vec![10]),
             expected_outputs: VecDeque::from(vec![10 + 2 + 40 - 2]),
         });
@@ -428,17 +451,20 @@ mod tests {
     #[test]
     fn test_multiply_simple() {
         execute_test_case(TestCase {
-            ast: Program { functions: vec![Function { name: t_id!(LABEL_MAIN),
-                body: vec![Statement::Expr(Expr::Call(
-                    t_id!("print_int"),
-                    vec![Expr::BinaryOp(
-                        Box::new(Expr::Call(t_id!("read_int"), vec![])),
-                        BinaryOperator::Multiply,
-                        Box::new(Expr::Call(t_id!("read_int"), vec![])),
-                    )],
-                ))],
-                types: TypeEnv::new(),
-            }]},
+            ast: Program {
+                functions: vec![Function {
+                    name: t_id!(LABEL_MAIN),
+                    body: vec![Statement::Expr(Expr::Call(
+                        t_id!("print_int"),
+                        vec![Expr::BinaryOp(
+                            Box::new(Expr::Call(t_id!("read_int"), vec![])),
+                            BinaryOperator::Multiply,
+                            Box::new(Expr::Call(t_id!("read_int"), vec![])),
+                        )],
+                    ))],
+                    types: TypeEnv::new(),
+                }],
+            },
             inputs: VecDeque::from(vec![6, 7]),
             expected_outputs: VecDeque::from(vec![42]),
         });
@@ -447,17 +473,20 @@ mod tests {
     #[test]
     fn test_multiply_constants() {
         execute_test_case(TestCase {
-            ast: Program { functions: vec![Function { name: t_id!(LABEL_MAIN),
-                body: vec![Statement::Expr(Expr::Call(
-                    t_id!("print_int"),
-                    vec![Expr::BinaryOp(
-                        Box::new(Expr::Constant(Value::I64(5))),
-                        BinaryOperator::Multiply,
-                        Box::new(Expr::Constant(Value::I64(9))),
-                    )],
-                ))],
-                types: TypeEnv::new(),
-            }]},
+            ast: Program {
+                functions: vec![Function {
+                    name: t_id!(LABEL_MAIN),
+                    body: vec![Statement::Expr(Expr::Call(
+                        t_id!("print_int"),
+                        vec![Expr::BinaryOp(
+                            Box::new(Expr::Constant(Value::I64(5))),
+                            BinaryOperator::Multiply,
+                            Box::new(Expr::Constant(Value::I64(9))),
+                        )],
+                    ))],
+                    types: TypeEnv::new(),
+                }],
+            },
             inputs: VecDeque::new(),
             expected_outputs: VecDeque::from(vec![45]),
         });
@@ -508,10 +537,13 @@ mod tests {
         )));
 
         execute_test_case(TestCase {
-            ast: Program { functions: vec![Function { name: t_id!(LABEL_MAIN),
-                body,
-                types: TypeEnv::new(),
-            }]},
+            ast: Program {
+                functions: vec![Function {
+                    name: t_id!(LABEL_MAIN),
+                    body,
+                    types: TypeEnv::new(),
+                }],
+            },
             inputs: (1..=15).collect(),
             // sum(1..=15) = 120, result = 1*2 = 2, total = 122
             expected_outputs: VecDeque::from(vec![120 + 2]),
@@ -540,51 +572,54 @@ mod tests {
         // print(e4)
 
         execute_test_case(TestCase {
-            ast: Program { functions: vec![Function { name: t_id!(LABEL_MAIN),
-                body: vec![
-                    Statement::Assign(
-                        AssignDest::Id(t_id!("foo")),
-                        Expr::Call(t_id!("read_int"), vec![]),
-                    ),
-                    Statement::Assign(
-                        AssignDest::Id(t_id!("bar")),
-                        Expr::BinaryOp(
-                            Box::new(Expr::Call(t_id!("read_int"), vec![])),
-                            BinaryOperator::Add,
-                            Box::new(Expr::Id(t_id!("foo"))),
+            ast: Program {
+                functions: vec![Function {
+                    name: t_id!(LABEL_MAIN),
+                    body: vec![
+                        Statement::Assign(
+                            AssignDest::Id(t_id!("foo")),
+                            Expr::Call(t_id!("read_int"), vec![]),
                         ),
-                    ),
-                    Statement::Assign(
-                        AssignDest::Id(t_id!("baz")),
-                        Expr::BinaryOp(
-                            Box::new(Expr::Call(t_id!("read_int"), vec![])),
-                            BinaryOperator::Add,
-                            Box::new(Expr::Id(t_id!("bar"))),
-                        ),
-                    ),
-                    Statement::Assign(
-                        AssignDest::Id(t_id!("bop")),
-                        Expr::BinaryOp(
-                            Box::new(Expr::BinaryOp(
+                        Statement::Assign(
+                            AssignDest::Id(t_id!("bar")),
+                            Expr::BinaryOp(
+                                Box::new(Expr::Call(t_id!("read_int"), vec![])),
+                                BinaryOperator::Add,
                                 Box::new(Expr::Id(t_id!("foo"))),
+                            ),
+                        ),
+                        Statement::Assign(
+                            AssignDest::Id(t_id!("baz")),
+                            Expr::BinaryOp(
+                                Box::new(Expr::Call(t_id!("read_int"), vec![])),
                                 BinaryOperator::Add,
                                 Box::new(Expr::Id(t_id!("bar"))),
-                            )),
-                            BinaryOperator::Add,
-                            Box::new(Expr::Id(t_id!("baz"))),
+                            ),
                         ),
-                    ),
-                    Statement::Expr(Expr::Call(
-                        t_id!("print_int"),
-                        vec![Expr::BinaryOp(
-                            Box::new(Expr::Call(t_id!("read_int"), vec![])),
-                            BinaryOperator::Add,
-                            Box::new(Expr::Id(t_id!("bop"))),
-                        )],
-                    )),
-                ],
-                types: TypeEnv::new(),
-            }]},
+                        Statement::Assign(
+                            AssignDest::Id(t_id!("bop")),
+                            Expr::BinaryOp(
+                                Box::new(Expr::BinaryOp(
+                                    Box::new(Expr::Id(t_id!("foo"))),
+                                    BinaryOperator::Add,
+                                    Box::new(Expr::Id(t_id!("bar"))),
+                                )),
+                                BinaryOperator::Add,
+                                Box::new(Expr::Id(t_id!("baz"))),
+                            ),
+                        ),
+                        Statement::Expr(Expr::Call(
+                            t_id!("print_int"),
+                            vec![Expr::BinaryOp(
+                                Box::new(Expr::Call(t_id!("read_int"), vec![])),
+                                BinaryOperator::Add,
+                                Box::new(Expr::Id(t_id!("bop"))),
+                            )],
+                        )),
+                    ],
+                    types: TypeEnv::new(),
+                }],
+            },
             inputs: VecDeque::from(vec![10, 20, 30, 40]),
             expected_outputs: VecDeque::from(vec![10 + (10 + 20) + (10 + 20 + 30) + 40]),
         });

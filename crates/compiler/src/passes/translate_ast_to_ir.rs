@@ -1,41 +1,48 @@
 use crate::{
-    constants::*,
     passes::ASTtoIRPass,
     syntax_trees::{
         ast,
         ir::{self, BlockMap},
         shared::*,
-    }, utils::id,
+    },
 };
 
 pub struct TranslateASTtoIR;
 
 impl ASTtoIRPass for TranslateASTtoIR {
     fn run_pass(self, m: ast::Program) -> ir::IRProgram {
-        let mut blocks = BlockMap::new();
+        let mut ir_functions = vec![];
+        for f in m.functions {
+            let mut blocks = BlockMap::new();
 
-        let mut main_body = ir::Block {
-            statements: vec![ir::Statement::Goto(id!(LABEL_USER_EXIT))],
-        };
+            let entry_id = Identifier::new_ephemeral();
+            let exit_id = Identifier::new_ephemeral();
+            let mut main_body = ir::Block {
+                statements: vec![ir::Statement::Goto(exit_id.clone())],
+            };
 
-        
-        // TODO: Right now there is only 1 function..
-        for s in m.functions[0].body.iter().rev() {
-            main_body.statements = generate_for_statement(s, main_body.statements, &mut blocks);
+            for s in f.body.iter().rev() {
+                main_body.statements = generate_for_statement(s, main_body.statements, &mut blocks);
+            }
+
+            blocks.insert(entry_id.clone(), main_body);
+
+            // TODO: support return statements
+            let exit_block = ir::Block {
+                statements: vec![ir::Statement::Return(ir::Atom::Constant(Value::I64(0)))],
+            };
+            blocks.insert(exit_id, exit_block);
+
+            ir_functions.push(ir::Function {
+                name: f.name,
+                blocks,
+                entry_block: entry_id,
+                types: f.types.clone(),
+            })
         }
 
-        blocks.insert(id!(LABEL_USER_ENTRY), main_body);
-        
-        let user_exit = ir::Block {
-            statements: vec![ir::Statement::Return(ir::Atom::Constant(Value::I64(0)))],
-        };
-        blocks.insert(id!(LABEL_USER_EXIT), user_exit);
-        
-        blocks.reverse();
         ir::IRProgram {
-            blocks,
-            // TODO: Right now there is only 1 AST function..
-            types: m.functions[0].types.clone(),
+            functions: ir_functions,
         }
     }
 }
@@ -391,17 +398,20 @@ mod tests {
     #[test]
     fn test_add() {
         execute_test_case(TestCase {
-            ast: Program { functions: vec![Function { name: t_id!(LABEL_MAIN),
-                body: vec![Statement::Expr(Expr::Call(
-                    t_id!("print_int"),
-                    vec![Expr::BinaryOp(
-                        Box::new(Expr::Constant(Value::I64(40))),
-                        BinaryOperator::Add,
-                        Box::new(Expr::Constant(Value::I64(2))),
-                    )],
-                ))],
-                types: TypeEnv::new(),
-            }]},
+            ast: Program {
+                functions: vec![Function {
+                    name: t_id!(LABEL_MAIN),
+                    body: vec![Statement::Expr(Expr::Call(
+                        t_id!("print_int"),
+                        vec![Expr::BinaryOp(
+                            Box::new(Expr::Constant(Value::I64(40))),
+                            BinaryOperator::Add,
+                            Box::new(Expr::Constant(Value::I64(2))),
+                        )],
+                    ))],
+                    types: TypeEnv::new(),
+                }],
+            },
             inputs: VecDeque::new(),
             expected_outputs: VecDeque::from(vec![42]),
         })
@@ -410,13 +420,16 @@ mod tests {
     #[test]
     fn test_input() {
         execute_test_case(TestCase {
-            ast: Program { functions: vec![Function { name: t_id!(LABEL_MAIN),
-                body: vec![Statement::Expr(Expr::Call(
-                    t_id!("print_int"),
-                    vec![Expr::Call(t_id!("read_int"), vec![])],
-                ))],
-                types: TypeEnv::new(),
-            }]},
+            ast: Program {
+                functions: vec![Function {
+                    name: t_id!(LABEL_MAIN),
+                    body: vec![Statement::Expr(Expr::Call(
+                        t_id!("print_int"),
+                        vec![Expr::Call(t_id!("read_int"), vec![])],
+                    ))],
+                    types: TypeEnv::new(),
+                }],
+            },
             inputs: VecDeque::from(vec![42]),
             expected_outputs: VecDeque::from(vec![42]),
         })
@@ -425,17 +438,20 @@ mod tests {
     #[test]
     fn test_subinput() {
         execute_test_case(TestCase {
-            ast: Program { functions: vec![Function { name: t_id!(LABEL_MAIN),
-                body: vec![Statement::Expr(Expr::Call(
-                    t_id!("print_int"),
-                    vec![Expr::BinaryOp(
-                        Box::new(Expr::Call(t_id!("read_int"), vec![])),
-                        BinaryOperator::Subtract,
-                        Box::new(Expr::Call(t_id!("read_int"), vec![])),
-                    )],
-                ))],
-                types: TypeEnv::new(),
-            }]},
+            ast: Program {
+                functions: vec![Function {
+                    name: t_id!(LABEL_MAIN),
+                    body: vec![Statement::Expr(Expr::Call(
+                        t_id!("print_int"),
+                        vec![Expr::BinaryOp(
+                            Box::new(Expr::Call(t_id!("read_int"), vec![])),
+                            BinaryOperator::Subtract,
+                            Box::new(Expr::Call(t_id!("read_int"), vec![])),
+                        )],
+                    ))],
+                    types: TypeEnv::new(),
+                }],
+            },
             inputs: VecDeque::from(vec![5, 3]),
             expected_outputs: VecDeque::from(vec![2]),
         });
@@ -444,13 +460,16 @@ mod tests {
     #[test]
     fn test_zero() {
         execute_test_case(TestCase {
-            ast: Program { functions: vec![Function { name: t_id!(LABEL_MAIN),
-                body: vec![Statement::Expr(Expr::Call(
-                    t_id!("print_int"),
-                    vec![Expr::Constant(Value::I64(0))],
-                ))],
-                types: TypeEnv::new(),
-            }]},
+            ast: Program {
+                functions: vec![Function {
+                    name: t_id!(LABEL_MAIN),
+                    body: vec![Statement::Expr(Expr::Call(
+                        t_id!("print_int"),
+                        vec![Expr::Constant(Value::I64(0))],
+                    ))],
+                    types: TypeEnv::new(),
+                }],
+            },
             inputs: VecDeque::from(vec![]),
             expected_outputs: VecDeque::from(vec![0]),
         });
@@ -459,25 +478,28 @@ mod tests {
     #[test]
     fn test_nested() {
         execute_test_case(TestCase {
-            ast: Program { functions: vec![Function { name: t_id!(LABEL_MAIN),
-                body: vec![Statement::Expr(Expr::Call(
-                    t_id!("print_int"),
-                    vec![Expr::BinaryOp(
-                        Box::new(Expr::BinaryOp(
-                            Box::new(Expr::Constant(Value::I64(40))),
+            ast: Program {
+                functions: vec![Function {
+                    name: t_id!(LABEL_MAIN),
+                    body: vec![Statement::Expr(Expr::Call(
+                        t_id!("print_int"),
+                        vec![Expr::BinaryOp(
+                            Box::new(Expr::BinaryOp(
+                                Box::new(Expr::Constant(Value::I64(40))),
+                                BinaryOperator::Add,
+                                Box::new(Expr::Constant(Value::I64(2))),
+                            )),
                             BinaryOperator::Add,
-                            Box::new(Expr::Constant(Value::I64(2))),
-                        )),
-                        BinaryOperator::Add,
-                        Box::new(Expr::BinaryOp(
-                            Box::new(Expr::Constant(Value::I64(40))),
-                            BinaryOperator::Add,
-                            Box::new(Expr::Constant(Value::I64(2))),
-                        )),
-                    )],
-                ))],
-                types: TypeEnv::new(),
-            }]},
+                            Box::new(Expr::BinaryOp(
+                                Box::new(Expr::Constant(Value::I64(40))),
+                                BinaryOperator::Add,
+                                Box::new(Expr::Constant(Value::I64(2))),
+                            )),
+                        )],
+                    ))],
+                    types: TypeEnv::new(),
+                }],
+            },
             inputs: VecDeque::from(vec![]),
             expected_outputs: VecDeque::from(vec![84]),
         });
@@ -486,25 +508,28 @@ mod tests {
     #[test]
     fn test_mixed() {
         execute_test_case(TestCase {
-            ast: Program { functions: vec![Function { name: t_id!(LABEL_MAIN),
-                body: vec![Statement::Expr(Expr::Call(
-                    t_id!("print_int"),
-                    vec![Expr::BinaryOp(
-                        Box::new(Expr::BinaryOp(
-                            Box::new(Expr::Call(t_id!("read_int"), vec![])),
+            ast: Program {
+                functions: vec![Function {
+                    name: t_id!(LABEL_MAIN),
+                    body: vec![Statement::Expr(Expr::Call(
+                        t_id!("print_int"),
+                        vec![Expr::BinaryOp(
+                            Box::new(Expr::BinaryOp(
+                                Box::new(Expr::Call(t_id!("read_int"), vec![])),
+                                BinaryOperator::Add,
+                                Box::new(Expr::Constant(Value::I64(2))),
+                            )),
                             BinaryOperator::Add,
-                            Box::new(Expr::Constant(Value::I64(2))),
-                        )),
-                        BinaryOperator::Add,
-                        Box::new(Expr::BinaryOp(
-                            Box::new(Expr::Constant(Value::I64(40))),
-                            BinaryOperator::Add,
-                            Box::new(Expr::Constant(Value::I64(2))),
-                        )),
-                    )],
-                ))],
-                types: TypeEnv::new(),
-            }]},
+                            Box::new(Expr::BinaryOp(
+                                Box::new(Expr::Constant(Value::I64(40))),
+                                BinaryOperator::Add,
+                                Box::new(Expr::Constant(Value::I64(2))),
+                            )),
+                        )],
+                    ))],
+                    types: TypeEnv::new(),
+                }],
+            },
             inputs: VecDeque::from(vec![-100]),
             expected_outputs: VecDeque::from(vec![44 - 100]),
         });
@@ -513,19 +538,19 @@ mod tests {
     #[test]
     fn test_simple_assignment() {
         execute_test_case(TestCase {
-            ast: Program { functions: vec![Function { name: t_id!(LABEL_MAIN),
-                body: vec![
-                    Statement::Assign(
-                        AssignDest::Id(t_id!("x")),
-                        Expr::Constant(Value::I64(1000)),
-                    ),
-                    Statement::Expr(Expr::Call(
-                        t_id!("print_int"),
-                        vec![Expr::Id(t_id!("x"))],
-                    )),
-                ],
-                types: TypeEnv::new(),
-            }]},
+            ast: Program {
+                functions: vec![Function {
+                    name: t_id!(LABEL_MAIN),
+                    body: vec![
+                        Statement::Assign(
+                            AssignDest::Id(t_id!("x")),
+                            Expr::Constant(Value::I64(1000)),
+                        ),
+                        Statement::Expr(Expr::Call(t_id!("print_int"), vec![Expr::Id(t_id!("x"))])),
+                    ],
+                    types: TypeEnv::new(),
+                }],
+            },
             inputs: VecDeque::from(vec![]),
             expected_outputs: VecDeque::from(vec![1000]),
         });
@@ -543,11 +568,48 @@ mod tests {
         // e3 = e1 + e2
         // print(e3)
         execute_test_case(TestCase {
-            ast: Program { functions: vec![Function { name: t_id!(LABEL_MAIN),
-                body: vec![
-                    Statement::Assign(
-                        AssignDest::Id(t_id!("foofoo")),
-                        Expr::BinaryOp(
+            ast: Program {
+                functions: vec![Function {
+                    name: t_id!(LABEL_MAIN),
+                    body: vec![
+                        Statement::Assign(
+                            AssignDest::Id(t_id!("foofoo")),
+                            Expr::BinaryOp(
+                                Box::new(Expr::BinaryOp(
+                                    Box::new(Expr::Call(t_id!("read_int"), vec![])),
+                                    BinaryOperator::Add,
+                                    Box::new(Expr::Constant(Value::I64(2))),
+                                )),
+                                BinaryOperator::Add,
+                                Box::new(Expr::BinaryOp(
+                                    Box::new(Expr::Constant(Value::I64(40))),
+                                    BinaryOperator::Subtract,
+                                    Box::new(Expr::Constant(Value::I64(2))),
+                                )),
+                            ),
+                        ),
+                        Statement::Expr(Expr::Call(
+                            t_id!("print_int"),
+                            vec![Expr::Id(t_id!("foofoo"))],
+                        )),
+                    ],
+                    types: TypeEnv::new(),
+                }],
+            },
+            inputs: VecDeque::from(vec![10]),
+            expected_outputs: VecDeque::from(vec![10 + 2 + 40 - 2]),
+        });
+    }
+
+    #[test]
+    fn test_complex_args() {
+        execute_test_case(TestCase {
+            ast: Program {
+                functions: vec![Function {
+                    name: t_id!(LABEL_MAIN),
+                    body: vec![Statement::Expr(Expr::Call(
+                        t_id!("print_int"),
+                        vec![Expr::BinaryOp(
                             Box::new(Expr::BinaryOp(
                                 Box::new(Expr::Call(t_id!("read_int"), vec![])),
                                 BinaryOperator::Add,
@@ -559,42 +621,11 @@ mod tests {
                                 BinaryOperator::Subtract,
                                 Box::new(Expr::Constant(Value::I64(2))),
                             )),
-                        ),
-                    ),
-                    Statement::Expr(Expr::Call(
-                        t_id!("print_int"),
-                        vec![Expr::Id(t_id!("foofoo"))],
-                    )),
-                ],
-                types: TypeEnv::new(),
-            }]},
-            inputs: VecDeque::from(vec![10]),
-            expected_outputs: VecDeque::from(vec![10 + 2 + 40 - 2]),
-        });
-    }
-
-    #[test]
-    fn test_complex_args() {
-        execute_test_case(TestCase {
-            ast: Program { functions: vec![Function { name: t_id!(LABEL_MAIN),
-                body: vec![Statement::Expr(Expr::Call(
-                    t_id!("print_int"),
-                    vec![Expr::BinaryOp(
-                        Box::new(Expr::BinaryOp(
-                            Box::new(Expr::Call(t_id!("read_int"), vec![])),
-                            BinaryOperator::Add,
-                            Box::new(Expr::Constant(Value::I64(2))),
-                        )),
-                        BinaryOperator::Add,
-                        Box::new(Expr::BinaryOp(
-                            Box::new(Expr::Constant(Value::I64(40))),
-                            BinaryOperator::Subtract,
-                            Box::new(Expr::Constant(Value::I64(2))),
-                        )),
-                    )],
-                ))],
-                types: TypeEnv::new(),
-            }]},
+                        )],
+                    ))],
+                    types: TypeEnv::new(),
+                }],
+            },
             inputs: VecDeque::from(vec![10]),
             expected_outputs: VecDeque::from(vec![10 + 2 + 40 - 2]),
         });
@@ -622,51 +653,54 @@ mod tests {
         // print(e4)
 
         execute_test_case(TestCase {
-            ast: Program { functions: vec![Function { name: t_id!(LABEL_MAIN),
-                body: vec![
-                    Statement::Assign(
-                        AssignDest::Id(t_id!("foo")),
-                        Expr::Call(t_id!("read_int"), vec![]),
-                    ),
-                    Statement::Assign(
-                        AssignDest::Id(t_id!("bar")),
-                        Expr::BinaryOp(
-                            Box::new(Expr::Call(t_id!("read_int"), vec![])),
-                            BinaryOperator::Add,
-                            Box::new(Expr::Id(t_id!("foo"))),
+            ast: Program {
+                functions: vec![Function {
+                    name: t_id!(LABEL_MAIN),
+                    body: vec![
+                        Statement::Assign(
+                            AssignDest::Id(t_id!("foo")),
+                            Expr::Call(t_id!("read_int"), vec![]),
                         ),
-                    ),
-                    Statement::Assign(
-                        AssignDest::Id(t_id!("baz")),
-                        Expr::BinaryOp(
-                            Box::new(Expr::Call(t_id!("read_int"), vec![])),
-                            BinaryOperator::Add,
-                            Box::new(Expr::Id(t_id!("bar"))),
-                        ),
-                    ),
-                    Statement::Assign(
-                        AssignDest::Id(t_id!("bop")),
-                        Expr::BinaryOp(
-                            Box::new(Expr::BinaryOp(
+                        Statement::Assign(
+                            AssignDest::Id(t_id!("bar")),
+                            Expr::BinaryOp(
+                                Box::new(Expr::Call(t_id!("read_int"), vec![])),
+                                BinaryOperator::Add,
                                 Box::new(Expr::Id(t_id!("foo"))),
+                            ),
+                        ),
+                        Statement::Assign(
+                            AssignDest::Id(t_id!("baz")),
+                            Expr::BinaryOp(
+                                Box::new(Expr::Call(t_id!("read_int"), vec![])),
                                 BinaryOperator::Add,
                                 Box::new(Expr::Id(t_id!("bar"))),
-                            )),
-                            BinaryOperator::Add,
-                            Box::new(Expr::Id(t_id!("baz"))),
+                            ),
                         ),
-                    ),
-                    Statement::Expr(Expr::Call(
-                        t_id!("print_int"),
-                        vec![Expr::BinaryOp(
-                            Box::new(Expr::Call(t_id!("read_int"), vec![])),
-                            BinaryOperator::Add,
-                            Box::new(Expr::Id(t_id!("bop"))),
-                        )],
-                    )),
-                ],
-                types: TypeEnv::new(),
-            }]},
+                        Statement::Assign(
+                            AssignDest::Id(t_id!("bop")),
+                            Expr::BinaryOp(
+                                Box::new(Expr::BinaryOp(
+                                    Box::new(Expr::Id(t_id!("foo"))),
+                                    BinaryOperator::Add,
+                                    Box::new(Expr::Id(t_id!("bar"))),
+                                )),
+                                BinaryOperator::Add,
+                                Box::new(Expr::Id(t_id!("baz"))),
+                            ),
+                        ),
+                        Statement::Expr(Expr::Call(
+                            t_id!("print_int"),
+                            vec![Expr::BinaryOp(
+                                Box::new(Expr::Call(t_id!("read_int"), vec![])),
+                                BinaryOperator::Add,
+                                Box::new(Expr::Id(t_id!("bop"))),
+                            )],
+                        )),
+                    ],
+                    types: TypeEnv::new(),
+                }],
+            },
             inputs: VecDeque::from(vec![10, 20, 30, 40]),
             expected_outputs: VecDeque::from(vec![10 + (10 + 20) + (10 + 20 + 30) + 40]),
         });
@@ -675,29 +709,32 @@ mod tests {
     #[test]
     fn test_condition_statement() {
         execute_test_case(TestCase {
-            ast: Program { functions: vec![Function { name: t_id!(LABEL_MAIN),
-                body: vec![
-                    Statement::Conditional(
-                        Expr::BinaryOp(
-                            Box::new(ast_read_int()),
-                            BinaryOperator::Equals,
-                            Box::new(ast_const_int(1)),
+            ast: Program {
+                functions: vec![Function {
+                    name: t_id!(LABEL_MAIN),
+                    body: vec![
+                        Statement::Conditional(
+                            Expr::BinaryOp(
+                                Box::new(ast_read_int()),
+                                BinaryOperator::Equals,
+                                Box::new(ast_const_int(1)),
+                            ),
+                            vec![Statement::Expr(ast_print_int(ast_const_int(10)))],
+                            vec![Statement::Expr(ast_print_int(ast_const_int(20)))],
                         ),
-                        vec![Statement::Expr(ast_print_int(ast_const_int(10)))],
-                        vec![Statement::Expr(ast_print_int(ast_const_int(20)))],
-                    ),
-                    Statement::Conditional(
-                        Expr::BinaryOp(
-                            Box::new(ast_read_int()),
-                            BinaryOperator::Equals,
-                            Box::new(ast_const_int(1)),
+                        Statement::Conditional(
+                            Expr::BinaryOp(
+                                Box::new(ast_read_int()),
+                                BinaryOperator::Equals,
+                                Box::new(ast_const_int(1)),
+                            ),
+                            vec![Statement::Expr(ast_print_int(ast_const_int(10)))],
+                            vec![Statement::Expr(ast_print_int(ast_const_int(20)))],
                         ),
-                        vec![Statement::Expr(ast_print_int(ast_const_int(10)))],
-                        vec![Statement::Expr(ast_print_int(ast_const_int(20)))],
-                    ),
-                ],
-                types: TypeEnv::new(),
-            }]},
+                    ],
+                    types: TypeEnv::new(),
+                }],
+            },
             inputs: VecDeque::from([1, 2]),
             expected_outputs: VecDeque::from([10, 20]),
         });
@@ -706,29 +743,32 @@ mod tests {
     #[test]
     fn test_ternary() {
         execute_test_case(TestCase {
-            ast: Program { functions: vec![Function { name: t_id!(LABEL_MAIN),
-                body: vec![
-                    Statement::Expr(Expr::Ternary(
-                        Box::new(Expr::BinaryOp(
-                            Box::new(ast_read_int()),
-                            BinaryOperator::Equals,
-                            Box::new(ast_const_int(1)),
+            ast: Program {
+                functions: vec![Function {
+                    name: t_id!(LABEL_MAIN),
+                    body: vec![
+                        Statement::Expr(Expr::Ternary(
+                            Box::new(Expr::BinaryOp(
+                                Box::new(ast_read_int()),
+                                BinaryOperator::Equals,
+                                Box::new(ast_const_int(1)),
+                            )),
+                            Box::new(ast_print_int(ast_const_int(10))),
+                            Box::new(ast_print_int(ast_const_int(20))),
                         )),
-                        Box::new(ast_print_int(ast_const_int(10))),
-                        Box::new(ast_print_int(ast_const_int(20))),
-                    )),
-                    Statement::Expr(Expr::Ternary(
-                        Box::new(Expr::BinaryOp(
-                            Box::new(ast_read_int()),
-                            BinaryOperator::Equals,
-                            Box::new(ast_const_int(1)),
+                        Statement::Expr(Expr::Ternary(
+                            Box::new(Expr::BinaryOp(
+                                Box::new(ast_read_int()),
+                                BinaryOperator::Equals,
+                                Box::new(ast_const_int(1)),
+                            )),
+                            Box::new(ast_print_int(ast_const_int(10))),
+                            Box::new(ast_print_int(ast_const_int(20))),
                         )),
-                        Box::new(ast_print_int(ast_const_int(10))),
-                        Box::new(ast_print_int(ast_const_int(20))),
-                    )),
-                ],
-                types: TypeEnv::new(),
-            }]},
+                    ],
+                    types: TypeEnv::new(),
+                }],
+            },
             inputs: VecDeque::from([1, 2]),
             expected_outputs: VecDeque::from([10, 20]),
         });
@@ -737,61 +777,64 @@ mod tests {
     #[test]
     fn test_ternary_complex() {
         execute_test_case(TestCase {
-            ast: Program { functions: vec![Function { name: t_id!(LABEL_MAIN),
-                body: vec![
-                    Statement::Expr(Expr::Ternary(
-                        Box::new(Expr::BinaryOp(
+            ast: Program {
+                functions: vec![Function {
+                    name: t_id!(LABEL_MAIN),
+                    body: vec![
+                        Statement::Expr(Expr::Ternary(
                             Box::new(Expr::BinaryOp(
-                                Box::new(ast_read_int()),
-                                BinaryOperator::Equals,
-                                Box::new(ast_const_int(1)),
+                                Box::new(Expr::BinaryOp(
+                                    Box::new(ast_read_int()),
+                                    BinaryOperator::Equals,
+                                    Box::new(ast_const_int(1)),
+                                )),
+                                BinaryOperator::And,
+                                Box::new(Expr::BinaryOp(
+                                    Box::new(ast_read_int()),
+                                    BinaryOperator::Equals,
+                                    Box::new(ast_const_int(2)),
+                                )),
                             )),
-                            BinaryOperator::And,
-                            Box::new(Expr::BinaryOp(
+                            Box::new(ast_print_int(Expr::BinaryOp(
                                 Box::new(ast_read_int()),
-                                BinaryOperator::Equals,
-                                Box::new(ast_const_int(2)),
-                            )),
+                                BinaryOperator::Add,
+                                Box::new(ast_const_int(10)),
+                            ))),
+                            Box::new(ast_print_int(Expr::BinaryOp(
+                                Box::new(ast_read_int()),
+                                BinaryOperator::Add,
+                                Box::new(ast_read_int()),
+                            ))),
                         )),
-                        Box::new(ast_print_int(Expr::BinaryOp(
-                            Box::new(ast_read_int()),
-                            BinaryOperator::Add,
-                            Box::new(ast_const_int(10)),
-                        ))),
-                        Box::new(ast_print_int(Expr::BinaryOp(
-                            Box::new(ast_read_int()),
-                            BinaryOperator::Add,
-                            Box::new(ast_read_int()),
-                        ))),
-                    )),
-                    Statement::Expr(Expr::Ternary(
-                        Box::new(Expr::BinaryOp(
+                        Statement::Expr(Expr::Ternary(
                             Box::new(Expr::BinaryOp(
-                                Box::new(ast_read_int()),
-                                BinaryOperator::Equals,
-                                Box::new(ast_const_int(1)),
+                                Box::new(Expr::BinaryOp(
+                                    Box::new(ast_read_int()),
+                                    BinaryOperator::Equals,
+                                    Box::new(ast_const_int(1)),
+                                )),
+                                BinaryOperator::And,
+                                Box::new(Expr::BinaryOp(
+                                    Box::new(ast_read_int()),
+                                    BinaryOperator::Equals,
+                                    Box::new(ast_const_int(2)),
+                                )),
                             )),
-                            BinaryOperator::And,
-                            Box::new(Expr::BinaryOp(
+                            Box::new(ast_print_int(Expr::BinaryOp(
                                 Box::new(ast_read_int()),
-                                BinaryOperator::Equals,
-                                Box::new(ast_const_int(2)),
-                            )),
+                                BinaryOperator::Add,
+                                Box::new(ast_const_int(10)),
+                            ))),
+                            Box::new(ast_print_int(Expr::BinaryOp(
+                                Box::new(ast_read_int()),
+                                BinaryOperator::Add,
+                                Box::new(ast_read_int()),
+                            ))),
                         )),
-                        Box::new(ast_print_int(Expr::BinaryOp(
-                            Box::new(ast_read_int()),
-                            BinaryOperator::Add,
-                            Box::new(ast_const_int(10)),
-                        ))),
-                        Box::new(ast_print_int(Expr::BinaryOp(
-                            Box::new(ast_read_int()),
-                            BinaryOperator::Add,
-                            Box::new(ast_read_int()),
-                        ))),
-                    )),
-                ],
-                types: TypeEnv::new(),
-            }]},
+                    ],
+                    types: TypeEnv::new(),
+                }],
+            },
             inputs: VecDeque::from([1, 2, 2, 8, 10, 15]),
             expected_outputs: VecDeque::from([12, 25]),
         });
@@ -805,36 +848,39 @@ mod tests {
         //     x = x - 1
         // }
         execute_test_case(TestCase {
-            ast: Program { functions: vec![Function { name: t_id!(LABEL_MAIN),
-                body: vec![
-                    Statement::Assign(
-                        AssignDest::Id(t_id!("x")),
-                        Expr::Constant(Value::I64(5)),
-                    ),
-                    Statement::WhileLoop(
-                        Expr::BinaryOp(
-                            Box::new(Expr::Id(t_id!("x"))),
-                            BinaryOperator::Greater,
-                            Box::new(Expr::Constant(Value::I64(0))),
+            ast: Program {
+                functions: vec![Function {
+                    name: t_id!(LABEL_MAIN),
+                    body: vec![
+                        Statement::Assign(
+                            AssignDest::Id(t_id!("x")),
+                            Expr::Constant(Value::I64(5)),
                         ),
-                        vec![
-                            Statement::Expr(Expr::Call(
-                                t_id!("print_int"),
-                                vec![Expr::Id(t_id!("x"))],
-                            )),
-                            Statement::Assign(
-                                AssignDest::Id(t_id!("x")),
-                                Expr::BinaryOp(
-                                    Box::new(Expr::Id(t_id!("x"))),
-                                    BinaryOperator::Subtract,
-                                    Box::new(Expr::Constant(Value::I64(1))),
-                                ),
+                        Statement::WhileLoop(
+                            Expr::BinaryOp(
+                                Box::new(Expr::Id(t_id!("x"))),
+                                BinaryOperator::Greater,
+                                Box::new(Expr::Constant(Value::I64(0))),
                             ),
-                        ],
-                    ),
-                ],
-                types: TypeEnv::new(),
-            }]},
+                            vec![
+                                Statement::Expr(Expr::Call(
+                                    t_id!("print_int"),
+                                    vec![Expr::Id(t_id!("x"))],
+                                )),
+                                Statement::Assign(
+                                    AssignDest::Id(t_id!("x")),
+                                    Expr::BinaryOp(
+                                        Box::new(Expr::Id(t_id!("x"))),
+                                        BinaryOperator::Subtract,
+                                        Box::new(Expr::Constant(Value::I64(1))),
+                                    ),
+                                ),
+                            ],
+                        ),
+                    ],
+                    types: TypeEnv::new(),
+                }],
+            },
             inputs: VecDeque::new(),
             expected_outputs: VecDeque::from(vec![5, 4, 3, 2, 1]),
         });
@@ -848,30 +894,33 @@ mod tests {
         // }
         // print_int(42)
         execute_test_case(TestCase {
-            ast: Program { functions: vec![Function { name: t_id!(LABEL_MAIN),
-                body: vec![
-                    Statement::Assign(
-                        AssignDest::Id(t_id!("x")),
-                        Expr::Constant(Value::I64(0)),
-                    ),
-                    Statement::WhileLoop(
-                        Expr::BinaryOp(
-                            Box::new(Expr::Id(t_id!("x"))),
-                            BinaryOperator::Greater,
-                            Box::new(Expr::Constant(Value::I64(0))),
+            ast: Program {
+                functions: vec![Function {
+                    name: t_id!(LABEL_MAIN),
+                    body: vec![
+                        Statement::Assign(
+                            AssignDest::Id(t_id!("x")),
+                            Expr::Constant(Value::I64(0)),
                         ),
-                        vec![Statement::Expr(Expr::Call(
+                        Statement::WhileLoop(
+                            Expr::BinaryOp(
+                                Box::new(Expr::Id(t_id!("x"))),
+                                BinaryOperator::Greater,
+                                Box::new(Expr::Constant(Value::I64(0))),
+                            ),
+                            vec![Statement::Expr(Expr::Call(
+                                t_id!("print_int"),
+                                vec![Expr::Id(t_id!("x"))],
+                            ))],
+                        ),
+                        Statement::Expr(Expr::Call(
                             t_id!("print_int"),
-                            vec![Expr::Id(t_id!("x"))],
-                        ))],
-                    ),
-                    Statement::Expr(Expr::Call(
-                        t_id!("print_int"),
-                        vec![Expr::Constant(Value::I64(42))],
-                    )),
-                ],
-                types: TypeEnv::new(),
-            }]},
+                            vec![Expr::Constant(Value::I64(42))],
+                        )),
+                    ],
+                    types: TypeEnv::new(),
+                }],
+            },
             inputs: VecDeque::new(),
             expected_outputs: VecDeque::from(vec![42]),
         });
@@ -887,48 +936,51 @@ mod tests {
         // }
         // print_int(sum)
         execute_test_case(TestCase {
-            ast: Program { functions: vec![Function { name: t_id!(LABEL_MAIN),
-                body: vec![
-                    Statement::Assign(
-                        AssignDest::Id(t_id!("sum")),
-                        Expr::Constant(Value::I64(0)),
-                    ),
-                    Statement::Assign(
-                        AssignDest::Id(t_id!("i")),
-                        Expr::Constant(Value::I64(1)),
-                    ),
-                    Statement::WhileLoop(
-                        Expr::BinaryOp(
-                            Box::new(Expr::Id(t_id!("i"))),
-                            BinaryOperator::LessEquals,
-                            Box::new(Expr::Constant(Value::I64(5))),
+            ast: Program {
+                functions: vec![Function {
+                    name: t_id!(LABEL_MAIN),
+                    body: vec![
+                        Statement::Assign(
+                            AssignDest::Id(t_id!("sum")),
+                            Expr::Constant(Value::I64(0)),
                         ),
-                        vec![
-                            Statement::Assign(
-                                AssignDest::Id(t_id!("sum")),
-                                Expr::BinaryOp(
-                                    Box::new(Expr::Id(t_id!("sum"))),
-                                    BinaryOperator::Add,
-                                    Box::new(Expr::Id(t_id!("i"))),
-                                ),
+                        Statement::Assign(
+                            AssignDest::Id(t_id!("i")),
+                            Expr::Constant(Value::I64(1)),
+                        ),
+                        Statement::WhileLoop(
+                            Expr::BinaryOp(
+                                Box::new(Expr::Id(t_id!("i"))),
+                                BinaryOperator::LessEquals,
+                                Box::new(Expr::Constant(Value::I64(5))),
                             ),
-                            Statement::Assign(
-                                AssignDest::Id(t_id!("i")),
-                                Expr::BinaryOp(
-                                    Box::new(Expr::Id(t_id!("i"))),
-                                    BinaryOperator::Add,
-                                    Box::new(Expr::Constant(Value::I64(1))),
+                            vec![
+                                Statement::Assign(
+                                    AssignDest::Id(t_id!("sum")),
+                                    Expr::BinaryOp(
+                                        Box::new(Expr::Id(t_id!("sum"))),
+                                        BinaryOperator::Add,
+                                        Box::new(Expr::Id(t_id!("i"))),
+                                    ),
                                 ),
-                            ),
-                        ],
-                    ),
-                    Statement::Expr(Expr::Call(
-                        t_id!("print_int"),
-                        vec![Expr::Id(t_id!("sum"))],
-                    )),
-                ],
-                types: TypeEnv::new(),
-            }]},
+                                Statement::Assign(
+                                    AssignDest::Id(t_id!("i")),
+                                    Expr::BinaryOp(
+                                        Box::new(Expr::Id(t_id!("i"))),
+                                        BinaryOperator::Add,
+                                        Box::new(Expr::Constant(Value::I64(1))),
+                                    ),
+                                ),
+                            ],
+                        ),
+                        Statement::Expr(Expr::Call(
+                            t_id!("print_int"),
+                            vec![Expr::Id(t_id!("sum"))],
+                        )),
+                    ],
+                    types: TypeEnv::new(),
+                }],
+            },
             inputs: VecDeque::new(),
             expected_outputs: VecDeque::from(vec![15]), // sum of 1..5
         });
@@ -947,61 +999,64 @@ mod tests {
         //     i = i + 1
         // }
         execute_test_case(TestCase {
-            ast: Program { functions: vec![Function { name: t_id!(LABEL_MAIN),
-                body: vec![
-                    Statement::Assign(
-                        AssignDest::Id(t_id!("i")),
-                        Expr::Constant(Value::I64(0)),
-                    ),
-                    Statement::WhileLoop(
-                        Expr::BinaryOp(
-                            Box::new(Expr::Id(t_id!("i"))),
-                            BinaryOperator::Less,
-                            Box::new(Expr::Constant(Value::I64(2))),
+            ast: Program {
+                functions: vec![Function {
+                    name: t_id!(LABEL_MAIN),
+                    body: vec![
+                        Statement::Assign(
+                            AssignDest::Id(t_id!("i")),
+                            Expr::Constant(Value::I64(0)),
                         ),
-                        vec![
-                            Statement::Assign(
-                                AssignDest::Id(t_id!("j")),
-                                Expr::Constant(Value::I64(0)),
+                        Statement::WhileLoop(
+                            Expr::BinaryOp(
+                                Box::new(Expr::Id(t_id!("i"))),
+                                BinaryOperator::Less,
+                                Box::new(Expr::Constant(Value::I64(2))),
                             ),
-                            Statement::WhileLoop(
-                                Expr::BinaryOp(
-                                    Box::new(Expr::Id(t_id!("j"))),
-                                    BinaryOperator::Less,
-                                    Box::new(Expr::Constant(Value::I64(2))),
+                            vec![
+                                Statement::Assign(
+                                    AssignDest::Id(t_id!("j")),
+                                    Expr::Constant(Value::I64(0)),
                                 ),
-                                vec![
-                                    Statement::Expr(Expr::Call(
-                                        t_id!("print_int"),
-                                        vec![Expr::Id(t_id!("i"))],
-                                    )),
-                                    Statement::Expr(Expr::Call(
-                                        t_id!("print_int"),
-                                        vec![Expr::Id(t_id!("j"))],
-                                    )),
-                                    Statement::Assign(
-                                        AssignDest::Id(t_id!("j")),
-                                        Expr::BinaryOp(
-                                            Box::new(Expr::Id(t_id!("j"))),
-                                            BinaryOperator::Add,
-                                            Box::new(Expr::Constant(Value::I64(1))),
-                                        ),
+                                Statement::WhileLoop(
+                                    Expr::BinaryOp(
+                                        Box::new(Expr::Id(t_id!("j"))),
+                                        BinaryOperator::Less,
+                                        Box::new(Expr::Constant(Value::I64(2))),
                                     ),
-                                ],
-                            ),
-                            Statement::Assign(
-                                AssignDest::Id(t_id!("i")),
-                                Expr::BinaryOp(
-                                    Box::new(Expr::Id(t_id!("i"))),
-                                    BinaryOperator::Add,
-                                    Box::new(Expr::Constant(Value::I64(1))),
+                                    vec![
+                                        Statement::Expr(Expr::Call(
+                                            t_id!("print_int"),
+                                            vec![Expr::Id(t_id!("i"))],
+                                        )),
+                                        Statement::Expr(Expr::Call(
+                                            t_id!("print_int"),
+                                            vec![Expr::Id(t_id!("j"))],
+                                        )),
+                                        Statement::Assign(
+                                            AssignDest::Id(t_id!("j")),
+                                            Expr::BinaryOp(
+                                                Box::new(Expr::Id(t_id!("j"))),
+                                                BinaryOperator::Add,
+                                                Box::new(Expr::Constant(Value::I64(1))),
+                                            ),
+                                        ),
+                                    ],
                                 ),
-                            ),
-                        ],
-                    ),
-                ],
-                types: TypeEnv::new(),
-            }]},
+                                Statement::Assign(
+                                    AssignDest::Id(t_id!("i")),
+                                    Expr::BinaryOp(
+                                        Box::new(Expr::Id(t_id!("i"))),
+                                        BinaryOperator::Add,
+                                        Box::new(Expr::Constant(Value::I64(1))),
+                                    ),
+                                ),
+                            ],
+                        ),
+                    ],
+                    types: TypeEnv::new(),
+                }],
+            },
             inputs: VecDeque::new(),
             expected_outputs: VecDeque::from(vec![0, 0, 0, 1, 1, 0, 1, 1]),
         });
@@ -1019,47 +1074,50 @@ mod tests {
         //     i = i + 1
         // }
         execute_test_case(TestCase {
-            ast: Program { functions: vec![Function { name: t_id!(LABEL_MAIN),
-                body: vec![
-                    Statement::Assign(
-                        AssignDest::Id(t_id!("i")),
-                        Expr::Constant(Value::I64(0)),
-                    ),
-                    Statement::WhileLoop(
-                        Expr::BinaryOp(
-                            Box::new(Expr::Id(t_id!("i"))),
-                            BinaryOperator::Less,
-                            Box::new(Expr::Constant(Value::I64(5))),
+            ast: Program {
+                functions: vec![Function {
+                    name: t_id!(LABEL_MAIN),
+                    body: vec![
+                        Statement::Assign(
+                            AssignDest::Id(t_id!("i")),
+                            Expr::Constant(Value::I64(0)),
                         ),
-                        vec![
-                            Statement::Conditional(
-                                Expr::BinaryOp(
-                                    Box::new(Expr::Id(t_id!("i"))),
-                                    BinaryOperator::Equals,
-                                    Box::new(Expr::Constant(Value::I64(2))),
-                                ),
-                                vec![Statement::Expr(Expr::Call(
-                                    t_id!("print_int"),
-                                    vec![Expr::Constant(Value::I64(100))],
-                                ))],
-                                vec![Statement::Expr(Expr::Call(
-                                    t_id!("print_int"),
-                                    vec![Expr::Id(t_id!("i"))],
-                                ))],
+                        Statement::WhileLoop(
+                            Expr::BinaryOp(
+                                Box::new(Expr::Id(t_id!("i"))),
+                                BinaryOperator::Less,
+                                Box::new(Expr::Constant(Value::I64(5))),
                             ),
-                            Statement::Assign(
-                                AssignDest::Id(t_id!("i")),
-                                Expr::BinaryOp(
-                                    Box::new(Expr::Id(t_id!("i"))),
-                                    BinaryOperator::Add,
-                                    Box::new(Expr::Constant(Value::I64(1))),
+                            vec![
+                                Statement::Conditional(
+                                    Expr::BinaryOp(
+                                        Box::new(Expr::Id(t_id!("i"))),
+                                        BinaryOperator::Equals,
+                                        Box::new(Expr::Constant(Value::I64(2))),
+                                    ),
+                                    vec![Statement::Expr(Expr::Call(
+                                        t_id!("print_int"),
+                                        vec![Expr::Constant(Value::I64(100))],
+                                    ))],
+                                    vec![Statement::Expr(Expr::Call(
+                                        t_id!("print_int"),
+                                        vec![Expr::Id(t_id!("i"))],
+                                    ))],
                                 ),
-                            ),
-                        ],
-                    ),
-                ],
-                types: TypeEnv::new(),
-            }]},
+                                Statement::Assign(
+                                    AssignDest::Id(t_id!("i")),
+                                    Expr::BinaryOp(
+                                        Box::new(Expr::Id(t_id!("i"))),
+                                        BinaryOperator::Add,
+                                        Box::new(Expr::Constant(Value::I64(1))),
+                                    ),
+                                ),
+                            ],
+                        ),
+                    ],
+                    types: TypeEnv::new(),
+                }],
+            },
             inputs: VecDeque::new(),
             expected_outputs: VecDeque::from(vec![0, 1, 100, 3, 4]),
         });

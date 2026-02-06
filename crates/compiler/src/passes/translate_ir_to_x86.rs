@@ -14,18 +14,24 @@ pub struct TranslateIRtoX86;
 
 impl IRtoX86Pass for TranslateIRtoX86 {
     fn run_pass(self, m: ir::IRProgram) -> X86Program {
-        let mut x86_blocks = vec![];
-        for (id, block) in m.blocks {
-            x86_blocks.push(translate_block(id, block));
+        let mut x86_functions = vec![];
+        for f in m.functions {
+            let mut x86_blocks = vec![];
+            for (id, block) in f.blocks {
+                x86_blocks.push(translate_block(id, block));
+            }
+    
+            x86_functions.push(x86::Function {
+                name: f.name,
+                blocks: x86_blocks,
+                entry_block: f.entry_block,
+                stack_size: 0,
+                gc_stack_size: 0,
+                types: f.types,
+                callee_saved_used: vec![]
+            });
         }
-
-        X86Program {
-            header: vec![],
-            blocks: x86_blocks,
-            stack_size: 0,
-            gc_stack_size: 0,
-            types: m.types,
-        }
+        X86Program { header: vec![], functions: x86_functions }
     }
 }
 
@@ -57,7 +63,7 @@ fn translate_statement(s: ir::Statement) -> Vec<Instr> {
         ir::Statement::Assign(dest_id, expr) => translate_assign(dest_id, expr),
         ir::Statement::Return(atom) => vec![
             Instr::movq(atom_to_arg(atom), x86::Arg::Reg(Register::rax)),
-            Instr::jmp(id!(LABEL_EXIT)),
+            Instr::retq,
         ],
         ir::Statement::Goto(label) => vec![Instr::jmp(label)],
         ir::Statement::If(cond, pos_label, neg_label) => {

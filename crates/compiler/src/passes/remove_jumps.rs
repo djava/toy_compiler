@@ -6,7 +6,10 @@ pub struct RemoveJumps;
 
 impl X86Pass for RemoveJumps {
     fn run_pass(self, mut m: X86Program) -> X86Program {
-        perform_operation(&mut m.blocks);
+        for f in m.functions.iter_mut() { 
+            perform_operation(&mut f.blocks);
+        }
+
         m
     }
 }

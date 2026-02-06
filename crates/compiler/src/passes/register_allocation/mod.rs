@@ -8,7 +8,6 @@ use crate::{
     constants::*,
     passes::{X86Pass, register_allocation::graph_coloring::COLOR_TO_REG_STORAGE},
     syntax_trees::{shared::*, x86},
-    utils::label,
 };
 use dataflow_analysis::LivenessMap;
 use graph_coloring::color_location_graph;
@@ -18,69 +17,50 @@ pub struct RegisterAllocation;
 
 impl X86Pass for RegisterAllocation {
     fn run_pass(self, mut m: X86Program) -> X86Program {
-        let liveness = LivenessMap::from_program(&m);
-
-        let AllocateStorageResult {
-            id_to_storage,
-            stack_size,
-            gc_stack_size,
-        } = allocate_storage(&liveness, &m.types);
-
-        let callee_saved_used: Vec<_> = id_to_storage
-            .values()
-            .filter(|stg| matches!(stg, Storage::Reg(reg) if CALLEE_SAVED_REGISTERS.contains(reg)))
-            .collect();
-        let callee_offset = -((callee_saved_used.len() * size_of::<i64>()) as i32);
-
-        for b in m.blocks.iter_mut() {
-            run_for_block(&mut b.instrs, &id_to_storage, callee_offset);
+        for f in m.functions.iter_mut() {
+            regalloc_function(f);
         }
-
-        if let Some(user_entry) = m
-            .blocks
-            .iter_mut()
-            .find(|b| b.label == label!(LABEL_USER_ENTRY))
-        {
-            let callee_pushqs = callee_saved_used.iter().filter_map(|loc| {
-                if let Storage::Reg(reg) = loc {
-                    Some(Instr::pushq(Arg::Reg(*reg)))
-                } else {
-                    None
-                }
-            });
-
-            user_entry.instrs.splice(0..0, callee_pushqs);
-        }
-
-        if let Some(user_exit) = m
-            .blocks
-            .iter_mut()
-            .find(|b| b.label == label!(LABEL_USER_EXIT))
-        {
-            let callee_popqs = callee_saved_used.iter().rev().filter_map(|loc| {
-                if let Storage::Reg(reg) = loc {
-                    Some(Instr::popq(Arg::Reg(*reg)))
-                } else {
-                    None
-                }
-            });
-
-            let len = user_exit.instrs.len();
-            user_exit.instrs.splice((len - 2)..=(len - 2), callee_popqs);
-        }
-
-        let used_stack = -callee_offset + stack_size;
-        let aligned_stack_size = if used_stack % STACK_ALIGNMENT == 0 {
-            used_stack
-        } else {
-            used_stack + (STACK_ALIGNMENT - (used_stack % STACK_ALIGNMENT))
-        };
-
-        m.stack_size = aligned_stack_size as usize;
-        m.gc_stack_size = gc_stack_size as usize;
-
         m
     }
+}
+
+fn regalloc_function(f: &mut Function) {
+    let liveness = LivenessMap::from_program(&f);
+
+    let AllocateStorageResult {
+        id_to_storage,
+        stack_size,
+        gc_stack_size,
+    } = allocate_storage(&liveness, &f.types);
+
+    let callee_saved_used: Vec<_> = id_to_storage
+        .values()
+        .filter_map(|stg| {
+            if let Storage::Reg(reg) = stg
+                && CALLEE_SAVED_REGISTERS.contains(reg)
+            {
+                Some(*reg)
+            } else {
+                None
+            }
+        })
+        .collect();
+    let callee_offset = -((callee_saved_used.len() * size_of::<i64>()) as i32);
+
+    for b in f.blocks.iter_mut() {
+        run_for_block(&mut b.instrs, &id_to_storage, callee_offset);
+    }
+
+    let used_stack = -callee_offset + stack_size;
+    let aligned_stack_size = if used_stack % STACK_ALIGNMENT == 0 {
+        used_stack
+    } else {
+        used_stack + (STACK_ALIGNMENT - (used_stack % STACK_ALIGNMENT))
+    };
+
+    f.stack_size = aligned_stack_size as usize;
+    f.gc_stack_size = gc_stack_size as usize;
+    f.callee_saved_used = callee_saved_used;
 }
 
 #[derive(Debug, Clone, Hash, PartialEq, Eq)]
@@ -284,7 +264,7 @@ mod tests {
         println!("-- AST after RegAlloc:\n{after_ast}");
 
         // Ensure that all the variable arguments have been removed
-        for i in after_ast.blocks.iter().map(|x| &x.instrs).flatten() {
+        for i in after_ast.functions.iter().map(|f| &f.blocks).flatten().map(|x| &x.instrs).flatten() {
             use x86::{Arg, Instr};
             match i {
                 Instr::addq(s, d) | Instr::subq(s, d) | Instr::movq(s, d) | Instr::imulq(s, d) => {

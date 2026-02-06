@@ -18,8 +18,8 @@ pub struct LivenessMap {
 }
 
 impl LivenessMap {
-    pub fn from_program(m: &X86Program) -> LivenessMap {
-        let blocks = &m.blocks;
+    pub fn from_program(f: &Function) -> LivenessMap {
+        let blocks = &f.blocks;
         let block_adj_graph = x86_block_adj_graph(blocks);
 
         let alive_after_instrs = Self::analyze_dataflow(block_adj_graph);
@@ -43,7 +43,7 @@ impl LivenessMap {
         };
 
         let interference_graph =
-            LivenessMap::make_interference_graph(alive_after_instrs, &all_locations, &m.types);
+            LivenessMap::make_interference_graph(alive_after_instrs, &all_locations, &f.types);
 
         Self { interference_graph }
     }

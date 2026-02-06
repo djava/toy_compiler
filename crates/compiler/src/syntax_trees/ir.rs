@@ -37,7 +37,14 @@ pub struct Block {
 pub type BlockMap = IndexMap<Identifier, Block>;
 
 #[derive(Debug, Clone)]
-pub struct IRProgram {
+pub struct Function {
+    pub name: Identifier,
     pub blocks: BlockMap,
+    pub entry_block: Identifier,
     pub types: TypeEnv,
+}
+
+#[derive(Debug, Clone)]
+pub struct IRProgram {
+    pub functions: Vec<Function>
 }

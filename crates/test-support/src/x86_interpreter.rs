@@ -1,8 +1,11 @@
 use std::collections::VecDeque;
 
-use crate::{ValueEnv, interpreter_utils::{id, label}};
+use crate::{ValueEnv, interpreter_utils::id};
 
-use compiler::syntax_trees::{shared::*, x86::*};
+use compiler::{
+    constants::LABEL_MAIN,
+    syntax_trees::{shared::*, x86::*},
+};
 
 #[derive(Debug, Default)]
 struct Eflags {
@@ -336,13 +339,25 @@ fn run_instr(
 pub fn interpret_x86(m: &X86Program, inputs: &mut VecDeque<i64>, outputs: &mut VecDeque<i64>) {
     let mut env = X86Env::new();
 
-    let main_instrs = &m
-        .blocks
+    // let main_instrs = &m
+    //     .blocks
+    //     .iter()
+    //     .find(|block| block.label == label!("main"))
+    //     .unwrap();
+
+    let mut curr_func = m
+        .functions
         .iter()
-        .find(|block| block.label == label!("main"))
+        .find(|f| f.name == id!(LABEL_MAIN))
         .unwrap();
 
-    let mut curr_instr_iter = main_instrs.instrs.iter();
+    let mut curr_instr_iter = curr_func
+        .blocks
+        .iter()
+        .find(|b| b.label == Directive::Label(curr_func.entry_block.clone()))
+        .unwrap()
+        .instrs
+        .iter();
     loop {
         let curr_instr = curr_instr_iter
             .next()
@@ -351,12 +366,27 @@ pub fn interpret_x86(m: &X86Program, inputs: &mut VecDeque<i64>, outputs: &mut V
         match run_instr(curr_instr, inputs, outputs, &mut env) {
             Continuation::Next => {}
             Continuation::Jump(label) => {
-                let new_block = &m
+                if let Some(new_block) = curr_func
                     .blocks
                     .iter()
                     .find(|b| b.label == Directive::Label(label.clone()))
-                    .unwrap_or_else(|| panic!("Couldn't find label: {label:?}"));
-                curr_instr_iter = new_block.instrs.iter();
+                {
+                    // Look for blocks within this function to jump to
+                    curr_instr_iter = new_block.instrs.iter();
+                } else if let Some(new_func) = m.functions.iter().find(|f| f.name == label) {
+                    // Otherwise, look for functions with this name to
+                    // jump to
+                    curr_func = new_func;
+                    curr_instr_iter = curr_func
+                        .blocks
+                        .iter()
+                        .find(|b| b.label == Directive::Label(curr_func.entry_block.clone()))
+                        .unwrap()
+                        .instrs
+                        .iter();
+                } else {
+                    panic!("")
+                }
             }
             Continuation::Exit => {
                 break;

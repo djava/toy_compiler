@@ -1,6 +1,9 @@
 use std::collections::VecDeque;
 
-use compiler::syntax_trees::{ir::*, shared::*};
+use compiler::{
+    constants::LABEL_MAIN,
+    syntax_trees::{ir::*, shared::*},
+};
 
 use crate::{ValueEnv, interpreter_utils::*};
 
@@ -134,19 +137,34 @@ pub fn interpret_irprogram(p: &IRProgram, inputs: &mut VecDeque<i64>, outputs: &
     let mut env = ValueEnv::new();
     dbg!(p);
 
-    let mut block_idx = p
-        .blocks
-        .get_index_of(&id!("user_entry"))
+    let mut active_func = p
+        .functions
+        .iter()
+        .find(|f| f.name == id!(LABEL_MAIN))
         .unwrap();
+
+    let mut block_idx = active_func
+        .blocks
+        .get_index_of(&active_func.entry_block)
+        .expect("Couldn't find entry block");
     loop {
-        println!("===Executing: {:?}", p.blocks.get_index(block_idx));
-        match p
+        match active_func
             .blocks
             .get_index(block_idx)
             .map(|(_label, b)| interpret_block(b, inputs, outputs, &mut env))
         {
             Some(Continuation::Jump(label)) => {
-                block_idx = p.blocks.get_index_of(&label).unwrap();
+                if let Some(idx) = active_func.blocks.get_index_of(&label) {
+                    block_idx = idx;
+                } else if let Some(func) = p.functions.iter().find(|f| f.name == label) {
+                    active_func = func;
+                    block_idx = active_func
+                        .blocks
+                        .get_index_of(&active_func.entry_block)
+                        .expect("Couldn't find entry block");
+                } else {
+                    panic!("Didn't find jump target: {label:?}");
+                }
             }
             Some(Continuation::Return(_val)) => {
                 // TODO: Call stack? Or other way to implement this
