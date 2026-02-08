@@ -1,27 +1,27 @@
 use crate::syntax_trees::*;
 use enum_dispatch::enum_dispatch;
 
-pub mod partial_eval;
+mod partial_eval;
 pub use partial_eval::PartialEval;
-pub mod patch_instructions;
+mod patch_instructions;
 pub use patch_instructions::PatchInstructions;
-pub mod prelude_conclusion;
+mod prelude_conclusion;
 pub use prelude_conclusion::PreludeConclusion;
-pub mod register_allocation;
+mod register_allocation;
 pub use register_allocation::RegisterAllocation;
-pub mod remove_complex_operands;
+mod remove_complex_operands;
 pub use remove_complex_operands::RemoveComplexOperands;
-pub mod translate_ir_to_x86;
+mod translate_ir_to_x86;
 pub use translate_ir_to_x86::TranslateIRtoX86;
-pub mod translate_ast_to_ir;
+mod translate_ast_to_ir;
 pub use translate_ast_to_ir::TranslateASTtoIR;
-pub mod short_circuiting;
+mod short_circuiting;
 pub use short_circuiting::ShortCircuiting;
-pub mod remove_jumps;
+mod remove_jumps;
 pub use remove_jumps::RemoveJumps;
-pub mod type_check;
+mod type_check;
 pub use type_check::TypeCheck;
-pub mod inject_allocations;
+mod inject_allocations;
 pub use inject_allocations::InjectAllocations;
 
 #[enum_dispatch]

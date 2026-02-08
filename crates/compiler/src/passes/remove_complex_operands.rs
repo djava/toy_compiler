@@ -353,7 +353,7 @@ mod tests {
         ast_interpreter::interpret,
         compiler::{
             constants::LABEL_MAIN,
-            passes::{ASTPass, remove_complex_operands::RemoveComplexOperands},
+            passes::{ASTPass, RemoveComplexOperands},
             syntax_trees::{ast::*, shared::*},
         },
     };

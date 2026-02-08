@@ -367,7 +367,7 @@ mod tests {
             constants::LABEL_MAIN,
             passes::{
                 ASTPass, ASTtoIRPass, ShortCircuiting, TranslateASTtoIR, TypeCheck,
-                remove_complex_operands::RemoveComplexOperands,
+                RemoveComplexOperands,
             },
             syntax_trees::{ast::*, shared::*},
         },

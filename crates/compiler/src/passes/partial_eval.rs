@@ -321,7 +321,7 @@ mod tests {
         ast_interpreter::interpret,
         compiler::{
             constants::LABEL_MAIN,
-            passes::{ASTPass, partial_eval::PartialEval},
+            passes::{ASTPass, PartialEval},
             syntax_trees::{ast::*, shared::*},
         },
     };
