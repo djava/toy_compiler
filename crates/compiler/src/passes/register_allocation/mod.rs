@@ -165,7 +165,7 @@ fn allocate_storage<'a>(liveness: &'a LivenessMap, types: &TypeEnv) -> AllocateS
                 // register colors. Allocate it a new stack storage (or
                 // GC stack storage if its a tuple)
                 let s =
-                    if let Some(ValueType::TupleType(_)) = types.get(&AssignDest::Id(id.clone())) {
+                    if let Some(ValueType::TupleType(_)) = types.get(id) {
                         let stg = Storage::GCStack(curr_gc_stack_offset);
                         curr_gc_stack_offset += WORD_SIZE as i32;
                         stg

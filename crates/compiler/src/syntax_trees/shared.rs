@@ -25,7 +25,7 @@ impl From<&str> for Identifier {
     }
 }
 
-pub type TypeEnv = HashMap<AssignDest, ValueType>;
+pub type TypeEnv = HashMap<Identifier, ValueType>;
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum ValueType {

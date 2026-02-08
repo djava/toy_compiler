@@ -208,7 +208,7 @@ impl LivenessMap {
         for node_idx in graph.node_indices() {
             let loc = graph.node_weight(node_idx).unwrap();
             if let Location::Id(id) = loc
-                && let Some(ValueType::TupleType(_)) = types.get(&AssignDest::Id(id.clone()))
+                && let Some(ValueType::TupleType(_)) = types.get(id)
             {
                 for r in &callee_saved_graph_nodes {
                     graph.add_edge(*r, node_idx, ());

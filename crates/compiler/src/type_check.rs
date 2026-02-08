@@ -29,7 +29,7 @@ impl ast::Expr {
                 }
             }
             Id(id) => env
-                .get(&AssignDest::Id(id.clone()))
+                .get(id)
                 .expect(format!("Unknown Identifier: {id:?}").as_str())
                 .clone(),
             Constant(v) => ValueType::from(v),
@@ -135,10 +135,21 @@ impl ast::Statement {
         match self {
             Assign(dest, e) => {
                 let t = e.type_check(env);
-                if env.contains_key(&dest) {
-                    assert_eq!(env[&dest], t)
-                } else {
-                    env.insert(dest.clone(), t);
+                match dest {
+                    AssignDest::Id(id) => {
+                        if env.contains_key(id) {
+                            assert_eq!(env[id], t);
+                        } else {
+                            env.insert(id.clone(), t);
+                        }
+                    },
+                    AssignDest::Subscript(tup_id, idx) => {
+                        if let Some(ValueType::TupleType(elems)) = env.get(tup_id) {
+                            assert_eq!(elems[*idx as usize], t);
+                        } else {
+                            panic!("Couldn't find tuple to assign into: `{tup_id:?}`")
+                        }
+                    },
                 }
             }
             Expr(e) => {
