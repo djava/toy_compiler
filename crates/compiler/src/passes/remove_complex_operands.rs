@@ -348,6 +348,7 @@ fn rco_expr(e: &Expr, needs_atomicity: bool) -> ExprTransformation {
 mod tests {
     use std::collections::VecDeque;
 
+    use indexmap::IndexMap;
     use crate::utils::t_id;
     use test_support::{
         ast_interpreter::interpret,
@@ -467,7 +468,9 @@ mod tests {
                     )],
                 ))],
                 types: TypeEnv::new(),
-            }]},
+                params: IndexMap::new(),
+                return_type: ValueType::IntType,
+            }], function_types: TypeEnv::new()},
             inputs: VecDeque::new(),
             expected_outputs: VecDeque::from(vec![42]),
         })
@@ -482,7 +485,9 @@ mod tests {
                     vec![Expr::Call(t_id!("read_int"), vec![])],
                 ))],
                 types: TypeEnv::new(),
-            }]},
+                params: IndexMap::new(),
+                return_type: ValueType::IntType,
+            }], function_types: TypeEnv::new()},
             inputs: VecDeque::from(vec![42]),
             expected_outputs: VecDeque::from(vec![42]),
         })
@@ -501,7 +506,9 @@ mod tests {
                     )],
                 ))],
                 types: TypeEnv::new(),
-            }]},
+                params: IndexMap::new(),
+                return_type: ValueType::IntType,
+            }], function_types: TypeEnv::new()},
             inputs: VecDeque::from(vec![5, 3]),
             expected_outputs: VecDeque::from(vec![2]),
         });
@@ -516,7 +523,9 @@ mod tests {
                     vec![Expr::Constant(Value::I64(0))],
                 ))],
                 types: TypeEnv::new(),
-            }]},
+                params: IndexMap::new(),
+                return_type: ValueType::IntType,
+            }], function_types: TypeEnv::new()},
             inputs: VecDeque::from(vec![]),
             expected_outputs: VecDeque::from(vec![0]),
         });
@@ -543,7 +552,9 @@ mod tests {
                     )],
                 ))],
                 types: TypeEnv::new(),
-            }]},
+                params: IndexMap::new(),
+                return_type: ValueType::IntType,
+            }], function_types: TypeEnv::new()},
             inputs: VecDeque::from(vec![]),
             expected_outputs: VecDeque::from(vec![84]),
         });
@@ -570,7 +581,9 @@ mod tests {
                     )],
                 ))],
                 types: TypeEnv::new(),
-            }]},
+                params: IndexMap::new(),
+                return_type: ValueType::IntType,
+            }], function_types: TypeEnv::new()},
             inputs: VecDeque::from(vec![-100]),
             expected_outputs: VecDeque::from(vec![44 - 100]),
         });
@@ -591,7 +604,9 @@ mod tests {
                     )),
                 ],
                 types: TypeEnv::new(),
-            }]},
+                params: IndexMap::new(),
+                return_type: ValueType::IntType,
+            }], function_types: TypeEnv::new()},
             inputs: VecDeque::from(vec![]),
             expected_outputs: VecDeque::from(vec![1000]),
         });
@@ -633,7 +648,9 @@ mod tests {
                     )),
                 ],
                 types: TypeEnv::new(),
-            }]},
+                params: IndexMap::new(),
+                return_type: ValueType::IntType,
+            }], function_types: TypeEnv::new()},
             inputs: VecDeque::from(vec![10]),
             expected_outputs: VecDeque::from(vec![10 + 2 + 40 - 2]),
         });
@@ -660,7 +677,9 @@ mod tests {
                     )],
                 ))],
                 types: TypeEnv::new(),
-            }]},
+                params: IndexMap::new(),
+                return_type: ValueType::IntType,
+            }], function_types: TypeEnv::new()},
             inputs: VecDeque::from(vec![10]),
             expected_outputs: VecDeque::from(vec![10 + 2 + 40 - 2]),
         });
@@ -732,7 +751,9 @@ mod tests {
                     )),
                 ],
                 types: TypeEnv::new(),
-            }]},
+                params: IndexMap::new(),
+                return_type: ValueType::IntType,
+            }], function_types: TypeEnv::new()},
             inputs: VecDeque::from(vec![10, 20, 30, 40]),
             expected_outputs: VecDeque::from(vec![10 + (10 + 20) + (10 + 20 + 30) + 40]),
         });
@@ -775,7 +796,9 @@ mod tests {
                     ),
                 ],
                 types: TypeEnv::new(),
-            }]},
+                params: IndexMap::new(),
+                return_type: ValueType::IntType,
+            }], function_types: TypeEnv::new()},
             inputs: VecDeque::new(),
             expected_outputs: VecDeque::from(vec![5, 4, 3, 2, 1]),
         });
@@ -823,7 +846,9 @@ mod tests {
                     ),
                 ],
                 types: TypeEnv::new(),
-            }]},
+                params: IndexMap::new(),
+                return_type: ValueType::IntType,
+            }], function_types: TypeEnv::new()},
             inputs: VecDeque::new(),
             expected_outputs: VecDeque::from(vec![10, 9, 8, 7, 6]),
         });
@@ -878,7 +903,9 @@ mod tests {
                     ),
                 ],
                 types: TypeEnv::new(),
-            }]},
+                params: IndexMap::new(),
+                return_type: ValueType::IntType,
+            }], function_types: TypeEnv::new()},
             inputs: VecDeque::from(vec![1, 2, 3]),
             expected_outputs: VecDeque::from(vec![1 + 10 + 15, 2 + 10 + 15, 3 + 10 + 15]),
         });

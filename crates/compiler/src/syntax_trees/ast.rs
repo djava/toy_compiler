@@ -1,5 +1,7 @@
 use std::sync::Arc;
 
+use indexmap::IndexMap;
+
 use super::shared::*;
 
 #[derive(Debug, Clone, PartialEq)]
@@ -30,9 +32,12 @@ pub struct Function {
     pub name: Identifier,
     pub body: Vec<Statement>,
     pub types: TypeEnv,
+    pub params: IndexMap<Identifier, ValueType>,
+    pub return_type: ValueType,
 }
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct Program {
-    pub functions: Vec<Function>
+    pub functions: Vec<Function>,
+    pub function_types: TypeEnv,
 }

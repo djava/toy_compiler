@@ -1,3 +1,5 @@
+use indexmap::IndexMap;
+
 use super::parse_tree as pt;
 use crate::constants::LABEL_MAIN;
 use crate::syntax_trees::{ast, shared::*};
@@ -162,6 +164,9 @@ pub fn to_ast(ptm: pt::Module) -> ast::Program {
             name: id!(LABEL_MAIN),
             body: to_ast_statements(ptm.statements),
             types: TypeEnv::new(),
+            params: IndexMap::new(),
+            return_type: ValueType::IntType,
         }],
+        function_types: TypeEnv::new(),
     }
 }

@@ -82,6 +82,7 @@ fn shortcircuit_expr(e: &mut Expr) {
 mod tests {
     use std::collections::VecDeque;
 
+    use indexmap::IndexMap;
     use crate::utils::t_id;
     use test_support::{
         compiler::{
@@ -171,7 +172,9 @@ mod tests {
                     Box::new(Expr::Constant(Value::Bool(false))),
                 ))],
                 types: TypeEnv::new(),
-            }]},
+                params: IndexMap::new(),
+                return_type: ValueType::IntType,
+            }], function_types: TypeEnv::new()},
             inputs: VecDeque::new(),
             expected_outputs: VecDeque::new(),
         };
@@ -205,7 +208,9 @@ mod tests {
                     )),
                 ))],
                 types: TypeEnv::new(),
-            }]},
+                params: IndexMap::new(),
+                return_type: ValueType::IntType,
+            }], function_types: TypeEnv::new()},
             inputs: VecDeque::new(),
             expected_outputs: VecDeque::new(),
         };
@@ -238,7 +243,9 @@ mod tests {
                     )),
                 ],
                 types: TypeEnv::new(),
-            }]},
+                params: IndexMap::new(),
+                return_type: ValueType::IntType,
+            }], function_types: TypeEnv::new()},
             inputs: VecDeque::from([1]),
             expected_outputs: VecDeque::new(),
         };
@@ -271,7 +278,9 @@ mod tests {
                     )),
                 ],
                 types: TypeEnv::new(),
-            }]},
+                params: IndexMap::new(),
+                return_type: ValueType::IntType,
+            }], function_types: TypeEnv::new()},
             inputs: VecDeque::from([1]),
             expected_outputs: VecDeque::new(),
         };

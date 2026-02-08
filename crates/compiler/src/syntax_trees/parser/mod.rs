@@ -25,6 +25,7 @@ pub fn parse<'a>(input: &'a str) -> Result<ast::Program, ParserError<'a>> {
 #[cfg(test)]
 mod tests {
     use std::collections::HashMap;
+    use indexmap::IndexMap;
 
     use crate::utils::t_id;
     use test_support::compiler::{constants::LABEL_MAIN, syntax_trees::{ast, parser::*, shared::*}};
@@ -64,7 +65,9 @@ mod tests {
                     1,
                 )))],
                 types: HashMap::new(),
-            }]},
+                params: IndexMap::new(),
+                return_type: ValueType::IntType,
+            }], function_types: HashMap::new()},
         };
 
         tc.run();
@@ -83,7 +86,9 @@ mod tests {
                     -100,
                 )))],
                 types: HashMap::new(),
-            }]},
+                params: IndexMap::new(),
+                return_type: ValueType::IntType,
+            }], function_types: HashMap::new()},
         };
 
         tc.run();
@@ -108,7 +113,9 @@ mod tests {
                     Box::new(ast::Expr::Constant(Value::I64(2))),
                 ))],
                 types: HashMap::new(),
-            }]},
+                params: IndexMap::new(),
+                return_type: ValueType::IntType,
+            }], function_types: HashMap::new()},
         };
 
         tc.run();
@@ -149,7 +156,9 @@ mod tests {
                     )),
                 ))],
                 types: HashMap::new(),
-            }]},
+                params: IndexMap::new(),
+                return_type: ValueType::IntType,
+            }], function_types: HashMap::new()},
         };
 
         tc.run();
@@ -177,7 +186,9 @@ mod tests {
                     Box::new(ast::Expr::Constant(Value::I64(1))),
                 ))],
                 types: HashMap::new(),
-            }]},
+                params: IndexMap::new(),
+                return_type: ValueType::IntType,
+            }], function_types: HashMap::new()},
         };
 
         tc.run();
@@ -214,7 +225,9 @@ mod tests {
                     ),
                 )],
                 types: HashMap::new(),
-            }]},
+                params: IndexMap::new(),
+                return_type: ValueType::IntType,
+            }], function_types: HashMap::new()},
         };
         tc.run();
     }
@@ -241,7 +254,9 @@ mod tests {
                     vec![ast::Expr::Id(t_id!("x"))],
                 ))],
                 types: HashMap::new(),
-            }]},
+                params: IndexMap::new(),
+                return_type: ValueType::IntType,
+            }], function_types: HashMap::new()},
         };
         tc.run();
     }
@@ -264,7 +279,9 @@ mod tests {
                     vec![],
                 ))],
                 types: HashMap::new(),
-            }]},
+                params: IndexMap::new(),
+                return_type: ValueType::IntType,
+            }], function_types: HashMap::new()},
         };
         tc.run();
     }
@@ -327,7 +344,9 @@ mod tests {
                     )],
                 ))],
                 types: HashMap::new(),
-            }]},
+                params: IndexMap::new(),
+                return_type: ValueType::IntType,
+            }], function_types: HashMap::new()},
         };
         tc.run();
     }
@@ -374,7 +393,9 @@ mod tests {
                     ],
                 ))],
                 types: HashMap::new(),
-            }]},
+                params: IndexMap::new(),
+                return_type: ValueType::IntType,
+            }], function_types: HashMap::new()},
         };
         tc.run();
     }
@@ -406,7 +427,9 @@ mod tests {
                     ),
                 )],
                 types: HashMap::new(),
-            }]},
+                params: IndexMap::new(),
+                return_type: ValueType::IntType,
+            }], function_types: HashMap::new()},
         };
 
         tc.run();
@@ -472,7 +495,9 @@ mod tests {
                     )),
                 ],
                 types: HashMap::new(),
-            }]},
+                params: IndexMap::new(),
+                return_type: ValueType::IntType,
+            }], function_types: HashMap::new()},
         };
 
         tc.run()
@@ -503,7 +528,9 @@ mod tests {
                     )),
                 ))],
                 types: HashMap::new(),
-            }]},
+                params: IndexMap::new(),
+                return_type: ValueType::IntType,
+            }], function_types: HashMap::new()},
         };
         tc.run();
     }
@@ -527,7 +554,9 @@ mod tests {
                     Box::new(ast::Expr::Constant(Value::Bool(true))),
                 ))],
                 types: HashMap::new(),
-            }]},
+                params: IndexMap::new(),
+                return_type: ValueType::IntType,
+            }], function_types: HashMap::new()},
         };
         tc.run();
     }
@@ -617,7 +646,9 @@ mod tests {
                     )],
                 ))],
                 types: HashMap::new(),
-            }]},
+                params: IndexMap::new(),
+                return_type: ValueType::IntType,
+            }], function_types: HashMap::new()},
         };
         tc.run();
     }
@@ -647,7 +678,9 @@ mod tests {
                     Box::new(ast::Expr::Constant(Value::I64(2))),
                 ))],
                 types: HashMap::new(),
-            }]},
+                params: IndexMap::new(),
+                return_type: ValueType::IntType,
+            }], function_types: HashMap::new()},
         };
         tc.run();
     }
@@ -690,7 +723,9 @@ mod tests {
                     )),
                 ))],
                 types: HashMap::new(),
-            }]},
+                params: IndexMap::new(),
+                return_type: ValueType::IntType,
+            }], function_types: HashMap::new()},
         };
         tc.run();
     }
@@ -731,7 +766,9 @@ mod tests {
                     Box::new(ast::Expr::Constant(Value::I64(4))),
                 ))],
                 types: HashMap::new(),
-            }]},
+                params: IndexMap::new(),
+                return_type: ValueType::IntType,
+            }], function_types: HashMap::new()},
         };
         tc.run();
     }
@@ -762,7 +799,9 @@ mod tests {
                     vec![],
                 )],
                 types: HashMap::new(),
-            }]},
+                params: IndexMap::new(),
+                return_type: ValueType::IntType,
+            }], function_types: HashMap::new()},
         };
         tc.run();
     }
@@ -804,7 +843,9 @@ else { 2 }",
                     )))],
                 )],
                 types: HashMap::new(),
-            }]},
+                params: IndexMap::new(),
+                return_type: ValueType::IntType,
+            }], function_types: HashMap::new()},
         };
         tc.run();
     }
@@ -864,7 +905,9 @@ else { 3 }",
                     )],
                 )],
                 types: HashMap::new(),
-            }]},
+                params: IndexMap::new(),
+                return_type: ValueType::IntType,
+            }], function_types: HashMap::new()},
         };
         tc.run();
     }
@@ -912,7 +955,9 @@ else { 3 }",
                     vec![],
                 )],
                 types: HashMap::new(),
-            }]},
+                params: IndexMap::new(),
+                return_type: ValueType::IntType,
+            }], function_types: HashMap::new()},
         };
         tc.run();
     }
@@ -965,7 +1010,9 @@ else { 3 }",
                     vec![],
                 )],
                 types: HashMap::new(),
-            }]},
+                params: IndexMap::new(),
+                return_type: ValueType::IntType,
+            }], function_types: HashMap::new()},
         };
         tc.run();
     }
@@ -990,7 +1037,9 @@ else { 3 }",
                     vec![],
                 )],
                 types: HashMap::new(),
-            }]},
+                params: IndexMap::new(),
+                return_type: ValueType::IntType,
+            }], function_types: HashMap::new()},
         };
         tc.run();
     }
@@ -1126,7 +1175,9 @@ else { 5 }",
                     )],
                 )],
                 types: HashMap::new(),
-            }]},
+                params: IndexMap::new(),
+                return_type: ValueType::IntType,
+            }], function_types: HashMap::new()},
         };
         tc.run();
     }
@@ -1167,7 +1218,9 @@ else { 5 }",
                     )))],
                 )],
                 types: HashMap::new(),
-            }]},
+                params: IndexMap::new(),
+                return_type: ValueType::IntType,
+            }], function_types: HashMap::new()},
         };
         tc.run();
     }
@@ -1223,7 +1276,9 @@ else { 5 }",
                     )],
                 )],
                 types: HashMap::new(),
-            }]},
+                params: IndexMap::new(),
+                return_type: ValueType::IntType,
+            }], function_types: HashMap::new()},
         };
         tc.run();
     }
@@ -1251,7 +1306,9 @@ else { 5 }",
                     ast::Expr::Constant(Value::I64(2)),
                 ]))],
                 types: HashMap::new(),
-            }]},
+                params: IndexMap::new(),
+                return_type: ValueType::IntType,
+            }], function_types: HashMap::new()},
         };
         tc.run();
     }
@@ -1276,7 +1333,9 @@ else { 5 }",
                     ast::Expr::Constant(Value::I64(42)),
                 ]))],
                 types: HashMap::new(),
-            }]},
+                params: IndexMap::new(),
+                return_type: ValueType::IntType,
+            }], function_types: HashMap::new()},
         };
         tc.run();
     }
@@ -1328,7 +1387,9 @@ else { 5 }",
                     ]),
                 )],
                 types: HashMap::new(),
-            }]},
+                params: IndexMap::new(),
+                return_type: ValueType::IntType,
+            }], function_types: HashMap::new()},
         };
         tc.run();
     }
@@ -1370,7 +1431,9 @@ else { 5 }",
                     ]),
                 ]))],
                 types: HashMap::new(),
-            }]},
+                params: IndexMap::new(),
+                return_type: ValueType::IntType,
+            }], function_types: HashMap::new()},
         };
         tc.run();
     }
@@ -1399,7 +1462,9 @@ else { 5 }",
                     ast::Expr::Constant(Value::I64(2)),
                 ]))],
                 types: HashMap::new(),
-            }]},
+                params: IndexMap::new(),
+                return_type: ValueType::IntType,
+            }], function_types: HashMap::new()},
         };
         tc.run();
     }
@@ -1434,7 +1499,9 @@ else { 5 }",
                     ])],
                 ))],
                 types: HashMap::new(),
-            }]},
+                params: IndexMap::new(),
+                return_type: ValueType::IntType,
+            }], function_types: HashMap::new()},
         };
         tc.run();
     }
@@ -1463,7 +1530,9 @@ else { 5 }",
                     0,
                 ))],
                 types: HashMap::new(),
-            }]},
+                params: IndexMap::new(),
+                return_type: ValueType::IntType,
+            }], function_types: HashMap::new()},
         };
         tc.run();
     }
@@ -1490,7 +1559,9 @@ else { 5 }",
                     2,
                 ))],
                 types: HashMap::new(),
-            }]},
+                params: IndexMap::new(),
+                return_type: ValueType::IntType,
+            }], function_types: HashMap::new()},
         };
         tc.run();
     }
@@ -1517,7 +1588,9 @@ else { 5 }",
                     -1,
                 ))],
                 types: HashMap::new(),
-            }]},
+                params: IndexMap::new(),
+                return_type: ValueType::IntType,
+            }], function_types: HashMap::new()},
         };
         tc.run();
     }
@@ -1551,7 +1624,9 @@ else { 5 }",
                     1,
                 ))],
                 types: HashMap::new(),
-            }]},
+                params: IndexMap::new(),
+                return_type: ValueType::IntType,
+            }], function_types: HashMap::new()},
         };
         tc.run();
     }
@@ -1581,7 +1656,9 @@ else { 5 }",
                     0,
                 ))],
                 types: HashMap::new(),
-            }]},
+                params: IndexMap::new(),
+                return_type: ValueType::IntType,
+            }], function_types: HashMap::new()},
         };
         tc.run();
     }
@@ -1616,7 +1693,9 @@ else { 5 }",
                     Box::new(ast::Expr::Constant(Value::I64(1))),
                 ))],
                 types: HashMap::new(),
-            }]},
+                params: IndexMap::new(),
+                return_type: ValueType::IntType,
+            }], function_types: HashMap::new()},
         };
         tc.run();
     }
@@ -1656,7 +1735,9 @@ else { 5 }",
                     0,
                 ))],
                 types: HashMap::new(),
-            }]},
+                params: IndexMap::new(),
+                return_type: ValueType::IntType,
+            }], function_types: HashMap::new()},
         };
         tc.run();
     }
@@ -1693,7 +1774,9 @@ else { 5 }",
                     Box::new(ast::Expr::Constant(Value::I64(2))),
                 ))],
                 types: HashMap::new(),
-            }]},
+                params: IndexMap::new(),
+                return_type: ValueType::IntType,
+            }], function_types: HashMap::new()},
         };
         tc.run();
     }
@@ -1721,7 +1804,9 @@ else { 5 }",
                     ast::Expr::Constant(Value::I64(1)),
                 )],
                 types: HashMap::new(),
-            }]},
+                params: IndexMap::new(),
+                return_type: ValueType::IntType,
+            }], function_types: HashMap::new()},
         };
         tc.run();
     }
@@ -1747,7 +1832,9 @@ else { 5 }",
                     ast::Expr::Constant(Value::I64(42)),
                 )],
                 types: HashMap::new(),
-            }]},
+                params: IndexMap::new(),
+                return_type: ValueType::IntType,
+            }], function_types: HashMap::new()},
         };
         tc.run();
     }
@@ -1788,7 +1875,9 @@ else { 5 }",
                     ),
                 )],
                 types: HashMap::new(),
-            }]},
+                params: IndexMap::new(),
+                return_type: ValueType::IntType,
+            }], function_types: HashMap::new()},
         };
         tc.run();
     }
@@ -1826,7 +1915,9 @@ else { 5 }",
                     ]),
                 )],
                 types: HashMap::new(),
-            }]},
+                params: IndexMap::new(),
+                return_type: ValueType::IntType,
+            }], function_types: HashMap::new()},
         };
         tc.run();
     }
@@ -1852,7 +1943,9 @@ else { 5 }",
                     ast::Expr::Constant(Value::I64(99)),
                 )],
                 types: HashMap::new(),
-            }]},
+                params: IndexMap::new(),
+                return_type: ValueType::IntType,
+            }], function_types: HashMap::new()},
         };
         tc.run();
     }
@@ -1889,7 +1982,9 @@ else { 5 }",
                     vec![],
                 )],
                 types: HashMap::new(),
-            }]},
+                params: IndexMap::new(),
+                return_type: ValueType::IntType,
+            }], function_types: HashMap::new()},
         };
         tc.run();
     }
@@ -1923,7 +2018,9 @@ else { 5 }",
                     ast::Expr::Subscript(Box::new(ast::Expr::Id(t_id!("y"))), 1),
                 )],
                 types: HashMap::new(),
-            }]},
+                params: IndexMap::new(),
+                return_type: ValueType::IntType,
+            }], function_types: HashMap::new()},
         };
         tc.run();
     }
@@ -1974,7 +2071,9 @@ x[0] = 42",
                     ),
                 ],
                 types: HashMap::new(),
-            }]},
+                params: IndexMap::new(),
+                return_type: ValueType::IntType,
+            }], function_types: HashMap::new()},
         };
         tc.run();
     }

@@ -23,6 +23,8 @@ mod type_check;
 pub use type_check::TypeCheck;
 mod inject_allocations;
 pub use inject_allocations::InjectAllocations;
+mod tupleize_excess_args;
+pub use tupleize_excess_args::TupleizeExcessArgs;
 
 #[enum_dispatch]
 pub trait ASTPass {
@@ -36,6 +38,7 @@ pub enum ASTtoAST {
     PartialEval,
     RemoveComplexOperands,
     InjectAllocations,
+    TupleizeExcessArgs,
 }
 
 #[enum_dispatch]
