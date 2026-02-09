@@ -35,6 +35,7 @@ impl ASTtoIRPass for TranslateASTtoIR {
 
             ir_functions.push(ir::Function {
                 name: f.name,
+                params: f.params,
                 blocks,
                 entry_block: entry_id,
                 types: f.types.clone(),
@@ -92,6 +93,7 @@ fn generate_for_statement(
 
             vec![ir::Statement::Goto(cond_label)]
         }
+        ast::Statement::Return(_expr) => todo!(),
     }
 }
 

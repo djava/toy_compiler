@@ -79,6 +79,10 @@ fn partial_eval_statement(s: Statement, new_statements: &mut Vec<Statement>) {
                 new_statements.push(Statement::WhileLoop(cond, body_pe));
             }
         }
+        Statement::Return(mut expr) => {
+            partial_eval_expr(&mut expr);
+            new_statements.push(Statement::Return(expr));
+        },
     }
 }
 
@@ -402,6 +406,9 @@ mod tests {
                     "WhileLoop with Constant condition should have been eliminated: {s:?}"
                 );
                 body.iter().for_each(check_statement_invariants);
+            }
+            Statement::Return(expr) => {
+                check_expr_invariants(expr);
             }
         }
     }

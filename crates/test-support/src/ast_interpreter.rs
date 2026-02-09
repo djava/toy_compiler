@@ -152,6 +152,8 @@ fn interpret_statement(
                 );
             }
         }
+
+        Statement::Return(_expr) => todo!("Needs call stack"),
     };
 }
 

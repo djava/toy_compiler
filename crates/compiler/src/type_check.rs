@@ -171,6 +171,9 @@ impl ast::Statement {
                     s.type_check(env);
                 }
             }
+            Return(expr) => {
+                expr.type_check(env);
+            },
         }
     }
 }

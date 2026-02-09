@@ -22,6 +22,7 @@ fn shortcircuit_statement(s: &mut Statement) {
         Statement::Assign(_, expr)
         | Statement::Expr(expr)
         | Statement::Conditional(expr, _, _)
+        | Statement::Return(expr)
         | Statement::WhileLoop(expr, _) => shortcircuit_expr(expr),
     }
 }
@@ -136,6 +137,9 @@ mod tests {
             Statement::WhileLoop(expr, body) => {
                 assert_expr_no_and_or(&expr);
                 body.iter().for_each(assert_statement_no_and_or);
+            }
+            Statement::Return(expr) => {
+                assert_expr_no_and_or(&expr);
             }
         }
     }

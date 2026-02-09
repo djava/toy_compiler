@@ -39,6 +39,7 @@ pub type BlockMap = IndexMap<Identifier, Block>;
 #[derive(Debug, Clone)]
 pub struct Function {
     pub name: Identifier,
+    pub params: IndexMap<Identifier, ValueType>,
     pub blocks: BlockMap,
     pub entry_block: Identifier,
     pub types: TypeEnv,

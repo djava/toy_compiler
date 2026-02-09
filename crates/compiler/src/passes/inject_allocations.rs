@@ -37,6 +37,7 @@ fn replace_tuples_in_statement(statement: &mut Statement, type_env: &mut TypeEnv
             }
         }
         Statement::Assign(_, expr)
+        | Statement::Return(expr)
         | Statement::Expr(expr) => replace_tuples_in_expr(expr, type_env),
     }
 }

@@ -103,7 +103,6 @@ fn replace_excess_use_for_statement(
 
             replace_excess_use_for_expr(expr, excess_names, tuple_id);
         }
-        Statement::Expr(expr) => replace_excess_use_for_expr(expr, excess_names, tuple_id),
         Statement::Conditional(cond, pos_body, neg_body) => {
             replace_excess_use_for_expr(cond, excess_names, tuple_id);
             for s in pos_body {
@@ -118,6 +117,9 @@ fn replace_excess_use_for_statement(
             for s in body {
                 replace_excess_use_for_statement(s, excess_names, tuple_id);
             }
+        }
+        Statement::Expr(expr) | Statement::Return(expr) => {
+            replace_excess_use_for_expr(expr, excess_names, tuple_id)
         }
     }
 }
@@ -171,7 +173,7 @@ fn replace_excess_use_for_expr(
 
 fn replace_excess_calls_for_statement(s: &mut Statement) {
     match s {
-        Statement::Assign(_, expr) | Statement::Expr(expr) => {
+        Statement::Assign(_, expr) | Statement::Expr(expr) | Statement::Return(expr) => {
             replace_excess_calls_for_expr(expr);
         }
         Statement::Conditional(cond, pos_body, neg_body) => {
@@ -283,7 +285,7 @@ mod tests {
                 for (b_s, a_s) in b_body.iter().zip(a_body) {
                     check_invariant_statement(b_s, a_s, tup_id, map);
                 }
-            },
+            }
             _ => {}
         }
     }
@@ -364,9 +366,9 @@ mod tests {
 
     fn execute_test_case(tc: TestCase) {
         let before = tc.ast.clone();
-        println!("-- AST before TupleizeExccessArgs:\n{:?}", tc.ast);
+        println!("-- AST before TupleizeExcessArgs:\n{:?}", tc.ast);
         let post_run = TupleizeExcessArgs.run_pass(tc.ast);
-        println!("-- AST after TupleizeExccessArgs:\n{post_run:?}");
+        println!("-- AST after TupleizeExcessArgs:\n{post_run:?}");
 
         check_invariant(&before, &post_run);
     }

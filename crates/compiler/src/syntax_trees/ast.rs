@@ -25,6 +25,7 @@ pub enum Statement {
     Expr(Expr),
     Conditional(Expr, Vec<Statement>, Vec<Statement>),
     WhileLoop(Expr, Vec<Statement>),
+    Return(Expr),
 }
 
 #[derive(Debug, Clone, PartialEq)]
