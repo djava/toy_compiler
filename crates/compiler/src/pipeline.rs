@@ -58,6 +58,7 @@ impl Pipeline {
                 ASTtoAST::from(TypeCheck),
                 ASTtoAST::from(ShortCircuiting),
                 ASTtoAST::from(PartialEval),
+                ASTtoAST::from(TupleizeExcessArgs),
                 ASTtoAST::from(RemoveComplexOperands),
                 ASTtoAST::from(TypeCheck),
                 ASTtoAST::from(InjectAllocations),
@@ -79,6 +80,7 @@ impl Pipeline {
             ast_passes: vec![
                 ASTtoAST::from(TypeCheck),
                 ASTtoAST::from(ShortCircuiting),
+                ASTtoAST::from(TupleizeExcessArgs),
                 ASTtoAST::from(RemoveComplexOperands),
                 ASTtoAST::from(TypeCheck),
                 ASTtoAST::from(InjectAllocations),
