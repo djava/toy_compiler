@@ -339,12 +339,6 @@ fn run_instr(
 pub fn interpret_x86(m: &X86Program, inputs: &mut VecDeque<i64>, outputs: &mut VecDeque<i64>) {
     let mut env = X86Env::new();
 
-    // let main_instrs = &m
-    //     .blocks
-    //     .iter()
-    //     .find(|block| block.label == label!("main"))
-    //     .unwrap();
-
     let mut curr_func = m
         .functions
         .iter()
