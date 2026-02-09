@@ -1,7 +1,4 @@
-use indexmap::IndexMap;
-
 use super::parse_tree as pt;
-use crate::constants::LABEL_MAIN;
 use crate::syntax_trees::{ast, shared::*};
 use crate::utils::id;
 use std::iter::Peekable;
@@ -143,6 +140,13 @@ pub fn to_ast_statement<'a>(
             to_ast_expr(cond),
             to_ast_statements(body),
         )),
+        Some(pt::Statement::Return(opt_val)) => {
+            let val = opt_val
+                .map(to_ast_expr)
+                .unwrap_or(ast::Expr::Constant(Value::None));
+
+            Some(ast::Statement::Return(val))
+        }
         None => None,
     }
 }
@@ -158,15 +162,25 @@ fn to_ast_statements(body: Vec<pt::Statement>) -> Vec<ast::Statement> {
     statements
 }
 
+pub fn to_ast_function(ptf: pt::Function) -> ast::Function {
+    let ast_params = ptf
+        .params
+        .into_iter()
+        .map(|(name, typ)| (id!(name), typ))
+        .collect();
+
+    ast::Function {
+        name: id!(ptf.name),
+        body: to_ast_statements(ptf.statements),
+        params: ast_params,
+        return_type: ptf.return_type,
+        types: TypeEnv::new(),
+    }
+}
+
 pub fn to_ast(ptm: pt::Module) -> ast::Program {
     ast::Program {
-        functions: vec![ast::Function {
-            name: id!(LABEL_MAIN),
-            body: to_ast_statements(ptm.statements),
-            types: TypeEnv::new(),
-            params: IndexMap::new(),
-            return_type: ValueType::IntType,
-        }],
+        functions: ptm.functions.into_iter().map(to_ast_function).collect(),
         function_types: TypeEnv::new(),
     }
 }

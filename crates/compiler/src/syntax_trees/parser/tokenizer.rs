@@ -32,7 +32,13 @@ pub enum Token<'a> {
     Is,
     OpenBracket,
     CloseBracket,
-    Asterisk
+    Asterisk,
+    Fn,
+    IntType,
+    BoolType,
+    TupleType,
+    RightArrow,
+    Return,
 }
 
 parser! {
@@ -52,6 +58,19 @@ parser! {
         rule _true() -> Token<'input> = "true" &__ { Token::Bool(true) }
         rule _false() -> Token<'input> = "false" &__ { Token::Bool(false) }
         rule bool() -> Token<'input> = _true() / _false()
+
+        rule _if() -> Token<'input> = "if" &__ { Token::If }
+        rule _else() -> Token<'input> = "else" &__ { Token::Else }
+        rule _while() -> Token <'input> = "while" &__ { Token::While }
+        rule and_word() -> Token<'input> = "and"&__ { Token::And }
+        rule or_word() -> Token<'input> = "or" &__ { Token::Or }
+        rule not_word() -> Token<'input> = "not" &__ { Token::Not }
+        rule is() -> Token<'input> = "is" &__ { Token::Is }
+        rule _fn() -> Token<'input> = "fn" &__ { Token::Fn }
+        rule int_type() -> Token<'input> = "int" &__ { Token::IntType }
+        rule bool_type() -> Token<'input> = "bool" &__ { Token::BoolType }
+        rule tuple_type() -> Token<'input> = "tuple" &__ { Token::TupleType }
+        rule _return() -> Token<'input> = "return" &__ { Token::Return }
 
         rule double_equals() -> Token<'input> = "==" { Token::DoubleEquals }
         rule not_equals() -> Token<'input> = "!=" { Token::NotEquals }
@@ -75,28 +94,21 @@ parser! {
         rule close_bracket() -> Token<'input> = "]" { Token::CloseBracket }
         rule question_mark() -> Token<'input> = "?" { Token::QuestionMark }
         rule colon() -> Token<'input> = ":" { Token::Colon }
-        rule is() -> Token<'input> = "is" { Token::Is }
         rule asterisk() -> Token<'input> = "*" { Token::Asterisk }
-
-        rule _if() -> Token<'input> = "if" { Token::If }
-        rule _else() -> Token<'input> = "else" { Token::Else }
-        rule _while() -> Token <'input> = "while" { Token::While }
-
-        rule and_word() -> Token<'input> = "and" &__ { Token::And }
-        rule or_word() -> Token<'input> = "or" &__ { Token::Or }
-        rule not_word() -> Token<'input> = "not" &__ { Token::Not }
+        rule right_arrow() -> Token<'input> = "->" { Token::RightArrow }
 
         /// A word token requires trailing whitespace/EOF/puncutation
         rule word_token() -> Token<'input>
             = t:(bool() / and_word() / or_word() / not_word() /_if() /
-                 _else() / _while() / is() / int() / identifier()) &__ {t}
+                 _else() / _while() / is() / int() / _fn() / int_type() /
+                 bool_type() / tuple_type() / _return() / identifier()) &__ {t}
 
         /// A punctuation token does not require trailing whitespace
         rule punctuation_token() -> Token<'input>
-            = double_equals() / not_equals() / greater_equals() / less_equals() /
-              greater() / less() / and_sym() / or_sym() / not_sym() / open_paren() /
-              close_paren() / equals() / plus() / minus() / comma() / newline() /
-              open_curly() / close_curly() / open_bracket() / close_bracket() /
+            = right_arrow() / double_equals() / not_equals() / greater_equals() /
+              less_equals() / greater() / less() / and_sym() / or_sym() / not_sym() /
+              open_paren() / close_paren() / equals() / plus() / minus() / comma() /
+              newline() / open_curly() / close_curly() / open_bracket() / close_bracket() /
               question_mark() / colon() / asterisk()
 
         rule token() -> Token<'input> = word_token() / punctuation_token()

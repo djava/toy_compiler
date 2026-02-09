@@ -1,3 +1,5 @@
+use crate::syntax_trees::ValueType;
+
 use super::{ParserError, tokenizer::*};
 use peg::*;
 
@@ -41,11 +43,20 @@ pub enum Statement<'a> {
     ElseIf(Expr<'a>, Vec<Statement<'a>>),
     Else(Vec<Statement<'a>>),
     While(Expr<'a>, Vec<Statement<'a>>),
+    Return(Option<Expr<'a>>)
 }
 
 #[derive(Debug, Clone, PartialEq)]
-pub struct Module<'t> {
-    pub statements: Vec<Statement<'t>>,
+pub struct Function<'a> {
+    pub name: &'a str,
+    pub params: Vec<(&'a str, ValueType)>,
+    pub return_type: ValueType,
+    pub statements: Vec<Statement<'a>>,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct Module<'a> {
+    pub functions: Vec<Function<'a>>
 }
 
 parser! {
@@ -78,6 +89,16 @@ parser! {
                     _ => unreachable!()
                 }
             }
+        
+        rule int_type() -> ValueType = [Token::IntType] { ValueType::IntType }
+        rule bool_type() -> ValueType = [Token::BoolType] { ValueType::BoolType }
+        rule primitive_type() -> ValueType = int_type() / bool_type()
+
+        rule tuple_type() -> ValueType =
+            [Token::TupleType] [Token::Less] types:((primitive_type() / tuple_type()) ++ [Token::Comma]) [Token::Greater] 
+            { ValueType::TupleType(types) }
+
+        rule _type() -> ValueType = tuple_type() / primitive_type()
 
         // Trailing comma is mandatory for one elem but optional for multiple
         rule tuple_elements() -> Vec<Expr<'t>> =
@@ -144,29 +165,39 @@ parser! {
         /// An if-chain: if { } [else if { }]* [else { }]?
         /// No newlines required between parts
         pub rule if_chain() -> Vec<Statement<'t>> =
-        head:if_statement() rest:([Token::Newline]* s:(else_if_statement() / else_statement()) { s })* {
+            head:if_statement() rest:([Token::Newline]* s:(else_if_statement() / else_statement()) { s })* {
             let mut v = vec![head];
-            v.extend(rest);
-            v
-        }
+                v.extend(rest);
+                v
+            }
 
         pub rule while_statement() -> Statement<'t> =
-            [ Token::While ] cond:expr() body:statement_body() {
-                Statement::While(cond, body)
-            }
+            [ Token::While ] cond:expr() body:statement_body() { Statement::While(cond, body) }
+        
+        pub rule return_statement() -> Statement<'t> =
+            [ Token::Return ] val:expr()? { Statement::Return(val) }
 
         /// Simple statements (not if-chains)
         pub rule simple_statement() -> Statement<'t> =
-            assign() / subscript_assign() / (e:expr() { Statement::Expr(e) }) / while_statement()
+            assign() / subscript_assign() / return_statement() /
+            (e:expr() { Statement::Expr(e) }) / while_statement()
 
-        /// For use inside statement bodies
-        pub rule statement() -> Statement<'t> =
-            if_statement() / else_if_statement() / else_statement() / simple_statement()
+        /// A param is a name with a type specifier
+        pub rule param() -> (&'t str, ValueType) =
+            [Token::Identifier(name)] [Token::Colon] t:_type() { (name, t) }
+
+        pub rule param_list() -> Vec<(&'t str, ValueType)> =
+            [Token::OpenParen] params:(param() ** [Token::Comma]) [Token::CloseParen] { params }
+
+        pub rule return_type() -> ValueType =
+            [Token::RightArrow] t:_type() { t }
+
+        pub rule function() -> Function<'t> = 
+            [Token::Fn] [Token::Identifier(name)] params:param_list() ret:(return_type()?) body:statement_body()
+                { Function { name, params, return_type: ret.unwrap_or(ValueType::NoneType), statements: body } }
 
         pub rule module() -> Module<'t> =
-            ss:(if_chain() / (s:simple_statement() { vec![s] })) ** ([Token::Newline]+) eof() {
-                Module { statements: ss.into_iter().flatten().collect() }
-            }
+            functions:(function() ** ([Token::Newline]+)) eof() { Module { functions } }
     }
 }
 
