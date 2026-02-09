@@ -27,6 +27,7 @@ pub enum Statement {
     Return(Atom),
     Goto(Identifier),
     If(Expr, Identifier, Identifier),
+    TailCall(Identifier, Vec<Atom>),
 }
 
 #[derive(Debug, Clone)]

@@ -68,7 +68,8 @@ fn translate_statement(s: ir::Statement) -> Vec<Instr> {
         ir::Statement::Goto(label) => vec![Instr::jmp(label)],
         ir::Statement::If(cond, pos_label, neg_label) => {
             translate_conditional(cond, pos_label, neg_label)
-        }
+        },
+        ir::Statement::TailCall(_func_name, _args) => todo!()
     }
 }
 

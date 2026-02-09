@@ -93,7 +93,52 @@ fn generate_for_statement(
 
             vec![ir::Statement::Goto(cond_label)]
         }
-        ast::Statement::Return(_expr) => todo!(),
+        ast::Statement::Return(expr) => generate_for_tail(expr, blocks),
+    }
+}
+
+fn generate_for_tail(e: &ast::Expr, blocks: &mut BlockMap) -> Vec<ir::Statement> {
+    match e {
+        ast::Expr::Ternary(cond, pos, neg) => {
+            let ret_id = Identifier::new_ephemeral();
+
+            let pos_ir = generate_for_assign(
+                pos,
+                AssignDest::Id(ret_id.clone()),
+                vec![ir::Statement::Return(ir::Atom::Variable(ret_id.clone()))],
+                blocks,
+            );
+            let neg_ir = generate_for_assign(
+                neg,
+                AssignDest::Id(ret_id.clone()),
+                vec![ir::Statement::Return(ir::Atom::Variable(ret_id))],
+                blocks,
+            );
+
+            let pos_label = new_block(pos_ir, blocks);
+            let neg_label = new_block(neg_ir, blocks);
+            generate_for_predicate(&*cond, pos_label, neg_label, blocks)
+        }
+
+        ast::Expr::StatementBlock(statements, expr) => {
+            let mut ret = vec![];
+            for s in statements.iter().rev() {
+                ret = generate_for_statement(s, ret, blocks);
+            }
+            ret.push(ir::Statement::Return(expr_to_atom(expr)));
+            ret
+        }
+
+        ast::Expr::Call(name, args) => {
+            vec![ir::Statement::TailCall(
+                name.clone(),
+                args.iter().map(expr_to_atom).collect(),
+            )]
+        }
+
+        _ => {
+            vec![ir::Statement::Return(expr_to_atom(e))]
+        }
     }
 }
 
@@ -362,15 +407,15 @@ fn new_block(statements: Vec<ir::Statement>, blocks: &mut BlockMap) -> Identifie
 mod tests {
     use std::collections::VecDeque;
 
-    use indexmap::IndexMap;
     use crate::utils::t_id;
+    use indexmap::IndexMap;
     use test_support::{
         ast_const_int, ast_print_int, ast_read_int,
         compiler::{
             constants::LABEL_MAIN,
             passes::{
-                ASTPass, ASTtoIRPass, ShortCircuiting, TranslateASTtoIR, TypeCheck,
-                RemoveComplexOperands,
+                ASTPass, ASTtoIRPass, RemoveComplexOperands, ShortCircuiting, TranslateASTtoIR,
+                TypeCheck,
             },
             syntax_trees::{ast::*, shared::*},
         },

@@ -113,6 +113,15 @@ fn interpret_statement(
                 Continuation::Jump(neg_label.clone())
             }
         }
+        Statement::TailCall(name, args) => {
+            let ret_val = interpret_expr(
+                &Expr::Call(name.clone(), args.clone()),
+                inputs,
+                outputs,
+                env,
+            );
+            Continuation::Return(ret_val)
+        }
     }
 }
 
