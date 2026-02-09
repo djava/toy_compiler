@@ -1,6 +1,5 @@
 use std::collections::HashMap;
-use std::sync::Arc;
-use std::sync::atomic::{AtomicU64, Ordering};
+use std::sync::{Arc, Mutex};
 use bitfield_struct::bitfield;
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
@@ -11,11 +10,16 @@ pub enum Identifier {
 
 impl Identifier {
     pub fn new_ephemeral() -> Identifier {
-        static COUNTER: AtomicU64 = AtomicU64::new(0);
+        static COUNTER: Mutex<u64> = Mutex::new(0);
         
-        let current_counter = COUNTER.load(Ordering::Relaxed);
-        COUNTER.store(current_counter + 1, Ordering::Relaxed);
-        Identifier::Ephemeral(current_counter)
+        let id = {
+            let mut c = COUNTER.lock().unwrap();
+            let id = *c;
+            *c += 1;
+            id
+        };
+
+        Identifier::Ephemeral(id)
     }
 }
 
