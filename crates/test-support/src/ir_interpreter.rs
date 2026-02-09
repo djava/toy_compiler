@@ -51,7 +51,7 @@ fn interpret_expr(
             op.try_eval(&l_val, &r_val).unwrap()
         }
         Expr::Call(func_name, args) => {
-            if func_name == &id!("print_int") {
+            if func_name == &Atom::Variable(id!("print_int")) {
                 if args.len() != 1 {
                     panic!("Wrong number of arguments to print_int()");
                 }
@@ -63,7 +63,7 @@ fn interpret_expr(
                 }
 
                 Value::None
-            } else if func_name == &id!("read_int") {
+            } else if func_name == &Atom::Variable(id!("read_int")) {
                 if args.len() != 0 {
                     panic!("Wrong number of args to read_int()");
                 }
@@ -74,7 +74,7 @@ fn interpret_expr(
                     panic!("Overflowed inputs");
                 }
             } else {
-                if let Some(func) = func_env.iter().find(|f| f.name == *func_name) {
+                if let Some(func) = func_env.iter().find(|f| Atom::Variable(f.name.clone()) == *func_name) {
                     let arg_vals = args.iter().map(|a| interpret_atom(a, val_env)).collect();
                     return interpret_func(func, arg_vals, inputs, outputs, func_env)
                 } else {
@@ -122,7 +122,7 @@ fn interpret_statement(
         }
         Statement::TailCall(name, args) => {
             let ret_val = interpret_expr(
-                &Expr::Call(name.clone(), args.clone()),
+                &Expr::Call(Atom::Variable(name.clone()), args.clone()),
                 inputs,
                 outputs,
                 val_env,

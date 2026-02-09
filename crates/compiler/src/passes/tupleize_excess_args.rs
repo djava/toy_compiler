@@ -43,7 +43,7 @@ impl ASTPass for TupleizeExcessArgs {
                 f.params = new_params;
 
                 // Update function_types map for the new type
-                if let ValueType::FunctionType(old_args_types) = &m.function_types[&f.name] {
+                if let ValueType::FunctionType(old_args_types, ret_type) = &m.function_types[&f.name] {
                     let mut new_args_types: Vec<_> = old_args_types
                         .iter()
                         .take(MAX_REGISTER_ARGS - 1)
@@ -58,7 +58,7 @@ impl ASTPass for TupleizeExcessArgs {
                     new_args_types.push(ValueType::TupleType(excess_args_types));
 
                     m.function_types
-                        .insert(f.name.clone(), ValueType::FunctionType(new_args_types));
+                        .insert(f.name.clone(), ValueType::FunctionType(new_args_types, ret_type.clone()));
                 } else {
                     panic!("Couldn't find type-checker entry for {:?}", f.name);
                 }
@@ -396,7 +396,7 @@ mod tests {
                 }],
                 function_types: TypeEnv::from_iter([(
                     t_id!("a"),
-                    ValueType::FunctionType(vec![ValueType::IntType; 4]),
+                    ValueType::FunctionType(vec![ValueType::IntType; 4], Box::new(ValueType::NoneType)),
                 )]),
             },
         });
@@ -431,7 +431,7 @@ mod tests {
                 }],
                 function_types: TypeEnv::from_iter([(
                     t_id!("a"),
-                    ValueType::FunctionType(vec![ValueType::IntType; 7]),
+                    ValueType::FunctionType(vec![ValueType::IntType; 7], Box::new(ValueType::NoneType)),
                 )]),
             },
         });
@@ -486,7 +486,7 @@ mod tests {
                 }],
                 function_types: TypeEnv::from_iter([(
                     t_id!("a"),
-                    ValueType::FunctionType(vec![ValueType::IntType; 17]),
+                    ValueType::FunctionType(vec![ValueType::IntType; 17], Box::new(ValueType::NoneType)),
                 )]),
             },
         });
@@ -527,7 +527,7 @@ mod tests {
                 ],
                 function_types: TypeEnv::from_iter([(
                     t_id!("a"),
-                    ValueType::FunctionType(vec![ValueType::IntType; 4]),
+                    ValueType::FunctionType(vec![ValueType::IntType; 4], Box::new(ValueType::NoneType)),
                 )]),
             },
         });
@@ -594,7 +594,7 @@ mod tests {
                 ],
                 function_types: TypeEnv::from_iter([(
                     t_id!("a"),
-                    ValueType::FunctionType(vec![ValueType::IntType; 17]),
+                    ValueType::FunctionType(vec![ValueType::IntType; 17], Box::new(ValueType::NoneType)),
                 )]),
             },
         });

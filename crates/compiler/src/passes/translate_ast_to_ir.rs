@@ -27,17 +27,17 @@ impl ASTtoIRPass for TranslateASTtoIR {
 
             blocks.insert(entry_id.clone(), main_body);
 
-            // TODO: support return statements
             let exit_block = ir::Block {
-                statements: vec![ir::Statement::Return(ir::Atom::Constant(Value::I64(0)))],
+                statements: vec![],
             };
-            blocks.insert(exit_id, exit_block);
+            blocks.insert(exit_id.clone(), exit_block);
 
             ir_functions.push(ir::Function {
                 name: f.name,
                 params: f.params,
                 blocks,
                 entry_block: entry_id,
+                exit_block: exit_id,
                 types: f.types.clone(),
             })
         }
@@ -152,7 +152,7 @@ fn generate_for_effect(
     match e {
         ast::Expr::Call(identifier, exprs) => {
             let mut ret = vec![ir::Statement::Expr(ir::Expr::Call(
-                identifier.clone(),
+                ir::Atom::Variable(identifier.clone()),
                 exprs.iter().map(expr_to_atom).collect(),
             ))];
 
@@ -234,7 +234,7 @@ fn generate_for_assign(
 
             let mut ret = vec![ir::Statement::Assign(
                 dest,
-                ir::Expr::Call(func.clone(), args),
+                ir::Expr::Call(ir::Atom::Variable(func.clone()), args),
             )];
             ret.extend(cont);
             ret
@@ -351,7 +351,10 @@ fn generate_for_predicate(
         }
         ast::Expr::Call(func_name, args) => {
             vec![ir::Statement::If(
-                ir::Expr::Call(func_name.clone(), args.iter().map(expr_to_atom).collect()),
+                ir::Expr::Call(
+                    ir::Atom::Variable(func_name.clone()),
+                    args.iter().map(expr_to_atom).collect(),
+                ),
                 pos_label,
                 neg_label,
             )]

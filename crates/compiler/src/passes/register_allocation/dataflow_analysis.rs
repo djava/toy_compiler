@@ -105,6 +105,12 @@ impl LivenessMap {
         //
         // Returns alive_AFTER for each instruction (needed for interference graph)
         // alive_after(instr_i) = alive_before(instr_i+1) = alive_before(block) for first instr
+        
+        if instrs.is_empty() {
+            // No instrs to fill the vec with, but the same locations
+            // are alive before this block as are alive after it
+            return (vec![], alive_after_block);
+        }
 
         let mut alive_befores_and_after: Vec<_> = instrs
             .iter()
@@ -193,24 +199,24 @@ impl LivenessMap {
             }
         }
 
-        let callee_saved_graph_nodes: Vec<_> = graph
+        let tup_interference_graph_nodes: Vec<_> = graph
             .node_indices()
             .filter(|idx| {
                 let loc = graph.node_weight(*idx).unwrap();
-                matches!(loc, Location::Reg(r) if CALLEE_SAVED_REGISTERS.contains(&r))
+                matches!(loc, Location::Reg(r) if CALLEE_SAVED_REGISTERS.contains(&r) || CALLER_SAVED_REGISTERS.contains(&r))
             })
             .collect();
 
         // All tuple-typed locations need to have interference edges
-        // with all callee-saved registers - this will guarantee that
-        // they are spilled during any call to collect() so that they
-        // are visible to the GC.
+        // with all callee- and caller- saved registers - this will
+        // guarantee that they are spilled during any call to collect()
+        // so that they are visible to the GC.
         for node_idx in graph.node_indices() {
             let loc = graph.node_weight(node_idx).unwrap();
             if let Location::Id(id) = loc
                 && let Some(ValueType::TupleType(_)) = types.get(id)
             {
-                for r in &callee_saved_graph_nodes {
+                for r in &tup_interference_graph_nodes {
                     graph.add_edge(*r, node_idx, ());
                 }
             }
@@ -236,7 +242,7 @@ fn locs_read(i: &Instr) -> Vec<Location> {
                 .filter_map(Location::try_from_arg)
                 .collect();
         }
-        Instr::negq(r) | Instr::movq(r, _) | Instr::pushq(r) => {
+        Instr::negq(r) | Instr::movq(r, _) | Instr::pushq(r) | Instr::leaq(r, _) => {
             if let Some(loc) = Location::try_from_arg(r) {
                 locations.push(loc);
             }
@@ -249,6 +255,22 @@ fn locs_read(i: &Instr) -> Vec<Location> {
         Instr::callq(_, num_args) => {
             if *num_args >= MAX_REGISTER_ARGS as u16 {
                 unimplemented!("Spilling args onto stack not implemented");
+            }
+
+            locations.extend(
+                CALL_ARG_REGISTERS
+                    .iter()
+                    .take(*num_args as _)
+                    .map(|r| Location::Reg(*r)),
+            );
+        }
+        Instr::callq_ind(func, num_args) => {
+            if *num_args >= MAX_REGISTER_ARGS as u16 {
+                unimplemented!("Spilling args onto stack not implemented");
+            }
+
+            if let Some(loc) = Location::try_from_arg(func) {
+                locations.push(loc);
             }
 
             locations.extend(
@@ -277,7 +299,8 @@ fn locs_written(i: &Instr) -> Vec<Location> {
         | Instr::xorq(_, r)
         | Instr::andq(_, r)
         | Instr::sarq(_, r)
-        | Instr::salq(_, r) => {
+        | Instr::salq(_, r)
+        | Instr::leaq(_, r) => {
             if let Some(loc) = Location::try_from_arg(r) {
                 locations.push(loc);
             }
@@ -288,18 +311,6 @@ fn locs_written(i: &Instr) -> Vec<Location> {
             }
         }
         Instr::callq(func_id, _) => {
-            const CALLER_SAVED_REGISTERS: [Register; 9] = [
-                Register::rax,
-                Register::rcx,
-                Register::rdx,
-                Register::rsi,
-                Register::rdi,
-                Register::r8,
-                Register::r9,
-                Register::r10,
-                Register::r11,
-            ];
-
             locations.extend(CALLER_SAVED_REGISTERS.iter().map(|r| Location::Reg(*r)));
 
             // Consider r15 to be written by a call to __gc_collect()
@@ -309,6 +320,9 @@ fn locs_written(i: &Instr) -> Vec<Location> {
             {
                 locations.push(Location::Reg(Register::r15));
             }
+        }
+        Instr::callq_ind(_, _) => {
+            locations.extend(CALLER_SAVED_REGISTERS.iter().map(|r| Location::Reg(*r)));
         }
         Instr::pushq(_) | Instr::retq | Instr::cmpq(_, _) | Instr::jmp(_) | Instr::jmpcc(_, _) => {}
     };

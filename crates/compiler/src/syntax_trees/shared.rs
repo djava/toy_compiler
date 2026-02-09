@@ -34,7 +34,7 @@ pub type TypeEnv = HashMap<Identifier, ValueType>;
 #[derive(Debug, Clone, PartialEq)]
 pub enum ValueType {
     IntType,
-    FunctionType(Vec<ValueType>),
+    FunctionType(Vec<ValueType>, Box<ValueType>),
     BoolType,
     TupleType(Vec<ValueType>),
     PointerType(Box<ValueType>),

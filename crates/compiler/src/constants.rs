@@ -9,8 +9,10 @@ pub const LABEL_EXIT: &str = "exit";
 // GC runtime symbols
 pub const GC_COLLECT: &str = "__gc_collect";
 pub const GC_FREE_PTR: &str = "__gc_free_ptr";
+pub const GC_FROMSPACE_BEGIN: &str = "__gc_fromspace_begin";
 pub const GC_FROMSPACE_END: &str = "__gc_fromspace_end";
 pub const GC_ROOTSTACK_BEGIN: &str = "__gc_rootstack_begin";
+pub const GC_ROOTSTACK_END: &str = "__gc_rootstack_end";
 pub const GC_INITIALIZE: &str = "__gc_initialize";
 
 // Built-in function names
@@ -77,3 +79,7 @@ pub const CALL_ARG_REGISTERS: [Register; MAX_REGISTER_ARGS] = [
     Register::r8,
     Register::r9,
 ];
+
+// As per the calling convention, functions will return values through
+// this register
+pub const CALL_RETURN_REGISTER: Register = Register::rax;

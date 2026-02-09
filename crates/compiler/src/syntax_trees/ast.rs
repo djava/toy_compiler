@@ -1,5 +1,3 @@
-use std::sync::Arc;
-
 use indexmap::IndexMap;
 
 use super::shared::*;
@@ -16,7 +14,7 @@ pub enum Expr {
     Tuple(Vec<Expr>),
     Subscript(Box<Expr>, i64),
     Allocate(usize, ValueType),
-    GlobalSymbol(Arc<str>)
+    GlobalSymbol(Identifier)
 }
 
 #[derive(Debug, Clone, PartialEq)]

@@ -1,5 +1,3 @@
-use std::sync::Arc;
-
 use crate::{constants::*, passes::ASTPass, syntax_trees::{ast::*, shared::*}, utils::id};
 
 pub struct InjectAllocations;
@@ -87,8 +85,8 @@ fn replace_tuples_in_expr(expr: &mut Expr, type_env: &mut TypeEnv) {
 }
 
 fn get_initialize_tuple_expr(elems: &mut Vec<Expr>, tup_type: ValueType) -> Expr {
-    let free_ptr = Expr::GlobalSymbol(Arc::from(GC_FREE_PTR));
-    let fromspace_end = Expr::GlobalSymbol(Arc::from(GC_FROMSPACE_END));
+    let free_ptr = Expr::GlobalSymbol(id!(GC_FREE_PTR));
+    let fromspace_end = Expr::GlobalSymbol(id!(GC_FROMSPACE_END));
     let collect = |n| {
         Expr::Call(
             id!(GC_COLLECT),

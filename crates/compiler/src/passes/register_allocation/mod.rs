@@ -122,11 +122,16 @@ fn run_for_block(
             | Instr::cmpq(s, d)
             | Instr::andq(s, d)
             | Instr::sarq(s, d)
-            | Instr::salq(s, d) => {
+            | Instr::salq(s, d)
+            | Instr::leaq(s, d) => {
                 replace_arg_with_allocated(s, id_to_storage, stack_offset);
                 replace_arg_with_allocated(d, id_to_storage, stack_offset);
             }
-            Instr::negq(a) | Instr::pushq(a) | Instr::popq(a) | Instr::movzbq(_, a) => {
+            Instr::negq(a)
+            | Instr::pushq(a)
+            | Instr::popq(a)
+            | Instr::movzbq(_, a)
+            | Instr::callq_ind(a, _) => {
                 replace_arg_with_allocated(a, id_to_storage, stack_offset);
             }
             Instr::callq(_, _)
@@ -164,15 +169,14 @@ fn allocate_storage<'a>(liveness: &'a LivenessMap, types: &TypeEnv) -> AllocateS
                 // the register colors because we prefill the map with
                 // register colors. Allocate it a new stack storage (or
                 // GC stack storage if its a tuple)
-                let s =
-                    if let Some(ValueType::TupleType(_)) = types.get(id) {
-                        let stg = Storage::GCStack(curr_gc_stack_offset);
-                        curr_gc_stack_offset += WORD_SIZE as i32;
-                        stg
-                    } else {
-                        curr_stack_offset -= WORD_SIZE as i32;
-                        Storage::Stack(curr_stack_offset)
-                    };
+                let s = if let Some(ValueType::TupleType(_)) = types.get(id) {
+                    let stg = Storage::GCStack(curr_gc_stack_offset);
+                    curr_gc_stack_offset += WORD_SIZE as i32;
+                    stg
+                } else {
+                    curr_stack_offset -= WORD_SIZE as i32;
+                    Storage::Stack(curr_stack_offset)
+                };
 
                 color_to_storage.insert(*color, s);
                 s
@@ -227,8 +231,8 @@ fn replace_arg_with_allocated(
 mod tests {
     use std::collections::VecDeque;
 
-    use indexmap::IndexMap;
     use crate::utils::t_id;
+    use indexmap::IndexMap;
     use test_support::{
         compiler::{
             constants::LABEL_MAIN,
@@ -265,7 +269,14 @@ mod tests {
         println!("-- AST after RegAlloc:\n{after_ast}");
 
         // Ensure that all the variable arguments have been removed
-        for i in after_ast.functions.iter().map(|f| &f.blocks).flatten().map(|x| &x.instrs).flatten() {
+        for i in after_ast
+            .functions
+            .iter()
+            .map(|f| &f.blocks)
+            .flatten()
+            .map(|x| &x.instrs)
+            .flatten()
+        {
             use x86::{Arg, Instr};
             match i {
                 Instr::addq(s, d) | Instr::subq(s, d) | Instr::movq(s, d) | Instr::imulq(s, d) => {

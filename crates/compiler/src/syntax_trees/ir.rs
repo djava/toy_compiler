@@ -1,13 +1,11 @@
-use std::sync::Arc;
-
 use super::shared::*;
 use indexmap::IndexMap;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum Atom {
     Constant(Value),
     Variable(Identifier),
-    GlobalSymbol(Arc<str>)
+    GlobalSymbol(Identifier)
 }
 
 #[derive(Debug, Clone)]
@@ -15,7 +13,7 @@ pub enum Expr {
     Atom(Atom),
     UnaryOp(UnaryOperator, Atom),
     BinaryOp(Atom, BinaryOperator, Atom),
-    Call(Identifier, Vec<Atom>),
+    Call(Atom, Vec<Atom>),
     Allocate(usize, ValueType),
     Subscript(Atom, i64)
 }
@@ -43,6 +41,7 @@ pub struct Function {
     pub params: IndexMap<Identifier, ValueType>,
     pub blocks: BlockMap,
     pub entry_block: Identifier,
+    pub exit_block: Identifier,
     pub types: TypeEnv,
 }
 

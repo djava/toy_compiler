@@ -1,4 +1,4 @@
-use std::sync::Arc;
+use indexmap::IndexMap;
 
 use crate::{
     constants::*,
@@ -7,7 +7,8 @@ use crate::{
         ir,
         shared::*,
         x86::{self, Instr, Register, X86Program},
-    }, utils::id,
+    },
+    utils::id,
 };
 
 pub struct TranslateIRtoX86;
@@ -17,29 +18,48 @@ impl IRtoX86Pass for TranslateIRtoX86 {
         let mut x86_functions = vec![];
         for f in m.functions {
             let mut x86_blocks = vec![];
+
+            let entry_block = if f.params.is_empty() {
+                f.entry_block
+            } else {
+                let block = translate_arg_passing(f.params, f.entry_block);
+                let label = block.label.clone();
+                x86_blocks.push(block);
+
+                if let x86::Directive::Label(name) = label {
+                    name
+                } else {
+                    unreachable!()
+                }
+            };
+
             for (id, block) in f.blocks {
-                x86_blocks.push(translate_block(id, block));
+                x86_blocks.push(translate_block(id, block, &f.exit_block));
             }
-    
+
             x86_functions.push(x86::Function {
                 name: f.name,
                 blocks: x86_blocks,
-                entry_block: f.entry_block,
+                entry_block,
+                exit_block: f.exit_block,
                 stack_size: 0,
                 gc_stack_size: 0,
                 types: f.types,
-                callee_saved_used: vec![]
+                callee_saved_used: vec![],
             });
         }
-        X86Program { header: vec![], functions: x86_functions }
+        X86Program {
+            header: vec![],
+            functions: x86_functions,
+        }
     }
 }
 
-fn translate_block(label: Identifier, b: ir::Block) -> x86::Block {
+fn translate_block(label: Identifier, b: ir::Block, exit_block: &Identifier) -> x86::Block {
     let mut instrs = vec![];
 
     for s in b.statements {
-        instrs.extend(translate_statement(s));
+        instrs.extend(translate_statement(s, exit_block));
     }
 
     x86::Block {
@@ -48,7 +68,7 @@ fn translate_block(label: Identifier, b: ir::Block) -> x86::Block {
     }
 }
 
-fn translate_statement(s: ir::Statement) -> Vec<Instr> {
+fn translate_statement(s: ir::Statement, exit_block: &Identifier) -> Vec<Instr> {
     match s {
         ir::Statement::Expr(expr) => {
             match expr {
@@ -63,13 +83,13 @@ fn translate_statement(s: ir::Statement) -> Vec<Instr> {
         ir::Statement::Assign(dest_id, expr) => translate_assign(dest_id, expr),
         ir::Statement::Return(atom) => vec![
             Instr::movq(atom_to_arg(atom), x86::Arg::Reg(Register::rax)),
-            Instr::retq,
+            Instr::jmp(exit_block.clone()),
         ],
         ir::Statement::Goto(label) => vec![Instr::jmp(label)],
         ir::Statement::If(cond, pos_label, neg_label) => {
             translate_conditional(cond, pos_label, neg_label)
-        },
-        ir::Statement::TailCall(_func_name, _args) => todo!()
+        }
+        ir::Statement::TailCall(_func_name, _args) => todo!(),
     }
 }
 
@@ -133,12 +153,12 @@ fn translate_allocation(dest: AssignDest, bytes: usize, value_type: ValueType) -
     // Bump allocator pointer, write tag. pointer is in r11
     let mut ret = vec![
         Instr::movq(
-            x86::Arg::Global(Arc::from(GC_FREE_PTR)),
+            x86::Arg::Global(id!(GC_FREE_PTR)),
             x86::Arg::Reg(Register::r11),
         ),
         Instr::addq(
             x86::Arg::Immediate(bytes as i64),
-            x86::Arg::Global(Arc::from(GC_FREE_PTR)),
+            x86::Arg::Global(id!(GC_FREE_PTR)),
         ),
         Instr::movq(x86::Arg::Immediate(tag), x86::Arg::Deref(Register::r11, 0)),
     ];
@@ -151,7 +171,10 @@ fn translate_allocation(dest: AssignDest, bytes: usize, value_type: ValueType) -
             ),
             Instr::movq(
                 x86::Arg::Reg(x86::Register::r11),
-                x86::Arg::Deref(Register::rax, (WORD_SIZE + (idx * WORD_SIZE)).try_into().unwrap()),
+                x86::Arg::Deref(
+                    Register::rax,
+                    (WORD_SIZE + (idx * WORD_SIZE)).try_into().unwrap(),
+                ),
             ),
         ]);
     } else {
@@ -342,7 +365,6 @@ fn translate_subtract(dest: AssignDest, left: ir::Atom, right: ir::Atom) -> Vec<
     ret
 }
 
-
 fn translate_multiply(dest: AssignDest, left: ir::Atom, right: ir::Atom) -> Vec<Instr> {
     let mut ret = vec![];
     if let AssignDest::Subscript(id, _idx) = &dest {
@@ -474,8 +496,14 @@ const SPECIAL_FUNCTIONS: [(
                     x86::Arg::Reg(Register::rax),
                 ),
                 // Shift and mask out the length field of the tuple tag
-                Instr::sarq(x86::Arg::Immediate(TUPLE_LENGTH_TAG_SHIFT), x86::Arg::Reg(Register::rax)),
-                Instr::andq(x86::Arg::Immediate(TUPLE_LENGTH_TAG_MASK), x86::Arg::Reg(Register::rax)),
+                Instr::sarq(
+                    x86::Arg::Immediate(TUPLE_LENGTH_TAG_SHIFT),
+                    x86::Arg::Reg(Register::rax),
+                ),
+                Instr::andq(
+                    x86::Arg::Immediate(TUPLE_LENGTH_TAG_MASK),
+                    x86::Arg::Reg(Register::rax),
+                ),
                 Instr::movq(x86::Arg::Reg(Register::rax), assigndest_to_arg(dest)),
             ]
         } else {
@@ -485,17 +513,13 @@ const SPECIAL_FUNCTIONS: [(
     }),
 ];
 
-fn translate_call(
-    dest_opt: Option<AssignDest>,
-    func_id: Identifier,
-    args: Vec<ir::Atom>,
-) -> Vec<Instr> {
+fn translate_call(dest_opt: Option<AssignDest>, func: ir::Atom, args: Vec<ir::Atom>) -> Vec<Instr> {
     if args.len() > MAX_REGISTER_ARGS {
         unimplemented!("Only register arg passing is implemented, max of {MAX_REGISTER_ARGS} args");
     }
 
     for (name, num_args, instr_fn) in SPECIAL_FUNCTIONS {
-        if func_id == id!(name) {
+        if func == ir::Atom::Variable(id!(name)) {
             if args.len() != num_args {
                 panic!(
                     "Wrong number of args to special function `{name}` (Expected {num_args}, Got {}",
@@ -506,27 +530,30 @@ fn translate_call(
         }
     }
 
-    // As per the calling convention, the first 6 args are passed in registers, in this order
-    const CALLING_CONV_ARG_PASSING_REG_MAP: [x86::Arg; 6] = [
-        x86::Arg::Reg(Register::rdi),
-        x86::Arg::Reg(Register::rsi),
-        x86::Arg::Reg(Register::rdx),
-        x86::Arg::Reg(Register::rcx),
-        x86::Arg::Reg(Register::r8),
-        x86::Arg::Reg(Register::r9),
-    ];
-    // As per the calling convention, the return value will be in this register
-    const CALLING_CONV_RETURN_REG: x86::Arg = x86::Arg::Reg(Register::rax);
-
     let mut instrs = vec![];
 
     let num_args = args.len();
     // Push the args to the correct registers
-    for (arg_expr, reg) in args.into_iter().zip(CALLING_CONV_ARG_PASSING_REG_MAP) {
-        instrs.push(Instr::movq(atom_to_arg(arg_expr), reg));
+    for (arg_expr, reg) in args.into_iter().zip(CALL_ARG_REGISTERS) {
+        instrs.push(Instr::movq(atom_to_arg(arg_expr), x86::Arg::Reg(reg)));
     }
 
-    instrs.push(Instr::callq(func_id.clone(), num_args as _));
+    match func {
+        ir::Atom::Variable(func_name) => {
+            let addr_var = Identifier::new_ephemeral();
+            instrs.push(Instr::leaq(
+                x86::Arg::Global(func_name),
+                x86::Arg::Variable(addr_var.clone()),
+            ));
+            instrs.push(Instr::callq_ind(x86::Arg::Variable(addr_var.clone()), num_args as u16));
+        }
+
+        ir::Atom::GlobalSymbol(name) => {
+            instrs.push(Instr::callq(name, num_args as _));
+        }
+
+        ir::Atom::Constant(_) => panic!("Tried to call a non-function value?"),
+    }
 
     if let Some(dest) = dest_opt {
         if let AssignDest::Subscript(id, _idx) = &dest {
@@ -537,7 +564,7 @@ fn translate_call(
         }
 
         instrs.push(Instr::movq(
-            CALLING_CONV_RETURN_REG,
+            x86::Arg::Reg(CALL_RETURN_REGISTER),
             assigndest_to_arg(dest),
         ));
     }
@@ -545,11 +572,32 @@ fn translate_call(
     instrs
 }
 
+fn translate_arg_passing(
+    args: IndexMap<Identifier, ValueType>,
+    old_entry_point: Identifier,
+) -> x86::Block {
+    if args.len() > MAX_REGISTER_ARGS {
+        panic!("Should have a max of {MAX_REGISTER_ARGS} - bug in tupleize_excess_args?");
+    }
+
+    let mut instrs = vec![];
+    for ((id, _), reg) in args.into_iter().zip(CALL_ARG_REGISTERS) {
+        instrs.push(Instr::movq(x86::Arg::Reg(reg), x86::Arg::Variable(id)))
+    }
+
+    instrs.push(Instr::jmp(old_entry_point));
+
+    x86::Block {
+        label: x86::Directive::Label(Identifier::new_ephemeral()),
+        instrs,
+    }
+}
+
 fn atom_to_arg(a: ir::Atom) -> x86::Arg {
     match a {
         ir::Atom::Constant(value) => x86::Arg::Immediate(value.into()),
         ir::Atom::Variable(id) => x86::Arg::Variable(id),
-        ir::Atom::GlobalSymbol(name) => x86::Arg::Global(name),
+        ir::Atom::GlobalSymbol(id) => x86::Arg::Global(id),
     }
 }
 
@@ -576,7 +624,10 @@ fn assigndest_to_arg(dest: AssignDest) -> x86::Arg {
         AssignDest::Subscript(_, offset) => {
             // Assumes that the id-ptr has already been moved into r11,
             // as is convention
-            x86::Arg::Deref(Register::r11, (WORD_SIZE + (offset * WORD_SIZE)).try_into().unwrap())
+            x86::Arg::Deref(
+                Register::r11,
+                (WORD_SIZE + (offset * WORD_SIZE)).try_into().unwrap(),
+            )
         }
     }
 }

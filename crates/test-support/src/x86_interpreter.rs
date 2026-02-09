@@ -3,7 +3,7 @@ use std::collections::VecDeque;
 use crate::{ValueEnv, interpreter_utils::id};
 
 use compiler::{
-    constants::LABEL_MAIN,
+    constants::{GC_FREE_PTR, GC_FROMSPACE_BEGIN, GC_FROMSPACE_END, GC_ROOTSTACK_BEGIN, GC_ROOTSTACK_END, LABEL_MAIN},
     syntax_trees::{shared::*, x86::*},
 };
 
@@ -15,6 +15,11 @@ struct Eflags {
     pub overflow: bool, // OF
 }
 
+const HEAP_OFFSET: usize = 0x10000;
+const FUNCTIONS_OFFSET: usize = 0x20000;
+
+const SPECIAL_FUNCTIONS: [&str; 4] = ["read_int", "print_int", "__gc_initialize", "__gc_collect"];
+
 #[derive(Debug)]
 struct X86Env {
     vars: ValueEnv,
@@ -23,17 +28,24 @@ struct X86Env {
     eflags: Eflags,
     heap: [u8; 2048],
     gc_free_ptr: i64,
+    functions: Vec<Identifier>,
+    special_function_offset: usize,
 }
 
 impl X86Env {
-    fn new() -> Self {
+    fn new(mut functions: Vec<Identifier>) -> Self {
+        let special_function_offset = functions.len();
+        functions.extend(SPECIAL_FUNCTIONS.map(|f| id!(f)));
+
         let mut ret = Self {
             vars: ValueEnv::new(),
             regs: [0; 16],
             stack: [0; 2048],
             eflags: Eflags::default(),
             heap: [0; 2048],
-            gc_free_ptr: 0x10000,
+            gc_free_ptr: HEAP_OFFSET as i64,
+            functions,
+            special_function_offset
         };
 
         ret.regs[Register::rsp as usize] = 2048;
@@ -65,12 +77,16 @@ impl X86Env {
                 let base = self.regs[*reg as usize];
                 let mut addr: usize = (base + (*offset as i64)).try_into().unwrap();
 
-                let memory = if addr & 0x10000 != 0 {
+                if (addr & FUNCTIONS_OFFSET) != 0 {
+                    panic!("Tried to write to function memory")
+                }
+
+                let memory = if addr & HEAP_OFFSET != 0 {
                     &mut self.heap
                 } else {
                     &mut self.stack
                 };
-                addr &= !0x10000;
+                addr &= !HEAP_OFFSET;
 
                 let bytes = value.to_le_bytes();
                 for (idx, byte) in bytes.iter().enumerate() {
@@ -105,7 +121,7 @@ impl X86Env {
             },
             Arg::Immediate(_) => panic!("Can't write to an intermediate"),
             Arg::Global(name) => {
-                if &**name == "__gc_free_ptr" {
+                if name == &id!(GC_FREE_PTR) {
                     self.gc_free_ptr = value;
                 }
                 // No other globals should matter in sim?
@@ -126,13 +142,13 @@ impl X86Env {
                 let mut addr: usize = (base + (*offset as i64)).try_into().unwrap();
 
                 let mut bytes = [0xFF; 8];
-                let memory = if addr & 0x10000 != 0 {
+                let memory = if addr & HEAP_OFFSET != 0 {
                     &self.heap
                 } else {
                     &self.stack
                 };
 
-                addr &= !0x10000;
+                addr &= !HEAP_OFFSET;
 
                 for (idx, byte) in bytes.iter_mut().enumerate() {
                     *byte = memory[addr + idx];
@@ -168,21 +184,25 @@ impl X86Env {
                 }
             },
             Arg::Global(name) => {
-                if &**name == "__gc_free_ptr" {
+                // I think its ok for these all to just be 0 - it'll
+                // trigger __gc_collect() every time but whatever
+                let zeroable_gc_vars = [
+                    id!(GC_FROMSPACE_BEGIN),
+                    id!(GC_FROMSPACE_END),
+                    id!(GC_FROMSPACE_BEGIN),
+                    id!(GC_FROMSPACE_END),
+                    id!(GC_ROOTSTACK_BEGIN),
+                    id!(GC_ROOTSTACK_END),
+                ];
+
+                if name == &id!("__gc_free_ptr") {
                     self.gc_free_ptr
-                } else if [
-                    "__gc_fromspace_begin",
-                    "__gc_fromspace_end",
-                    "__gc_rootstack_begin",
-                    "__gc_rootstack_end",
-                ]
-                .contains(&&**name)
-                {
-                    // I think its ok for them all to just be 0 - it'll
-                    // trigger __gc_collect() every time but whatever
+                } else if zeroable_gc_vars.contains(name) {
                     0
+                } else if let Some(func_idx) = self.functions.iter().position(|f| f == name) {
+                    (func_idx | FUNCTIONS_OFFSET) as i64
                 } else {
-                    unimplemented!("Unknown global symbol: `{name}`")
+                    unimplemented!("Unknown global symbol: `{name:?}`")
                 }
             }
         }
@@ -214,24 +234,31 @@ impl X86Env {
     }
 }
 
-fn execute_runtime_calls(
-    label: &Identifier,
+fn execute_special_functions(
+    idx: usize,
     inputs: &mut VecDeque<i64>,
     outputs: &mut VecDeque<i64>,
     env: &mut X86Env,
 ) -> bool {
-    if label == &id!("print_int") {
+    if idx < env.special_function_offset {
+        return false;
+    }
+
+    let arr_idx = idx - env.special_function_offset;
+    let label = SPECIAL_FUNCTIONS[arr_idx];
+
+    if label == "print_int" {
         let int = env.read_arg(&Arg::Reg(Register::rdi));
         outputs.push_back(int);
         return true;
-    } else if label == &id!("read_int") {
+    } else if label == "read_int" {
         let int = inputs.pop_front().expect("Overflowed input values");
         env.write_arg(&Arg::Reg(Register::rax), int);
         return true;
-    } else if label == &id!("__gc_initialize") {
+    } else if label == "__gc_initialize" {
         // Don't need to do anything in sim
         return true;
-    } else if label == &id!("__gc_collect") {
+    } else if label == "__gc_collect" {
         // Don't need to do anything in sim
         return true;
     } else {
@@ -243,6 +270,8 @@ fn execute_runtime_calls(
 enum Continuation {
     Next,
     Jump(Identifier),
+    Call(usize),
+    Return,
     Exit,
 }
 
@@ -290,12 +319,17 @@ fn run_instr(
             Continuation::Next
         }
         Instr::callq(label, _num_args) => {
-            if !execute_runtime_calls(label, inputs, outputs, env) {
-                unimplemented!("Function call not implemented: {label:?}");
+            if let Some(func_idx) = env.functions.iter().position(|f| f == label) {
+                if execute_special_functions(func_idx, inputs, outputs, env) {
+                    Continuation::Next
+                } else {
+                    Continuation::Call(func_idx)
+                }
+            } else {
+                panic!("Unknown function call to: `{label:?}`");
             }
-            Continuation::Next
         }
-        Instr::retq => Continuation::Exit,
+        Instr::retq => Continuation::Return,
         Instr::xorq(s, d) => {
             env.write_arg(d, env.read_arg(s) ^ env.read_arg(d));
             Continuation::Next
@@ -333,11 +367,28 @@ fn run_instr(
             env.write_arg(d, env.read_arg(d) & env.read_arg(s));
             Continuation::Next
         }
+        Instr::leaq(s, d) => {
+            env.write_arg(d, env.read_arg(s));
+            Continuation::Next
+        }
+        Instr::callq_ind(s, _) => {
+            let func = env.read_arg(s);
+            let func_idx = (func as usize) & !FUNCTIONS_OFFSET;
+            if execute_special_functions(func_idx, inputs, outputs, env) {
+                // If this is a special function, then
+                // execute_special_functions() will take care of
+                // everything including return value, so just `Next` it.
+                Continuation::Next
+            } else {
+                Continuation::Call(func_idx)
+            }
+        }
     }
 }
 
 pub fn interpret_x86(m: &X86Program, inputs: &mut VecDeque<i64>, outputs: &mut VecDeque<i64>) {
-    let mut env = X86Env::new();
+    let funcs = m.functions.iter().map(|f| f.name.clone()).collect();
+    let mut env = X86Env::new(funcs);
 
     let mut curr_func = m
         .functions
@@ -352,6 +403,7 @@ pub fn interpret_x86(m: &X86Program, inputs: &mut VecDeque<i64>, outputs: &mut V
         .unwrap()
         .instrs
         .iter();
+    let mut call_stack = VecDeque::new();
     loop {
         let curr_instr = curr_instr_iter
             .next()
@@ -380,6 +432,31 @@ pub fn interpret_x86(m: &X86Program, inputs: &mut VecDeque<i64>, outputs: &mut V
                         .iter();
                 } else {
                     panic!("")
+                }
+            }
+            Continuation::Call(dest_idx) => {
+                call_stack.push_back((curr_func, curr_instr_iter));
+                if let Some(new_func) = m.functions.get(dest_idx) {
+                    curr_func = new_func;
+                    curr_instr_iter = curr_func
+                        .blocks
+                        .iter()
+                        .find(|b| b.label == Directive::Label(curr_func.entry_block.clone()))
+                        .unwrap()
+                        .instrs
+                        .iter();
+                    println!("Calling to {:?}", curr_func.name);
+                } else {
+                    panic!("Couldn't find function with dest-idx: {dest_idx}");
+                }
+            }
+            Continuation::Return => {
+                if let Some((func, iter)) = call_stack.pop_back() {
+                    curr_func = func;
+                    curr_instr_iter = iter;
+                    println!("Returning to {:?}", curr_func.name);
+                } else {
+                    break;
                 }
             }
             Continuation::Exit => {

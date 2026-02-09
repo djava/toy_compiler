@@ -1,7 +1,6 @@
-use std::{fmt::Display, sync::Arc};
+use std::fmt::Display;
 
 use super::shared::*;
-
 
 #[allow(non_camel_case_types)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -56,7 +55,7 @@ pub enum Arg {
     ByteReg(ByteReg),
     Deref(Register, i32),
     Variable(Identifier),
-    Global(Arc<str>)
+    Global(Identifier),
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -90,6 +89,8 @@ pub enum Instr {
     salq(Arg, Arg),
     andq(Arg, Arg),
     imulq(Arg, Arg),
+    leaq(Arg, Arg),
+    callq_ind(Arg, u16),
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
@@ -110,16 +111,17 @@ pub struct Function {
     pub name: Identifier,
     pub blocks: Vec<Block>,
     pub entry_block: Identifier,
+    pub exit_block: Identifier,
     pub(crate) stack_size: usize,
     pub(crate) gc_stack_size: usize,
     pub(crate) types: TypeEnv,
-    pub(crate) callee_saved_used: Vec<Register>
+    pub(crate) callee_saved_used: Vec<Register>,
 }
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct X86Program {
     pub header: Vec<Directive>,
-    pub functions: Vec<Function>
+    pub functions: Vec<Function>,
 }
 
 impl Display for Register {
@@ -171,7 +173,10 @@ impl Display for Arg {
                 Identifier::Named(name) => write!(f, "@{name}"),
                 Identifier::Ephemeral(id) => write!(f, "@EE#{id}"),
             },
-            Arg::Global(name) => write!(f, "{name}(%rip)"),
+            Arg::Global(id) => match id {
+                Identifier::Named(name) => write!(f, "{name}(%rip)"),
+                Identifier::Ephemeral(id) => write!(f, "__EE_{id}(%rip)"),
+            },
         }
     }
 }
@@ -217,6 +222,8 @@ impl Display for Instr {
             Instr::salq(arg, arg1) => write!(f, "salq {arg}, {arg1}"),
             Instr::andq(arg, arg1) => write!(f, "andq {arg}, {arg1}"),
             Instr::imulq(arg, arg1) => write!(f, "imulq {arg}, {arg1}"),
+            Instr::leaq(arg, arg1) => write!(f, "leaq {arg}, {arg1}"),
+            Instr::callq_ind(arg, _) => write!(f, "callq *{arg}"),
         }
     }
 }

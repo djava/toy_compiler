@@ -51,6 +51,7 @@ macro_rules! t_id {
 #[cfg(test)]
 pub(crate) use t_id;
 
+#[allow(unused_macros)]
 macro_rules! label {
     ($name:expr) => {
         crate::syntax_trees::x86::Directive::Label(crate::syntax_trees::shared::Identifier::Named(
@@ -58,4 +59,5 @@ macro_rules! label {
         ))
     };
 }
+#[allow(unused_imports)]
 pub(crate) use label;
