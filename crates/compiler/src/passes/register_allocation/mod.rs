@@ -1,15 +1,14 @@
 mod dataflow_analysis;
 mod graph_coloring;
 
-use std::collections::HashMap;
-use std::mem::size_of;
+use std::collections::{HashMap, HashSet};
 
 use crate::{
     constants::*,
     passes::{X86Pass, register_allocation::graph_coloring::COLOR_TO_REG_STORAGE},
     syntax_trees::{shared::*, x86},
 };
-use dataflow_analysis::LivenessMap;
+use dataflow_analysis::DataflowAnalysis;
 use graph_coloring::color_location_graph;
 use x86::*;
 
@@ -25,7 +24,7 @@ impl X86Pass for RegisterAllocation {
 }
 
 fn regalloc_function(f: &mut Function) {
-    let liveness = LivenessMap::from_program(&f);
+    let liveness = DataflowAnalysis::from_program(&f);
 
     let AllocateStorageResult {
         id_to_storage,
@@ -44,18 +43,18 @@ fn regalloc_function(f: &mut Function) {
                 None
             }
         })
+        .collect::<HashSet<_>>()
+        .into_iter()
         .collect();
-    let callee_offset = -((callee_saved_used.len() * size_of::<i64>()) as i32);
 
     for b in f.blocks.iter_mut() {
-        run_for_block(&mut b.instrs, &id_to_storage, callee_offset);
+        run_for_block(&mut b.instrs, &id_to_storage);
     }
 
-    let used_stack = -callee_offset + stack_size;
-    let aligned_stack_size = if used_stack % STACK_ALIGNMENT == 0 {
-        used_stack
+    let aligned_stack_size = if stack_size % STACK_ALIGNMENT == 0 {
+        stack_size
     } else {
-        used_stack + (STACK_ALIGNMENT - (used_stack % STACK_ALIGNMENT))
+        stack_size + (STACK_ALIGNMENT - (stack_size % STACK_ALIGNMENT))
     };
 
     f.stack_size = aligned_stack_size as usize;
@@ -97,20 +96,11 @@ impl Storage {
             Storage::Reg(reg) => Arg::Reg(reg),
         }
     }
-
-    pub fn with_stack_offset(self, off: i32) -> Self {
-        if let Storage::Stack(offset) = self {
-            Storage::Stack(offset + off)
-        } else {
-            self
-        }
-    }
 }
 
 fn run_for_block(
     instrs: &mut Vec<Instr>,
     id_to_storage: &HashMap<Identifier, Storage>,
-    stack_offset: i32,
 ) {
     for i in instrs.iter_mut() {
         match i {
@@ -124,8 +114,8 @@ fn run_for_block(
             | Instr::sarq(s, d)
             | Instr::salq(s, d)
             | Instr::leaq(s, d) => {
-                replace_arg_with_allocated(s, id_to_storage, stack_offset);
-                replace_arg_with_allocated(d, id_to_storage, stack_offset);
+                replace_arg_with_allocated(s, id_to_storage);
+                replace_arg_with_allocated(d, id_to_storage);
             }
             Instr::negq(a)
             | Instr::pushq(a)
@@ -133,7 +123,7 @@ fn run_for_block(
             | Instr::movzbq(_, a)
             | Instr::callq_ind(a, _)
             | Instr::jmp_tail(a, _) => {
-                replace_arg_with_allocated(a, id_to_storage, stack_offset);
+                replace_arg_with_allocated(a, id_to_storage);
             }
             Instr::callq(_, _)
             | Instr::retq
@@ -152,11 +142,11 @@ struct AllocateStorageResult {
     gc_stack_size: i32,
 }
 
-fn allocate_storage<'a>(liveness: &'a LivenessMap, types: &TypeEnv) -> AllocateStorageResult {
+fn allocate_storage<'a>(dataflow: &'a DataflowAnalysis, types: &TypeEnv) -> AllocateStorageResult {
     let mut curr_stack_offset = 0i32;
     let mut curr_gc_stack_offset = 0i32;
 
-    let graph_colors = color_location_graph(&liveness.interference_graph);
+    let graph_colors = color_location_graph(dataflow);
     let mut id_to_storage = HashMap::new();
     let mut color_to_storage = HashMap::from(COLOR_TO_REG_STORAGE);
 
@@ -208,12 +198,11 @@ fn allocate_storage<'a>(liveness: &'a LivenessMap, types: &TypeEnv) -> AllocateS
 fn replace_arg_with_allocated(
     arg: &mut Arg,
     id_to_stg: &HashMap<Identifier, Storage>,
-    stack_offset: i32,
 ) {
     match arg {
         Arg::Variable(id) => {
             if let Some(storage) = id_to_stg.get(id) {
-                *arg = storage.with_stack_offset(stack_offset).to_arg()
+                *arg = storage.to_arg()
             } else {
                 panic!("No storage found for variable: {id:?}");
             }
@@ -1147,7 +1136,7 @@ mod tests {
 
     #[test]
     fn test_tuple_in_loop() {
-        // tup = (0, 1)
+        // tup = (7, 3)
         // i = 3
         // while i > 0 {
         //     print_int(tup[0] + tup[1])

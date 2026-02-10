@@ -13,23 +13,24 @@ use crate::{
 };
 
 #[derive(Debug, Clone)]
-pub struct LivenessMap {
-    pub interference_graph: UnGraph<Location, ()>,
+pub struct DataflowAnalysis {
+    pub interference: UnGraph<Location, ()>,
+    pub move_relations: UnGraph<Location, ()>,
 }
 
-impl LivenessMap {
-    pub fn from_program(f: &Function) -> LivenessMap {
+impl DataflowAnalysis {
+    pub fn from_program(f: &Function) -> DataflowAnalysis {
         let blocks = &f.blocks;
         let block_adj_graph = x86_block_adj_graph(blocks);
 
         let alive_after_instrs = Self::analyze_dataflow(block_adj_graph);
-        let all_locations: HashSet<_> = blocks
+        let all_locations: Vec<_> = blocks
             .iter()
-            .map(|b| &b.instrs)
-            .flatten()
-            .map(locs_written)
-            .flatten()
+            .flat_map(|b| &b.instrs)
+            .flat_map(locs_written)
             .chain(CALL_ARG_REGISTERS.iter().map(|r| Location::Reg(*r)))
+            .collect::<HashSet<_>>()
+            .into_iter()
             .collect();
 
         let alive_after_instrs = {
@@ -43,10 +44,16 @@ impl LivenessMap {
             instrs.zip(alive_afters)
         };
 
-        let interference_graph =
-            LivenessMap::make_interference_graph(alive_after_instrs, &all_locations, &f.types);
+        let interference =
+            Self::make_interference_graph(alive_after_instrs, &all_locations, &f.types);
 
-        Self { interference_graph }
+        let all_instrs = blocks.iter().flat_map(|b| &b.instrs);
+        let move_relations = Self::make_move_relation_graph(all_instrs, &all_locations);
+
+        Self {
+            interference,
+            move_relations,
+        }
     }
 
     fn analyze_dataflow(
@@ -139,14 +146,12 @@ impl LivenessMap {
 
     fn make_interference_graph<'a>(
         alive_before_instrs: impl Iterator<Item = (&'a Instr, &'a HashSet<Location>)>,
-        all_locations: &HashSet<Location>,
+        all_locations: &Vec<Location>,
         types: &TypeEnv,
     ) -> UnGraph<Location, ()> {
-        let mut graph = UnGraph::new_undirected();
-        let loc_to_node: HashMap<_, _> = all_locations
-            .into_iter()
-            .map(|loc| (loc, graph.add_node(loc.clone())))
-            .collect();
+        // Must use this function to ensure that the graph nodes are
+        // identical to the move relations graph.
+        let (mut graph, loc_to_node) = make_empty_loc_graph(all_locations);
 
         // Following algoirthm from textbook
         for (i, l_after) in alive_before_instrs {
@@ -225,6 +230,52 @@ impl LivenessMap {
 
         graph
     }
+
+    fn make_move_relation_graph<'a>(
+        instrs: impl Iterator<Item = &'a Instr>,
+        all_locations: &Vec<Location>,
+    ) -> UnGraph<Location, ()> {
+        // Must use this function to ensure that the graph nodes are
+        // identical to the interference graph.
+        let (mut graph, loc_to_node) = make_empty_loc_graph(all_locations);
+
+        for i in instrs {
+            if let Instr::movq(s, d) = i {
+                if let Some(s_loc) = Location::try_from_arg(s)
+                    && let Some(d_loc) = Location::try_from_arg(d)
+                {
+                    if !loc_to_node.contains_key(&s_loc) {
+                        panic!(
+                            "Couldn't find location node for {s_loc:?} - most likely, it is read but never written to"
+                        );
+                    }
+                    if !loc_to_node.contains_key(&d_loc) {
+                        panic!(
+                            "Couldn't find location node for {d_loc:?} - most likely, it is read but never written to"
+                        );
+                    }
+
+                    let s_node = loc_to_node.get(&s_loc).unwrap();
+                    let d_node = loc_to_node.get(&d_loc).unwrap();
+                    graph.add_edge(*s_node, *d_node, ());
+                }
+            }
+        }
+
+        graph
+    }
+}
+
+fn make_empty_loc_graph(
+    all_locations: &Vec<Location>,
+) -> (UnGraph<Location, ()>, HashMap<&Location, NodeIndex>) {
+    let mut graph = UnGraph::new_undirected();
+    let loc_to_node = all_locations
+        .into_iter()
+        .map(|loc| (loc, graph.add_node(loc.clone())))
+        .collect();
+
+    (graph, loc_to_node)
 }
 
 fn locs_read(i: &Instr) -> Vec<Location> {
@@ -341,11 +392,7 @@ fn locs_written(i: &Instr) -> Vec<Location> {
         Instr::callq_ind(_, _) | Instr::jmp_tail(_, _) => {
             locations.extend(CALLER_SAVED_REGISTERS.iter().map(|r| Location::Reg(*r)));
         }
-        Instr::pushq(_)
-        | Instr::retq
-        | Instr::cmpq(_, _)
-        | Instr::jmp(_)
-        | Instr::jmpcc(_, _) => {}
+        Instr::pushq(_) | Instr::retq | Instr::cmpq(_, _) | Instr::jmp(_) | Instr::jmpcc(_, _) => {}
     };
 
     locations
