@@ -383,6 +383,18 @@ fn run_instr(
                 Continuation::Call(func_idx)
             }
         }
+        Instr::jmp_tail(s, _) => {
+            let func = env.read_arg(s);
+            let func_idx = (func as usize) & !FUNCTIONS_OFFSET;
+            if execute_special_functions(func_idx, inputs, outputs, env) {
+                // If this is a special function, then
+                // execute_special_functions() will take care of
+                // everything including return value, so just `Next` it.
+                Continuation::Next
+            } else {
+                Continuation::Jump(env.functions[func_idx].clone())
+            }
+        }
     }
 }
 

@@ -29,6 +29,7 @@ impl LivenessMap {
             .flatten()
             .map(locs_written)
             .flatten()
+            .chain(CALL_ARG_REGISTERS.iter().map(|r| Location::Reg(*r)))
             .collect();
 
         let alive_after_instrs = {
@@ -105,7 +106,7 @@ impl LivenessMap {
         //
         // Returns alive_AFTER for each instruction (needed for interference graph)
         // alive_after(instr_i) = alive_before(instr_i+1) = alive_before(block) for first instr
-        
+
         if instrs.is_empty() {
             // No instrs to fill the vec with, but the same locations
             // are alive before this block as are alive after it
@@ -280,6 +281,22 @@ fn locs_read(i: &Instr) -> Vec<Location> {
                     .map(|r| Location::Reg(*r)),
             );
         }
+        Instr::jmp_tail(func, num_args) => {
+            if *num_args >= MAX_REGISTER_ARGS as u16 {
+                unimplemented!("Spilling args onto stack not implemented");
+            }
+
+            if let Some(loc) = Location::try_from_arg(func) {
+                locations.push(loc);
+            }
+
+            locations.extend(
+                CALL_ARG_REGISTERS
+                    .iter()
+                    .take(*num_args as _)
+                    .map(|r| Location::Reg(*r)),
+            );
+        }
 
         Instr::popq(_) | Instr::retq | Instr::set(_, _) | Instr::jmp(_) | Instr::jmpcc(_, _) => {}
     };
@@ -321,10 +338,14 @@ fn locs_written(i: &Instr) -> Vec<Location> {
                 locations.push(Location::Reg(Register::r15));
             }
         }
-        Instr::callq_ind(_, _) => {
+        Instr::callq_ind(_, _) | Instr::jmp_tail(_, _) => {
             locations.extend(CALLER_SAVED_REGISTERS.iter().map(|r| Location::Reg(*r)));
         }
-        Instr::pushq(_) | Instr::retq | Instr::cmpq(_, _) | Instr::jmp(_) | Instr::jmpcc(_, _) => {}
+        Instr::pushq(_)
+        | Instr::retq
+        | Instr::cmpq(_, _)
+        | Instr::jmp(_)
+        | Instr::jmpcc(_, _) => {}
     };
 
     locations

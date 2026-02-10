@@ -131,7 +131,8 @@ fn run_for_block(
             | Instr::pushq(a)
             | Instr::popq(a)
             | Instr::movzbq(_, a)
-            | Instr::callq_ind(a, _) => {
+            | Instr::callq_ind(a, _)
+            | Instr::jmp_tail(a, _) => {
                 replace_arg_with_allocated(a, id_to_storage, stack_offset);
             }
             Instr::callq(_, _)

@@ -91,6 +91,7 @@ pub enum Instr {
     imulq(Arg, Arg),
     leaq(Arg, Arg),
     callq_ind(Arg, u16),
+    jmp_tail(Arg, u16),
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
@@ -98,6 +99,7 @@ pub enum Directive {
     Label(Identifier),
     Globl(Identifier),
     AttSyntax,
+    Align(u8)
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
@@ -108,6 +110,7 @@ pub struct Block {
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct Function {
+    pub header: Vec<Directive>,
     pub name: Identifier,
     pub blocks: Vec<Block>,
     pub entry_block: Identifier,
@@ -224,6 +227,7 @@ impl Display for Instr {
             Instr::imulq(arg, arg1) => write!(f, "imulq {arg}, {arg1}"),
             Instr::leaq(arg, arg1) => write!(f, "leaq {arg}, {arg1}"),
             Instr::callq_ind(arg, _) => write!(f, "callq *{arg}"),
+            Instr::jmp_tail(arg, _) => write!(f, "jmp *{arg}"),
         }
     }
 }
@@ -234,6 +238,7 @@ impl Display for Directive {
             Self::Label(label) => write!(f, "{}:", fmt_label(label)),
             Self::Globl(label) => write!(f, "\t.globl {}", fmt_label(label)),
             Self::AttSyntax => write!(f, "\t.att_syntax"),
+            Self::Align(n) => write!(f,"\r.align {n}"),
         }
     }
 }
@@ -244,6 +249,9 @@ impl Display for X86Program {
             writeln!(f, "{dir}")?;
         }
         for func in &self.functions {
+            for dir in &func.header {
+                writeln!(f, "{dir}")?;
+            }
             for block in &func.blocks {
                 writeln!(f, "{}", block.label)?;
                 for i in block.instrs.iter() {

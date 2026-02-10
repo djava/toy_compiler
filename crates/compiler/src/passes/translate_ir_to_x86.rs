@@ -46,6 +46,7 @@ impl IRtoX86Pass for TranslateIRtoX86 {
                 gc_stack_size: 0,
                 types: f.types,
                 callee_saved_used: vec![],
+                header: vec![]
             });
         }
         X86Program {
@@ -89,7 +90,38 @@ fn translate_statement(s: ir::Statement, exit_block: &Identifier) -> Vec<Instr> 
         ir::Statement::If(cond, pos_label, neg_label) => {
             translate_conditional(cond, pos_label, neg_label)
         }
-        ir::Statement::TailCall(_func_name, _args) => todo!(),
+        ir::Statement::TailCall(func_id, args) => {
+            if args.len() > MAX_REGISTER_ARGS {
+                unimplemented!(
+                    "Only register arg passing is implemented, max of {MAX_REGISTER_ARGS} args"
+                );
+            }
+
+            if SPECIAL_FUNCTIONS
+                .iter()
+                .map(|(name, _, _)| name)
+                .find(|n| id!(**n) == func_id)
+                .is_some()
+            {
+                return translate_call(None, ir::Atom::Variable(func_id), args);
+            }
+
+            let mut instrs = vec![];
+
+            let num_args = args.len();
+            // Push the args to the correct registers
+            for (arg_expr, reg) in args.into_iter().zip(CALL_ARG_REGISTERS) {
+                instrs.push(Instr::movq(atom_to_arg(arg_expr), x86::Arg::Reg(reg)));
+            }
+
+            // Jump to the function
+            instrs.push(Instr::leaq(
+                x86::Arg::Global(func_id),
+                x86::Arg::Reg(Register::rax),
+            ));
+            instrs.push(Instr::jmp_tail(x86::Arg::Reg(Register::rax), num_args as _));
+            instrs
+        }
     }
 }
 
@@ -545,7 +577,10 @@ fn translate_call(dest_opt: Option<AssignDest>, func: ir::Atom, args: Vec<ir::At
                 x86::Arg::Global(func_name),
                 x86::Arg::Variable(addr_var.clone()),
             ));
-            instrs.push(Instr::callq_ind(x86::Arg::Variable(addr_var.clone()), num_args as u16));
+            instrs.push(Instr::callq_ind(
+                x86::Arg::Variable(addr_var.clone()),
+                num_args as u16,
+            ));
         }
 
         ir::Atom::GlobalSymbol(name) => {

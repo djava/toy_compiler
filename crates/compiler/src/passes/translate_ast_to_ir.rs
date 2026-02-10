@@ -27,9 +27,7 @@ impl ASTtoIRPass for TranslateASTtoIR {
 
             blocks.insert(entry_id.clone(), main_body);
 
-            let exit_block = ir::Block {
-                statements: vec![],
-            };
+            let exit_block = ir::Block { statements: vec![] };
             blocks.insert(exit_id.clone(), exit_block);
 
             ir_functions.push(ir::Function {
@@ -137,7 +135,13 @@ fn generate_for_tail(e: &ast::Expr, blocks: &mut BlockMap) -> Vec<ir::Statement>
         }
 
         _ => {
-            vec![ir::Statement::Return(expr_to_atom(e))]
+            let ret_var = Identifier::new_ephemeral();
+            generate_for_assign(
+                e,
+                AssignDest::Id(ret_var.clone()),
+                vec![ir::Statement::Return(ir::Atom::Variable(ret_var))],
+                blocks,
+            )
         }
     }
 }

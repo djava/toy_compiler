@@ -1,19 +1,14 @@
-use crate::{
-    constants::*,
-    passes::X86Pass,
-    syntax_trees::x86::*,
-    utils::id,
-};
+use crate::{constants::*, passes::X86Pass, syntax_trees::x86::*, utils::id};
 
 pub struct PreludeConclusion;
 
 impl X86Pass for PreludeConclusion {
     fn run_pass(self, mut m: X86Program) -> X86Program {
-        let header_directives: [Directive; 2] =
-            [Directive::AttSyntax, Directive::Globl(id!(LABEL_MAIN))];
+        let header_directives: [Directive; 1] = [Directive::AttSyntax];
         m.header = header_directives.into();
 
         for f in m.functions.iter_mut() {
+            expand_tail_calls(f);
             add_prelude_conclusion(f);
         }
 
@@ -22,6 +17,11 @@ impl X86Pass for PreludeConclusion {
 }
 
 fn add_prelude_conclusion(f: &mut Function) {
+    f.header.push(Directive::Align(WORD_SIZE as u8));
+    if f.name == id!(LABEL_MAIN) {
+        f.header.push(Directive::Globl(id!(LABEL_MAIN)));
+    }
+
     let entry_block = Block {
         label: Directive::Label(f.name.clone()),
         instrs: generate_prelude(f),
@@ -29,16 +29,31 @@ fn add_prelude_conclusion(f: &mut Function) {
     f.blocks.insert(0, entry_block);
     f.entry_block = f.name.clone();
 
-    let conclusion_instrs = generate_conclusion(f);
+    let exit_conclusion_instrs =
+        generate_conclusion(&f.stack_size, &f.gc_stack_size, &f.callee_saved_used, None);
 
     if let Some(exit_block) = f
         .blocks
         .iter_mut()
         .find(|b| b.label == Directive::Label(f.exit_block.clone()))
     {
-        exit_block.instrs = conclusion_instrs;
+        exit_block.instrs.extend(exit_conclusion_instrs);
     } else {
         panic!("Couldn't find exit block in function")
+    }
+}
+
+fn expand_tail_calls(f: &mut Function) {
+    for b in f.blocks.iter_mut() {
+        if let Some(tail_call_instr) = b.instrs.pop_if(|i| matches!(i, Instr::jmp_tail(_, _))) {
+            let tail_call_conclusion = generate_conclusion(
+                &f.stack_size,
+                &f.gc_stack_size,
+                &f.callee_saved_used,
+                Some(tail_call_instr),
+            );
+            b.instrs.extend(tail_call_conclusion);
+        }
     }
 }
 
@@ -56,10 +71,16 @@ fn generate_prelude(f: &mut Function) -> Vec<Instr> {
     );
 
     // Setup stack for function
-    prelude_instrs.extend([
-        Instr::movq(Arg::Reg(Register::rsp), Arg::Reg(Register::rbp)),
-        Instr::subq(Arg::Immediate(f.stack_size as _), Arg::Reg(Register::rsp)),
-    ]);
+    prelude_instrs.push(Instr::movq(
+        Arg::Reg(Register::rsp),
+        Arg::Reg(Register::rbp),
+    ));
+    if f.stack_size > 0 {
+        prelude_instrs.push(Instr::subq(
+            Arg::Immediate(f.stack_size as _),
+            Arg::Reg(Register::rsp),
+        ));
+    }
 
     if f.name == id!(LABEL_MAIN) {
         // In main, we also have to initialize GC Stack/Heap
@@ -75,10 +96,12 @@ fn generate_prelude(f: &mut Function) -> Vec<Instr> {
     }
 
     // Allocate space for GC stack
-    prelude_instrs.push(Instr::addq(
-        Arg::Immediate(f.gc_stack_size as _),
-        Arg::Reg(Register::r15),
-    ));
+    if f.gc_stack_size > 0 {
+        prelude_instrs.push(Instr::addq(
+            Arg::Immediate(f.gc_stack_size as _),
+            Arg::Reg(Register::r15),
+        ));
+    }
 
     // Zero out GC Stack
     prelude_instrs.extend((0..(f.gc_stack_size / WORD_SIZE as usize) as _).map(|i| {
@@ -94,31 +117,44 @@ fn generate_prelude(f: &mut Function) -> Vec<Instr> {
     prelude_instrs
 }
 
-fn generate_conclusion(f: &mut Function) -> Vec<Instr> {
-    let mut conclusion_instrs = vec![
-        // Move the stack pointer back up above this frame
-        Instr::addq(Arg::Immediate(f.stack_size as _), Arg::Reg(Register::rsp)),
-    ];
+fn generate_conclusion(
+    stack_size: &usize,
+    gc_stack_size: &usize,
+    callee_saved_used: &Vec<Register>,
+    opt_tail_call_instr: Option<Instr>,
+) -> Vec<Instr> {
+    let mut conclusion_instrs = vec![];
+
+    // Move the stack pointer back up above this frame
+    if *stack_size > 0 {
+        conclusion_instrs.push(Instr::addq(
+            Arg::Immediate(*stack_size as _),
+            Arg::Reg(Register::rsp),
+        ));
+    }
 
     // Pop any used callee-saved registers from the stack, in reverse order
     conclusion_instrs.extend(
-        f.callee_saved_used
+        callee_saved_used
             .iter()
             .rev()
             .map(|reg| Instr::popq(Arg::Reg(*reg))),
     );
 
-    conclusion_instrs.extend([
-        // Move the GC-stack pointer back down
-        Instr::subq(
-            Arg::Immediate(f.gc_stack_size as _),
+    // Move the GC-stack pointer back down
+    if *gc_stack_size > 0 {
+        conclusion_instrs.push(Instr::subq(
+            Arg::Immediate(*gc_stack_size as _),
             Arg::Reg(Register::r15),
-        ),
-        // Restore rbp
-        Instr::popq(Arg::Reg(Register::rbp)),
-        // Return
-        Instr::retq,
-    ]);
+        ));
+    }
+
+    // Restore rbp
+    conclusion_instrs.push(Instr::popq(Arg::Reg(Register::rbp)));
+
+    // Handle tail-call: If the exit block ends with a jmp_tail then we
+    // can do just do a tail call instead of retq. Otherwise, retq normally.
+    conclusion_instrs.push(opt_tail_call_instr.unwrap_or(Instr::retq));
 
     conclusion_instrs
 }

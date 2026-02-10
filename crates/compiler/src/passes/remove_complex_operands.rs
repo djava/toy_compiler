@@ -113,7 +113,7 @@ fn rco_statement(s: &Statement, new_body: &mut Vec<Statement>) {
         }
         Statement::Return(expr) => {
             // The returned value needs to be atomic
-            let transform = rco_expr(&expr, true);
+            let transform = rco_expr(&expr, false);
 
             // Take all the ephemeral transforms that happen
             // inside the expression and add them before this

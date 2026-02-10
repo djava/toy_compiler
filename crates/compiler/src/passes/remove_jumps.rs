@@ -1,20 +1,24 @@
 use petgraph::visit::EdgeRef;
 
-use crate::{passes::X86Pass, utils::x86_block_adj_graph, syntax_trees::x86::*};
+use crate::{
+    passes::X86Pass,
+    syntax_trees::{Identifier, x86::*},
+    utils::x86_block_adj_graph,
+};
 
 pub struct RemoveJumps;
 
 impl X86Pass for RemoveJumps {
     fn run_pass(self, mut m: X86Program) -> X86Program {
-        for f in m.functions.iter_mut() { 
-            perform_operation(&mut f.blocks);
+        for f in m.functions.iter_mut() {
+            perform_operation(&mut f.blocks, &mut f.exit_block);
         }
 
         m
     }
 }
 
-fn perform_operation(blocks: &mut Vec<Block>) {
+fn perform_operation(blocks: &mut Vec<Block>, func_exit_block_id: &mut Identifier) {
     'outer: loop {
         let cloned_blocks = blocks.clone();
         let block_graph = x86_block_adj_graph(&cloned_blocks);
@@ -51,6 +55,16 @@ fn perform_operation(blocks: &mut Vec<Block>) {
 
                     into_block.instrs.pop();
                     into_block.instrs.extend(from_block.instrs);
+
+                    if let Directive::Label(from_block_id) = from_block.label
+                        && &from_block_id == func_exit_block_id
+                    {
+                        // The block we just removed was the exit block,
+                        // so we have to update the reference
+                        if let Directive::Label(into_block_id) = &into_block.label {
+                            *func_exit_block_id = into_block_id.clone();
+                        }
+                    }
 
                     // It's inefficient, but for now we're just going to
                     // start over after every time doing this because
