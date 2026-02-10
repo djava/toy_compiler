@@ -117,10 +117,10 @@ fn partial_eval_expr(e: &mut Expr) {
                 };
                 if let Some((constant, var)) = maybe_single_constant {
                     match op {
-                        BinaryOperator::Add | BinaryOperator::Subtract
+                        BinaryOperator::Add
                             if constant == &Value::I64(0) =>
                         {
-                            // x + 0 = 0, x - 0 = 0
+                            // x + 0 = 0
                             *e = *var.to_owned();
                         }
 

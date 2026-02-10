@@ -119,11 +119,10 @@ fn generate_for_tail(e: &ast::Expr, blocks: &mut BlockMap) -> Vec<ir::Statement>
         }
 
         ast::Expr::StatementBlock(statements, expr) => {
-            let mut ret = vec![];
+            let mut ret = vec![ir::Statement::Return(expr_to_atom(expr))];
             for s in statements.iter().rev() {
                 ret = generate_for_statement(s, ret, blocks);
             }
-            ret.push(ir::Statement::Return(expr_to_atom(expr)));
             ret
         }
 

@@ -266,7 +266,7 @@ fn locs_read(i: &Instr) -> Vec<Location> {
             );
         }
         Instr::callq_ind(func, num_args) => {
-            if *num_args >= MAX_REGISTER_ARGS as u16 {
+            if *num_args > MAX_REGISTER_ARGS as u16 {
                 unimplemented!("Spilling args onto stack not implemented");
             }
 

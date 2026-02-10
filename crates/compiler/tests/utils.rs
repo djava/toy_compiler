@@ -22,17 +22,18 @@ pub fn execute_test_case(mut tc: TestCase) {
 
     let no_opt_pipeline = Pipeline::make_no_opt();
     let no_opt_x86 = no_opt_pipeline.run(ast.clone());
+    println!("-- No Opt: -- \n{}\n", no_opt_x86);
 
     let mut no_opt_tc = tc.clone();
     let mut no_opt_outputs = VecDeque::<i64>::new();
-    println!("{}", no_opt_x86);
     interpret_x86(&no_opt_x86, &mut no_opt_tc.inputs, &mut no_opt_outputs);
     assert_eq!(no_opt_outputs, no_opt_tc.expected_outputs);
 
     let opt_pipeline = Pipeline::make_opt();
     let opt_x86 = opt_pipeline.run(ast);
+    println!("-- With Opt: -- \n{}\n", opt_x86);
 
     let mut opt_outputs = VecDeque::<i64>::new();
     interpret_x86(&opt_x86, &mut tc.inputs, &mut opt_outputs);
-    assert_eq!(opt_outputs, tc.expected_outputs);
+    assert_eq!(opt_outputs, tc.expected_outputs, "Failed in optimized only");
 }

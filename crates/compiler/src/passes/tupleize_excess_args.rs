@@ -197,6 +197,10 @@ fn replace_excess_calls_for_statement(s: &mut Statement) {
 fn replace_excess_calls_for_expr(e: &mut Expr) {
     match e {
         Expr::Call(_, args) => {
+            for a in args.iter_mut() {
+                replace_excess_calls_for_expr(a);
+            }
+
             if args.len() > MAX_REGISTER_ARGS {
                 let mut new_args: Vec<_> =
                     args.iter().take(MAX_REGISTER_ARGS - 1).cloned().collect();

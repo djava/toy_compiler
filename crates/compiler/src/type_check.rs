@@ -12,7 +12,10 @@ impl ast::Expr {
                 let l_type = left.type_check(env);
                 let r_type = right.type_check(env);
 
-                let result_type = op.type_of(&l_type, &r_type).unwrap();
+                let result_type = op.type_of(&l_type, &r_type).expect(
+                    format!("Invalid argument types to op {op:?} - {l_type:?}, {r_type:?}")
+                        .as_str(),
+                );
                 result_type
             }
             UnaryOp(op, exp) => {
@@ -37,9 +40,17 @@ impl ast::Expr {
                 if env.contains_key(id) {
                     let func_type = env[id].clone();
                     if let ValueType::FunctionType(arg_types, ret_type) = func_type {
-                        assert_eq!(args.len(), arg_types.len(), "Wrong number of args passed to `{id:?}`");
+                        assert_eq!(
+                            args.len(),
+                            arg_types.len(),
+                            "Wrong number of args passed to `{id:?}`"
+                        );
                         for (a, typ) in args.iter().zip(arg_types) {
-                            assert_eq!(a.type_check(env), typ, "Passed wrong arg type `{a:?}` to function `{id:?}`")
+                            assert_eq!(
+                                a.type_check(env),
+                                typ,
+                                "Passed wrong arg type `{a:?}` to function `{id:?}`"
+                            )
                         }
 
                         *ret_type
@@ -209,12 +220,12 @@ impl ast::Program {
             }
             map
         };
-
+        
         for f in self.functions.iter_mut() {
             // Start with dict of other global-scope functions so they
             // can be recognized
             f.types = function_types.clone();
-
+            
             // Allow type-checker to recognize params
             for (n, t) in f.params.iter() {
                 f.types.insert(n.clone(), t.clone());
@@ -224,5 +235,7 @@ impl ast::Program {
                 s.type_check(&mut f.types);
             }
         }
+
+        self.function_types = function_types;
     }
 }

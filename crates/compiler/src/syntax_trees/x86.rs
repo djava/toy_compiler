@@ -238,7 +238,7 @@ impl Display for Directive {
             Self::Label(label) => write!(f, "{}:", fmt_label(label)),
             Self::Globl(label) => write!(f, "\t.globl {}", fmt_label(label)),
             Self::AttSyntax => write!(f, "\t.att_syntax"),
-            Self::Align(n) => write!(f,"\r.align {n}"),
+            Self::Align(n) => write!(f,"\t.align {n}"),
         }
     }
 }
@@ -258,6 +258,7 @@ impl Display for X86Program {
                     writeln!(f, "\t{i}")?;
                 }
             }
+            writeln!(f)?;
         }
         Ok(())
     }
