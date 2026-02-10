@@ -23,6 +23,13 @@ fn patch_block(b: &mut Block) {
 
     for i in instrs.iter_mut() {
         match &i {
+            Instr::movq(s, d) if s == d => {
+                // Trival mov to itself, don't keep this instruction
+                // Note: Put this one before the both-args-are-derefs
+                //       one to make sure that movq (deref) (deref) is
+                //       still eliminated
+            }
+
             // If both args to an instr are derefs, we need to add a
             // patch instruction
             Instr::addq(s, d)
@@ -64,10 +71,6 @@ fn patch_block(b: &mut Block) {
                     Instr::movq(_, dest) => Instr::movq(Arg::Reg(Register::rax), dest.clone()),
                     _ => unreachable!(),
                 });
-            }
-
-            Instr::movq(s, d) if s == d => {
-                // Trival mov to itself, don't keep this instruction
             }
 
             Instr::cmpq(s, imm @ Arg::Immediate(_)) => {
