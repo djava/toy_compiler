@@ -16,6 +16,7 @@ use crate::{
 pub struct DataflowAnalysis {
     pub interference: UnGraph<Location, ()>,
     pub move_relations: UnGraph<Location, ()>,
+    pub use_count: HashMap<Location, u32>
 }
 
 impl DataflowAnalysis {
@@ -48,11 +49,14 @@ impl DataflowAnalysis {
             Self::make_interference_graph(alive_after_instrs, &all_locations, &f.types);
 
         let all_instrs = blocks.iter().flat_map(|b| &b.instrs);
-        let move_relations = Self::make_move_relation_graph(all_instrs, &all_locations);
+        let move_relations = Self::make_move_relation_graph(all_instrs.clone(), &all_locations);
+
+        let use_count = Self::make_use_count(all_instrs, &all_locations);
 
         Self {
             interference,
             move_relations,
+            use_count
         }
     }
 
@@ -263,6 +267,56 @@ impl DataflowAnalysis {
         }
 
         graph
+    }
+
+    fn make_use_count<'a>(
+        instrs: impl Iterator<Item = &'a Instr>,
+        all_locations: &Vec<Location>,
+    ) -> HashMap<Location, u32> {
+        let mut count_map = HashMap::from_iter(all_locations.iter().map(|loc| (loc.clone(), 0u32)));
+        let mut count_for_arg = |a: &Arg| {
+            if let Some(loc) = Location::try_from_arg(a) {
+                let count = count_map
+                    .get_mut(&loc)
+                    .expect("Location wasn't in all_locations");
+                *count += 1;
+            }
+        };
+
+        for i in instrs {
+            match i {
+                Instr::addq(arg, arg1)
+                | Instr::subq(arg, arg1)
+                | Instr::movq(arg, arg1)
+                | Instr::xorq(arg, arg1)
+                | Instr::cmpq(arg, arg1)
+                | Instr::sarq(arg, arg1)
+                | Instr::salq(arg, arg1)
+                | Instr::andq(arg, arg1)
+                | Instr::imulq(arg, arg1)
+                | Instr::leaq(arg, arg1) => {
+                    count_for_arg(arg);
+                    count_for_arg(arg1);
+                }
+
+                Instr::negq(arg)
+                | Instr::pushq(arg)
+                | Instr::popq(arg)
+                | Instr::callq_ind(arg, _)
+                | Instr::movzbq(_, arg)
+                | Instr::jmp_tail(arg, _) => {
+                    count_for_arg(arg);
+                }
+
+                Instr::set(_, _)
+                | Instr::jmp(_)
+                | Instr::callq(_, _)
+                | Instr::jmpcc(_, _)
+                | Instr::retq => {}
+            }
+        }
+
+        count_map
     }
 }
 

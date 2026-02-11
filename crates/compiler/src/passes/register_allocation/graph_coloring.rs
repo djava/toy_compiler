@@ -53,6 +53,7 @@ pub(super) fn reg_to_color(r: &Register) -> i32 {
 pub fn color_location_graph<'a>(dataflow: &'a DataflowAnalysis) -> HashMap<&'a Location, i32> {
     let interference = &dataflow.interference;
     let move_rel = &dataflow.move_relations;
+    let use_count_map = &dataflow.use_count;
 
     let mut unavailable_colors_map: HashMap<NodeIndex, HashSet<i32>> =
         HashMap::with_capacity(interference.node_count());
@@ -82,7 +83,9 @@ pub fn color_location_graph<'a>(dataflow: &'a DataflowAnalysis) -> HashMap<&'a L
         }
     }
 
-    while let Some(sat) = get_max_biased_sat(&unavailable_colors_map, move_rel, &color_map) {
+    while let Some(sat) =
+        get_max_biased_sat(&unavailable_colors_map, move_rel, &color_map, use_count_map)
+    {
         let idx = sat.node_idx;
 
         let unavail_set = &unavailable_colors_map[&idx];
@@ -118,12 +121,15 @@ fn get_max_biased_sat(
     unavailable_colors_map: &HashMap<NodeIndex, HashSet<i32>>,
     move_rel: &UnGraph<Location, ()>,
     color_map: &HashMap<NodeIndex, i32>,
+    use_count_map: &HashMap<Location, u32>,
 ) -> Option<BiasedSaturation> {
     let mut max_bsat = None;
 
     for (idx, set) in unavailable_colors_map {
         if !color_map.contains_key(idx) {
-            let bsat = BiasedSaturation::calculate(*idx, set, move_rel, &color_map);
+            let location = move_rel.node_weight(*idx).unwrap();
+            let use_count = use_count_map[location];
+            let bsat = BiasedSaturation::calculate(*idx, set, move_rel, &color_map, use_count);
 
             if max_bsat.is_none() || bsat > max_bsat.unwrap() {
                 max_bsat = Some(bsat);
@@ -139,6 +145,7 @@ struct BiasedSaturation {
     node_idx: NodeIndex,
     num_unavail: usize,
     avail_move_related_node_idx: Option<NodeIndex>,
+    loc_use_count: u32,
 }
 
 impl BiasedSaturation {
@@ -147,6 +154,7 @@ impl BiasedSaturation {
         unavailable_colors: &HashSet<i32>,
         move_rel: &UnGraph<Location, ()>,
         color_map: &HashMap<NodeIndex, i32>,
+        loc_use_count: u32,
     ) -> BiasedSaturation {
         let num_unavail = unavailable_colors.len();
 
@@ -167,7 +175,8 @@ impl BiasedSaturation {
                 };
                 if let Some(color) = color_map.get(&other_node)
                     && !unavailable_colors.contains(color)
-                    && *color > 0 // Avoid using allocating to a reserved register
+                    && *color > 0
+                // Avoid using allocating to a reserved register
                 {
                     idx = Some(other_node);
                     break;
@@ -181,6 +190,7 @@ impl BiasedSaturation {
             node_idx,
             num_unavail,
             avail_move_related_node_idx,
+            loc_use_count,
         }
     }
 }
@@ -192,10 +202,11 @@ impl PartialOrd for BiasedSaturation {
                 self.avail_move_related_node_idx,
                 other.avail_move_related_node_idx,
             ) {
-                (Some(_), Some(_)) => Some(std::cmp::Ordering::Equal),
+                (Some(_), Some(_)) | (None, None) => {
+                    self.loc_use_count.partial_cmp(&other.loc_use_count)
+                }
                 (Some(_), None) => Some(std::cmp::Ordering::Greater),
                 (None, Some(_)) => Some(std::cmp::Ordering::Less),
-                (None, None) => Some(std::cmp::Ordering::Equal),
             }
         } else {
             Some(self.num_unavail.cmp(&other.num_unavail))
