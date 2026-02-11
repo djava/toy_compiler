@@ -16,7 +16,7 @@ use crate::{
 pub struct DataflowAnalysis {
     pub interference: UnGraph<Location, ()>,
     pub move_relations: UnGraph<Location, ()>,
-    pub use_count: HashMap<Location, u32>
+    pub use_count: HashMap<Location, u32>,
 }
 
 impl DataflowAnalysis {
@@ -56,7 +56,7 @@ impl DataflowAnalysis {
         Self {
             interference,
             move_relations,
-            use_count
+            use_count,
         }
     }
 
@@ -370,24 +370,8 @@ fn locs_read(i: &Instr) -> Vec<Location> {
                     .map(|r| Location::Reg(*r)),
             );
         }
-        Instr::callq_ind(func, num_args) => {
+        Instr::callq_ind(func, num_args) | Instr::jmp_tail(func, num_args) => {
             if *num_args > MAX_REGISTER_ARGS as u16 {
-                unimplemented!("Spilling args onto stack not implemented");
-            }
-
-            if let Some(loc) = Location::try_from_arg(func) {
-                locations.push(loc);
-            }
-
-            locations.extend(
-                CALL_ARG_REGISTERS
-                    .iter()
-                    .take(*num_args as _)
-                    .map(|r| Location::Reg(*r)),
-            );
-        }
-        Instr::jmp_tail(func, num_args) => {
-            if *num_args >= MAX_REGISTER_ARGS as u16 {
                 unimplemented!("Spilling args onto stack not implemented");
             }
 

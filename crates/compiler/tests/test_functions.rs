@@ -1357,6 +1357,28 @@ fn main() {
     });
 }
 
+#[test]
+fn test_many_variables_then_call() {
+    // Lots of live variables when function is called - tests register spilling
+    execute_test_case(TestCase {
+        input: "fn main() {
+    a = 1
+    b = 2
+    c = 3
+    d = 4
+    e = 5
+    f = 6
+    g = 7
+    h = 8
+    r = 99
+    print_int(a + b + c + d + e + f + g + h + r)
+}",
+        inputs: VecDeque::new(),
+        // 1+2+3+4+5+6+7+8+99 = 135
+        expected_outputs: VecDeque::from(vec![135]),
+    });
+}
+
 // ── Edge: recursive depth (stack usage) ─────────────────────────
 
 #[test]
