@@ -1701,3 +1701,95 @@ fn main() {
         expected_outputs: VecDeque::from(vec![11, 12]),
     });
 }
+
+#[test]
+fn test_ternary_as_function_true() {
+    // (flag > 0 ? double : negate)(7) — ternary selects function, then call
+    execute_test_case(TestCase {
+        input: "fn double(x: int) -> int {
+    return x + x
+}
+
+fn negate(x: int) -> int {
+    return 0 - x
+}
+
+fn main() {
+    flag = read_int()
+    print_int((flag > 0 ? double : negate)(7))
+}",
+        inputs: VecDeque::from(vec![1]),
+        expected_outputs: VecDeque::from(vec![14]),
+    });
+}
+
+#[test]
+fn test_ternary_as_function_false() {
+    // Same as above but takes the false branch
+    execute_test_case(TestCase {
+        input: "fn double(x: int) -> int {
+    return x + x
+}
+
+fn negate(x: int) -> int {
+    return 0 - x
+}
+
+fn main() {
+    flag = read_int()
+    print_int((flag > 0 ? double : negate)(7))
+}",
+        inputs: VecDeque::from(vec![-1]),
+        expected_outputs: VecDeque::from(vec![-7]),
+    });
+}
+
+#[test]
+fn test_tuple_subscript_as_function() {
+    // t[0](5) — subscript into tuple of functions, then call
+    execute_test_case(TestCase {
+        input: "fn double(x: int) -> int {
+    return x + x
+}
+
+fn triple(x: int) -> int {
+    return x + x + x
+}
+
+fn main() {
+    t = (double, triple)
+    print_int(t[0](5))
+    print_int(t[1](5))
+}",
+        inputs: VecDeque::new(),
+        expected_outputs: VecDeque::from(vec![10, 15]),
+    });
+}
+
+#[test]
+fn test_ternary_as_function_in_loop() {
+    // Use ternary-as-function inside a loop with changing condition
+    execute_test_case(TestCase {
+        input: "fn inc(x: int) -> int {
+    return x + 1
+}
+
+fn dec(x: int) -> int {
+    return x - 1
+}
+
+fn main() {
+    x = 0
+    i = 0
+    while i < 6 {
+        x = (i < 3 ? inc : dec)(x)
+        i = i + 1
+    }
+    print_int(x)
+}",
+        inputs: VecDeque::new(),
+        // i=0: inc(0)=1, i=1: inc(1)=2, i=2: inc(2)=3,
+        // i=3: dec(3)=2, i=4: dec(2)=1, i=5: dec(1)=0
+        expected_outputs: VecDeque::from(vec![0]),
+    });
+}

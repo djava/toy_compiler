@@ -28,7 +28,7 @@ pub enum Expr<'a> {
     Unary(Operator, Box<Expr<'a>>),
     Parens(Box<Expr<'a>>),
     Binary(Box<Expr<'a>>, Operator, Box<Expr<'a>>),
-    Call(&'a str, Vec<Expr<'a>>),
+    Call(Box<Expr<'a>>, Vec<Expr<'a>>),
     Ternary(Box<Expr<'a>>, Box<Expr<'a>>, Box<Expr<'a>>),
     Tuple(Vec<Expr<'a>>),
     Subscript(Box<Expr<'a>>, i64)
@@ -121,12 +121,12 @@ parser! {
             --
             // Postfix operators
             e:@ [Token::OpenBracket] [Token::Int(idx)] [Token::CloseBracket] { Expr::Subscript(Box::new(e), idx) }
+            func:@ [Token::OpenParen] args:(expr() ** [Token::Comma]) [Token::CloseParen] { Expr::Call(Box::new(func), args) }
             --
             // Prefix operators
             op:operator() val:@ { Expr::Unary(op, Box::new(val)) }
             --
             // Highest: Atoms
-            [Token::Identifier(id)][Token::OpenParen] args:(expr() ** [Token::Comma]) [Token::CloseParen] { Expr::Call(id, args) }
             [Token::Identifier(id)] { Expr::Id(id) }
             [Token::Int(val)] { Expr::Int(val) }
             [Token::Bool(val)] { Expr::Bool(val) }

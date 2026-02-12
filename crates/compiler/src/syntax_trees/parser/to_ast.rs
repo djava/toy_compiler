@@ -44,12 +44,10 @@ fn to_ast_expr(pte: pt::Expr) -> ast::Expr {
 
             ast::Expr::BinaryOp(ast_left, ast_op, ast_right)
         }
-        pt::Expr::Call(id, args) => {
+        pt::Expr::Call(func, args) => {
             let ast_args = args.into_iter().map(to_ast_expr).collect();
 
-            // TODO: Clearly non-Id-expr's need to also support being
-            // called :(
-            ast::Expr::Call(Box::new(ast::Expr::Id(id!(id))), ast_args)
+            ast::Expr::Call(Box::new(to_ast_expr(*func)), ast_args)
         }
         pt::Expr::Ternary(cond, pos, neg) => {
             let ast_cond = to_ast_expr(*cond);

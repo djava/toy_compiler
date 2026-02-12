@@ -365,7 +365,7 @@ mod tests {
                     params: vec![],
                     return_type: ValueType::IntType,
                     statements: vec![pt::Statement::Expr(pt::Expr::Call(
-                        "print",
+                        Box::new(pt::Expr::Id("print")),
                         vec![pt::Expr::Id("x")],
                     ))],
                 }],
@@ -409,7 +409,7 @@ mod tests {
                     name: "main",
                     params: vec![],
                     return_type: ValueType::IntType,
-                    statements: vec![pt::Statement::Expr(pt::Expr::Call("oogabooga", vec![]))],
+                    statements: vec![pt::Statement::Expr(pt::Expr::Call(Box::new(pt::Expr::Id("oogabooga")), vec![]))],
                 }],
             },
             expected_ast: ast::Program {
@@ -465,7 +465,7 @@ mod tests {
                     params: vec![],
                     return_type: ValueType::IntType,
                     statements: vec![pt::Statement::Expr(pt::Expr::Call(
-                        "print",
+                        Box::new(pt::Expr::Id("print")),
                         vec![pt::Expr::Binary(
                             Box::new(pt::Expr::Parens(Box::new(pt::Expr::Binary(
                                 Box::new(pt::Expr::Int(1)),
@@ -477,7 +477,7 @@ mod tests {
                                 )))),
                             )))),
                             pt::Operator::Minus,
-                            Box::new(pt::Expr::Call("read_int", vec![])),
+                            Box::new(pt::Expr::Call(Box::new(pt::Expr::Id("read_int")), vec![])),
                         )],
                     ))],
                 }],
@@ -543,7 +543,7 @@ mod tests {
                     params: vec![],
                     return_type: ValueType::IntType,
                     statements: vec![pt::Statement::Expr(pt::Expr::Call(
-                        "print",
+                        Box::new(pt::Expr::Id("print")),
                         vec![
                             pt::Expr::Id("x"),
                             pt::Expr::Id("y"),
@@ -604,7 +604,7 @@ mod tests {
                     return_type: ValueType::IntType,
                     statements: vec![pt::Statement::Assign(
                         "x",
-                        pt::Expr::Call("Fffoo", vec![pt::Expr::Int(1)]),
+                        pt::Expr::Call(Box::new(pt::Expr::Id("Fffoo")), vec![pt::Expr::Int(1)]),
                     )],
                 }],
             },
@@ -668,7 +668,7 @@ whatevn = x
                     return_type: ValueType::IntType,
                     statements: vec![
                         pt::Statement::Assign("x", pt::Expr::Int(100)),
-                        pt::Statement::Expr(pt::Expr::Call("print", vec![pt::Expr::Int(1000)])),
+                        pt::Statement::Expr(pt::Expr::Call(Box::new(pt::Expr::Id("print")), vec![pt::Expr::Int(1000)])),
                         pt::Statement::Assign("whatevn", pt::Expr::Id("x")),
                         pt::Statement::Expr(pt::Expr::Binary(
                             Box::new(pt::Expr::Int(101010)),
@@ -853,7 +853,7 @@ whatevn = x
                     params: vec![],
                     return_type: ValueType::IntType,
                     statements: vec![pt::Statement::Expr(pt::Expr::Call(
-                        "truefoofalse",
+                        Box::new(pt::Expr::Id("truefoofalse")),
                         vec![pt::Expr::Binary(
                             Box::new(pt::Expr::Binary(
                                 Box::new(pt::Expr::Unary(
@@ -1314,7 +1314,7 @@ else { 3 }
                             Box::new(pt::Expr::Int(1)),
                         ),
                         vec![pt::Statement::Expr(pt::Expr::Call(
-                            "print",
+                            Box::new(pt::Expr::Id("print")),
                             vec![pt::Expr::Id("x")],
                         ))],
                     )],
@@ -1389,7 +1389,7 @@ if true { x = 1
                         pt::Expr::Bool(true),
                         vec![
                             pt::Statement::Assign("x", pt::Expr::Int(1)),
-                            pt::Statement::Expr(pt::Expr::Call("print", vec![pt::Expr::Id("x")])),
+                            pt::Statement::Expr(pt::Expr::Call(Box::new(pt::Expr::Id("print")), vec![pt::Expr::Id("x")])),
                         ],
                     )],
                 }],
@@ -1870,7 +1870,7 @@ else { 5 }
                                 pt::Operator::Plus,
                                 Box::new(pt::Expr::Int(2)),
                             ),
-                            pt::Expr::Call("read_int", vec![]),
+                            pt::Expr::Call(Box::new(pt::Expr::Id("read_int")), vec![]),
                             pt::Expr::Bool(true),
                         ]),
                     )],
@@ -2039,7 +2039,7 @@ else { 5 }
                     params: vec![],
                     return_type: ValueType::IntType,
                     statements: vec![pt::Statement::Expr(pt::Expr::Call(
-                        "print",
+                        Box::new(pt::Expr::Id("print")),
                         vec![pt::Expr::Tuple(vec![pt::Expr::Int(1), pt::Expr::Int(2)])],
                     ))],
                 }],
@@ -2281,7 +2281,7 @@ else { 5 }
                     params: vec![],
                     return_type: ValueType::IntType,
                     statements: vec![pt::Statement::Expr(pt::Expr::Subscript(
-                        Box::new(pt::Expr::Call("foo", vec![])),
+                        Box::new(pt::Expr::Call(Box::new(pt::Expr::Id("foo")), vec![])),
                         0,
                     ))],
                 }],
@@ -2970,7 +2970,7 @@ x[0] = 42
                     params: vec![],
                     return_type: ValueType::NoneType,
                     statements: vec![pt::Statement::Expr(
-                        pt::Expr::Call("print_int", vec![pt::Expr::Int(42)]),
+                        pt::Expr::Call(Box::new(pt::Expr::Id("print_int")), vec![pt::Expr::Int(42)]),
                     )],
                 }],
             },
@@ -3178,8 +3178,8 @@ x[0] = 42
                         params: vec![],
                         return_type: ValueType::IntType,
                         statements: vec![pt::Statement::Expr(pt::Expr::Call(
-                            "print_int",
-                            vec![pt::Expr::Call("double", vec![pt::Expr::Int(21)])],
+                            Box::new(pt::Expr::Id("print_int")),
+                            vec![pt::Expr::Call(Box::new(pt::Expr::Id("double")), vec![pt::Expr::Int(21)])],
                         ))],
                     },
                 ],
@@ -3284,7 +3284,7 @@ x[0] = 42
                     return_type: ValueType::IntType,
                     statements: vec![
                         pt::Statement::Assign("x", pt::Expr::Int(10)),
-                        pt::Statement::Expr(pt::Expr::Call("print_int", vec![pt::Expr::Id("x")])),
+                        pt::Statement::Expr(pt::Expr::Call(Box::new(pt::Expr::Id("print_int")), vec![pt::Expr::Id("x")])),
                         pt::Statement::Return(Some(pt::Expr::Id("x"))),
                     ],
                 }],
@@ -3548,6 +3548,127 @@ x[0] = 42
                             ValueType::BoolType,
                         ]),
                     )]),
+                    return_type: ValueType::IntType,
+                }],
+                function_types: HashMap::new(),
+            },
+        };
+        tc.run();
+    }
+
+    #[test]
+    fn test_ternary_call() {
+        // (i == 0 ? a : b)(10) — call result of ternary expression
+        let tc = ParserTestCase {
+            input_str: r"fn main() -> int { (i == 0 ? a : b)(10) }",
+            expected_tokens: vec![
+                Token::Fn,
+                Token::Identifier("main"),
+                Token::OpenParen,
+                Token::CloseParen,
+                Token::RightArrow,
+                Token::IntType,
+                Token::OpenCurly,
+                Token::OpenParen,
+                Token::Identifier("i"),
+                Token::DoubleEquals,
+                Token::Int(0),
+                Token::QuestionMark,
+                Token::Identifier("a"),
+                Token::Colon,
+                Token::Identifier("b"),
+                Token::CloseParen,
+                Token::OpenParen,
+                Token::Int(10),
+                Token::CloseParen,
+                Token::CloseCurly,
+            ],
+            expected_parse_tree: pt::Module {
+                functions: vec![pt::Function {
+                    name: "main",
+                    params: vec![],
+                    return_type: ValueType::IntType,
+                    statements: vec![pt::Statement::Expr(pt::Expr::Call(
+                        Box::new(pt::Expr::Parens(Box::new(pt::Expr::Ternary(
+                            Box::new(pt::Expr::Binary(
+                                Box::new(pt::Expr::Id("i")),
+                                pt::Operator::Equals,
+                                Box::new(pt::Expr::Int(0)),
+                            )),
+                            Box::new(pt::Expr::Id("a")),
+                            Box::new(pt::Expr::Id("b")),
+                        )))),
+                        vec![pt::Expr::Int(10)],
+                    ))],
+                }],
+            },
+            expected_ast: ast::Program {
+                functions: vec![ast::Function {
+                    name: t_id!(LABEL_MAIN),
+                    body: vec![ast::Statement::Expr(ast::Expr::Call(
+                        Box::new(ast::Expr::Ternary(
+                            Box::new(ast::Expr::BinaryOp(
+                                Box::new(ast::Expr::Id(t_id!("i"))),
+                                BinaryOperator::Equals,
+                                Box::new(ast::Expr::Constant(Value::I64(0))),
+                            )),
+                            Box::new(ast::Expr::Id(t_id!("a"))),
+                            Box::new(ast::Expr::Id(t_id!("b"))),
+                        )),
+                        vec![ast::Expr::Constant(Value::I64(10))],
+                    ))],
+                    types: HashMap::new(),
+                    params: IndexMap::new(),
+                    return_type: ValueType::IntType,
+                }],
+                function_types: HashMap::new(),
+            },
+        };
+        tc.run();
+    }
+
+    #[test]
+    fn test_subscript_call() {
+        // t[0](10) — call function obtained by subscripting a tuple
+        let tc = ParserTestCase {
+            input_str: r"fn main() -> int { t[0](10) }",
+            expected_tokens: vec![
+                Token::Fn,
+                Token::Identifier("main"),
+                Token::OpenParen,
+                Token::CloseParen,
+                Token::RightArrow,
+                Token::IntType,
+                Token::OpenCurly,
+                Token::Identifier("t"),
+                Token::OpenBracket,
+                Token::Int(0),
+                Token::CloseBracket,
+                Token::OpenParen,
+                Token::Int(10),
+                Token::CloseParen,
+                Token::CloseCurly,
+            ],
+            expected_parse_tree: pt::Module {
+                functions: vec![pt::Function {
+                    name: "main",
+                    params: vec![],
+                    return_type: ValueType::IntType,
+                    statements: vec![pt::Statement::Expr(pt::Expr::Call(
+                        Box::new(pt::Expr::Subscript(Box::new(pt::Expr::Id("t")), 0)),
+                        vec![pt::Expr::Int(10)],
+                    ))],
+                }],
+            },
+            expected_ast: ast::Program {
+                functions: vec![ast::Function {
+                    name: t_id!(LABEL_MAIN),
+                    body: vec![ast::Statement::Expr(ast::Expr::Call(
+                        Box::new(ast::Expr::Subscript(Box::new(ast::Expr::Id(t_id!("t"))), 0)),
+                        vec![ast::Expr::Constant(Value::I64(10))],
+                    ))],
+                    types: HashMap::new(),
+                    params: IndexMap::new(),
                     return_type: ValueType::IntType,
                 }],
                 function_types: HashMap::new(),
