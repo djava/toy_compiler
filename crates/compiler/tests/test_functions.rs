@@ -1515,3 +1515,189 @@ fn main() {
         expected_outputs: VecDeque::from(vec![1, 3, 7, 29]),
     });
 }
+
+// ── First-class functions (functions as values) ─────────────────
+
+#[test]
+fn test_function_stored_in_variable() {
+    // f = double; f(21)
+    execute_test_case(TestCase {
+        input: "fn double(x: int) -> int {
+    return x + x
+}
+
+fn main() {
+    f = double
+    print_int(f(21))
+}",
+        inputs: VecDeque::new(),
+        expected_outputs: VecDeque::from(vec![42]),
+    });
+}
+
+#[test]
+fn test_function_variable_reassigned() {
+    // Variable holds one function, then gets reassigned to another
+    execute_test_case(TestCase {
+        input: "fn double(x: int) -> int {
+    return x + x
+}
+
+fn inc(x: int) -> int {
+    return x + 1
+}
+
+fn main() {
+    f = double
+    print_int(f(5))
+    f = inc
+    print_int(f(5))
+}",
+        inputs: VecDeque::new(),
+        expected_outputs: VecDeque::from(vec![10, 6]),
+    });
+}
+
+#[test]
+fn test_function_variable_selected_by_condition() {
+    // Store different functions based on a condition, then call
+    execute_test_case(TestCase {
+        input: "fn double(x: int) -> int {
+    return x + x
+}
+
+fn negate(x: int) -> int {
+    return 0 - x
+}
+
+fn main() {
+    flag = read_int()
+    if flag > 0 {
+        f = double
+    } else {
+        f = negate
+    }
+    print_int(f(7))
+}",
+        inputs: VecDeque::from(vec![1]),
+        expected_outputs: VecDeque::from(vec![14]),
+    });
+}
+
+#[test]
+fn test_function_variable_selected_by_condition_negative() {
+    execute_test_case(TestCase {
+        input: "fn double(x: int) -> int {
+    return x + x
+}
+
+fn negate(x: int) -> int {
+    return 0 - x
+}
+
+fn main() {
+    flag = read_int()
+    if flag > 0 {
+        f = double
+    } else {
+        f = negate
+    }
+    print_int(f(7))
+}",
+        inputs: VecDeque::from(vec![-1]),
+        expected_outputs: VecDeque::from(vec![-7]),
+    });
+}
+
+#[test]
+fn test_indirect_call_in_loop() {
+    // Call function through variable inside a loop
+    execute_test_case(TestCase {
+        input: "fn inc(x: int) -> int {
+    return x + 1
+}
+
+fn main() {
+    f = inc
+    x = 0
+    i = 0
+    while i < 5 {
+        x = f(x)
+        i = i + 1
+    }
+    print_int(x)
+}",
+        inputs: VecDeque::new(),
+        expected_outputs: VecDeque::from(vec![5]),
+    });
+}
+
+#[test]
+fn test_function_variable_called_multiple_times() {
+    // Same function variable called with different arguments
+    execute_test_case(TestCase {
+        input: "fn square(x: int) -> int {
+    return x * x
+}
+
+fn main() {
+    f = square
+    print_int(f(3))
+    print_int(f(4))
+    print_int(f(5))
+}",
+        inputs: VecDeque::new(),
+        expected_outputs: VecDeque::from(vec![9, 16, 25]),
+    });
+}
+
+#[test]
+fn test_function_variable_survives_call() {
+    // Function variable should still be usable after calling another function
+    execute_test_case(TestCase {
+        input: "fn double(x: int) -> int {
+    return x + x
+}
+
+fn add(a: int, b: int) -> int {
+    return a + b
+}
+
+fn main() {
+    f = double
+    y = add(1, 2)
+    print_int(f(y))
+}",
+        inputs: VecDeque::new(),
+        // f = double, y = 3, double(3) = 6
+        expected_outputs: VecDeque::from(vec![6]),
+    });
+}
+
+#[test]
+fn test_function_variable_in_both_branches() {
+    // Assign function variable in both branches, use after
+    execute_test_case(TestCase {
+        input: "fn inc(x: int) -> int {
+    return x + 1
+}
+
+fn dec(x: int) -> int {
+    return x - 1
+}
+
+fn main() {
+    x = read_int()
+    if x > 0 {
+        f = inc
+    } else {
+        f = dec
+    }
+    print_int(f(10))
+    print_int(f(f(10)))
+}",
+        inputs: VecDeque::from(vec![1]),
+        // f = inc, inc(10) = 11, inc(inc(10)) = 12
+        expected_outputs: VecDeque::from(vec![11, 12]),
+    });
+}

@@ -15,11 +15,23 @@ enum Continuation {
     Exit,
 }
 
-fn interpret_atom(atom: &Atom, env: &mut ValueEnv) -> Value {
+fn interpret_atom(atom: &Atom, env: &mut ValueEnv, func_env: &Vec<Function>) -> Value {
     match atom {
         Atom::Constant(value) => value.clone(),
         Atom::Variable(id) => env[id].clone(),
-        Atom::GlobalSymbol(_) => Value::I64(0), // I'm not sure about this but it's what the textbook code does
+        Atom::GlobalSymbol(id) => {
+            if let Some(func) = func_env.iter().find(|f| f.name == *id) {
+                Value::Function(
+                    id.clone(),
+                    func.params.values().cloned().collect(),
+                    func.return_type.clone(),
+                )
+            } else if let Some(val) = env.get(id) {
+                val.clone()
+            } else {
+                Value::I64(0)
+            }
+        }
     }
 }
 
@@ -39,14 +51,14 @@ fn interpret_expr(
     func_env: &Vec<Function>,
 ) -> Value {
     match expr {
-        Expr::Atom(atom) => interpret_atom(atom, val_env).clone(),
+        Expr::Atom(atom) => interpret_atom(atom, val_env, func_env).clone(),
         Expr::UnaryOp(op, atom) => {
-            let val = interpret_atom(&atom, val_env);
+            let val = interpret_atom(&atom, val_env, func_env);
             op.try_eval(&val).unwrap()
         }
         Expr::BinaryOp(l_atom, op, r_atom) => {
-            let l_val = interpret_atom(&l_atom, val_env);
-            let r_val = interpret_atom(&r_atom, val_env);
+            let l_val = interpret_atom(&l_atom, val_env, func_env);
+            let r_val = interpret_atom(&r_atom, val_env, func_env);
 
             op.try_eval(&l_val, &r_val).unwrap()
         }
@@ -56,7 +68,7 @@ fn interpret_expr(
                     panic!("Wrong number of arguments to print_int()");
                 }
 
-                if let Value::I64(val) = interpret_atom(&args[0], val_env) {
+                if let Value::I64(val) = interpret_atom(&args[0], val_env, func_env) {
                     outputs.push_back(val.clone());
                 } else {
                     panic!("Wrong argument type to print_int()");
@@ -74,20 +86,34 @@ fn interpret_expr(
                     panic!("Overflowed inputs");
                 }
             } else {
+                // Resolve the function name — either directly from a GlobalSymbol,
+                // or indirectly through a Variable holding a Function value
+                let resolved_name = match func_name {
+                    Atom::GlobalSymbol(id) => id.clone(),
+                    Atom::Variable(id) => {
+                        if let Value::Function(name, _, _) = &val_env[id] {
+                            name.clone()
+                        } else {
+                            panic!("Called non-function variable: {id:?}");
+                        }
+                    }
+                    _ => panic!("Invalid callee: {func_name:?}"),
+                };
+
                 if let Some(func) = func_env
                     .iter()
-                    .find(|f| Atom::GlobalSymbol(f.name.clone()) == *func_name)
+                    .find(|f| f.name == resolved_name)
                 {
-                    let arg_vals = args.iter().map(|a| interpret_atom(a, val_env)).collect();
+                    let arg_vals = args.iter().map(|a| interpret_atom(a, val_env, func_env)).collect();
                     return interpret_func(func, arg_vals, inputs, outputs, func_env);
                 } else {
-                    panic!();
+                    panic!("Unknown function: {resolved_name:?}");
                 }
             }
         }
         Expr::Allocate(n, _) => Value::Tuple(vec![Value::None; *n]),
         Expr::Subscript(atom, idx) => {
-            if let Value::Tuple(elems) = interpret_atom(atom, val_env) {
+            if let Value::Tuple(elems) = interpret_atom(atom, val_env, func_env) {
                 elems[*idx as usize].clone()
             } else {
                 panic!("Subscripted non-tuple")
@@ -124,7 +150,7 @@ fn interpret_statement(
             } 
             Continuation::Next
         }
-        Statement::Return(expr) => Continuation::Return(interpret_atom(expr, val_env)),
+        Statement::Return(expr) => Continuation::Return(interpret_atom(expr, val_env, func_env)),
         Statement::Goto(label) => Continuation::Jump(label.clone()),
         Statement::If(cond, pos_label, neg_label) => {
             let result = interpret_expr(cond, inputs, outputs, val_env, func_env).expect_bool();

@@ -39,6 +39,7 @@ pub type BlockMap = IndexMap<Identifier, Block>;
 pub struct Function {
     pub name: Identifier,
     pub params: IndexMap<Identifier, ValueType>,
+    pub return_type: ValueType,
     pub blocks: BlockMap,
     pub entry_block: Identifier,
     pub exit_block: Identifier,

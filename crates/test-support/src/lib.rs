@@ -25,3 +25,7 @@ pub fn ast_print_int(e: ast::Expr) -> ast::Expr {
 pub fn ast_const_int(i: i64) -> ast::Expr {
     ast::Expr::Constant(Value::I64(i))
 }
+
+pub fn ast_call(name: &str, args: Vec<ast::Expr>) -> ast::Expr {
+    ast::Expr::Call(Box::new(ast::Expr::GlobalSymbol(id!(name))), args)
+}

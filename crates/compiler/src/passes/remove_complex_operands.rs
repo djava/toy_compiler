@@ -374,7 +374,7 @@ mod tests {
         ast_interpreter::interpret,
         compiler::{
             constants::LABEL_MAIN,
-            passes::{ASTPass, RemoveComplexOperands},
+            passes::{ASTPass, GlobalizeFunctions, RemoveComplexOperands},
             syntax_trees::{ast::*, shared::*},
         },
     };
@@ -467,9 +467,10 @@ mod tests {
 
     fn execute_test_case(mut tc: TestCase) {
         tc.ast.type_check();
+        let globalized = GlobalizeFunctions.run_pass(tc.ast);
 
-        println!("AST before RCO: {:#?}", tc.ast);
-        let mut post_run_ast = RemoveComplexOperands.run_pass(tc.ast);
+        println!("AST before RCO: {:#?}", globalized);
+        let mut post_run_ast = RemoveComplexOperands.run_pass(globalized);
         println!("AST after RCO: {:#?}", post_run_ast);
 
         post_run_ast.type_check();
@@ -983,6 +984,327 @@ mod tests {
             },
             inputs: VecDeque::from(vec![1, 2, 3]),
             expected_outputs: VecDeque::from(vec![1 + 10 + 15, 2 + 10 + 15, 3 + 10 + 15]),
+        });
+    }
+
+    #[test]
+    fn test_first_class_function_call() {
+        // First-class function: pass `double` as an argument to `apply`
+        //
+        // fn double(x: int) -> int { return x + x }
+        // fn apply(f: (int) -> int, x: int) -> int { return f(x) }
+        // fn main() { print_int(apply(double, 20 + 1)) }
+        // Expected: 42
+        let fn_int_to_int =
+            ValueType::FunctionType(vec![ValueType::IntType], Box::new(ValueType::IntType));
+
+        execute_test_case(TestCase {
+            ast: Program {
+                functions: vec![
+                    Function {
+                        name: t_id!("double"),
+                        body: vec![Statement::Return(Expr::BinaryOp(
+                            Box::new(Expr::Id(t_id!("x"))),
+                            BinaryOperator::Add,
+                            Box::new(Expr::Id(t_id!("x"))),
+                        ))],
+                        types: TypeEnv::new(),
+                        params: IndexMap::from([(t_id!("x"), ValueType::IntType)]),
+                        return_type: ValueType::IntType,
+                    },
+                    Function {
+                        name: t_id!("apply"),
+                        // body: return f(x) — f is a parameter, called indirectly
+                        body: vec![Statement::Return(Expr::Call(
+                            Box::new(Expr::Id(t_id!("f"))),
+                            vec![Expr::Id(t_id!("x"))],
+                        ))],
+                        types: TypeEnv::new(),
+                        params: IndexMap::from([
+                            (t_id!("f"), fn_int_to_int.clone()),
+                            (t_id!("x"), ValueType::IntType),
+                        ]),
+                        return_type: ValueType::IntType,
+                    },
+                    Function {
+                        name: t_id!(LABEL_MAIN),
+                        // body: print_int(apply(double, 20 + 1))
+                        body: vec![Statement::Expr(Expr::Call(
+                            Box::new(Expr::Id(t_id!("print_int"))),
+                            vec![Expr::Call(
+                                Box::new(Expr::Id(t_id!("apply"))),
+                                vec![
+                                    Expr::Id(t_id!("double")),
+                                    Expr::BinaryOp(
+                                        Box::new(Expr::Constant(Value::I64(20))),
+                                        BinaryOperator::Add,
+                                        Box::new(Expr::Constant(Value::I64(1))),
+                                    ),
+                                ],
+                            )],
+                        ))],
+                        types: TypeEnv::new(),
+                        params: IndexMap::new(),
+                        return_type: ValueType::IntType,
+                    },
+                ],
+                function_types: TypeEnv::new(),
+            },
+            inputs: VecDeque::new(),
+            expected_outputs: VecDeque::from(vec![42]),
+        });
+    }
+
+    #[test]
+    fn test_ternary_as_callee() {
+        // Expression-as-function: ternary selects which function to call
+        //
+        // fn double(x: int) -> int { return x + x }
+        // fn negate(x: int) -> int { return 0 - x }
+        // fn main() { print_int((true ? double : negate)(5)) }
+        // Expected: 10
+        execute_test_case(TestCase {
+            ast: Program {
+                functions: vec![
+                    Function {
+                        name: t_id!("double"),
+                        body: vec![Statement::Return(Expr::BinaryOp(
+                            Box::new(Expr::Id(t_id!("x"))),
+                            BinaryOperator::Add,
+                            Box::new(Expr::Id(t_id!("x"))),
+                        ))],
+                        types: TypeEnv::new(),
+                        params: IndexMap::from([(t_id!("x"), ValueType::IntType)]),
+                        return_type: ValueType::IntType,
+                    },
+                    Function {
+                        name: t_id!("negate"),
+                        body: vec![Statement::Return(Expr::BinaryOp(
+                            Box::new(Expr::Constant(Value::I64(0))),
+                            BinaryOperator::Subtract,
+                            Box::new(Expr::Id(t_id!("x"))),
+                        ))],
+                        types: TypeEnv::new(),
+                        params: IndexMap::from([(t_id!("x"), ValueType::IntType)]),
+                        return_type: ValueType::IntType,
+                    },
+                    Function {
+                        name: t_id!(LABEL_MAIN),
+                        // print_int((true ? double : negate)(5))
+                        body: vec![Statement::Expr(Expr::Call(
+                            Box::new(Expr::Id(t_id!("print_int"))),
+                            vec![Expr::Call(
+                                Box::new(Expr::Ternary(
+                                    Box::new(Expr::Constant(Value::Bool(true))),
+                                    Box::new(Expr::Id(t_id!("double"))),
+                                    Box::new(Expr::Id(t_id!("negate"))),
+                                )),
+                                vec![Expr::Constant(Value::I64(5))],
+                            )],
+                        ))],
+                        types: TypeEnv::new(),
+                        params: IndexMap::new(),
+                        return_type: ValueType::IntType,
+                    },
+                ],
+                function_types: TypeEnv::new(),
+            },
+            inputs: VecDeque::new(),
+            expected_outputs: VecDeque::from(vec![10]),
+        });
+    }
+
+    #[test]
+    fn test_ternary_as_callee_false_branch() {
+        // Same as above but ternary takes the false branch
+        //
+        // fn double(x: int) -> int { return x + x }
+        // fn negate(x: int) -> int { return 0 - x }
+        // fn main() { print_int((false ? double : negate)(5)) }
+        // Expected: -5
+        execute_test_case(TestCase {
+            ast: Program {
+                functions: vec![
+                    Function {
+                        name: t_id!("double"),
+                        body: vec![Statement::Return(Expr::BinaryOp(
+                            Box::new(Expr::Id(t_id!("x"))),
+                            BinaryOperator::Add,
+                            Box::new(Expr::Id(t_id!("x"))),
+                        ))],
+                        types: TypeEnv::new(),
+                        params: IndexMap::from([(t_id!("x"), ValueType::IntType)]),
+                        return_type: ValueType::IntType,
+                    },
+                    Function {
+                        name: t_id!("negate"),
+                        body: vec![Statement::Return(Expr::BinaryOp(
+                            Box::new(Expr::Constant(Value::I64(0))),
+                            BinaryOperator::Subtract,
+                            Box::new(Expr::Id(t_id!("x"))),
+                        ))],
+                        types: TypeEnv::new(),
+                        params: IndexMap::from([(t_id!("x"), ValueType::IntType)]),
+                        return_type: ValueType::IntType,
+                    },
+                    Function {
+                        name: t_id!(LABEL_MAIN),
+                        // print_int((false ? double : negate)(5))
+                        body: vec![Statement::Expr(Expr::Call(
+                            Box::new(Expr::Id(t_id!("print_int"))),
+                            vec![Expr::Call(
+                                Box::new(Expr::Ternary(
+                                    Box::new(Expr::Constant(Value::Bool(false))),
+                                    Box::new(Expr::Id(t_id!("double"))),
+                                    Box::new(Expr::Id(t_id!("negate"))),
+                                )),
+                                vec![Expr::Constant(Value::I64(5))],
+                            )],
+                        ))],
+                        types: TypeEnv::new(),
+                        params: IndexMap::new(),
+                        return_type: ValueType::IntType,
+                    },
+                ],
+                function_types: TypeEnv::new(),
+            },
+            inputs: VecDeque::new(),
+            expected_outputs: VecDeque::from(vec![-5]),
+        });
+    }
+
+    #[test]
+    fn test_function_variable_as_callee() {
+        // Function stored in variable, then called through that variable
+        //
+        // fn double(x: int) -> int { return x + x }
+        // fn main() { f = double; print_int(f(21)) }
+        // Expected: 42
+        execute_test_case(TestCase {
+            ast: Program {
+                functions: vec![
+                    Function {
+                        name: t_id!("double"),
+                        body: vec![Statement::Return(Expr::BinaryOp(
+                            Box::new(Expr::Id(t_id!("x"))),
+                            BinaryOperator::Add,
+                            Box::new(Expr::Id(t_id!("x"))),
+                        ))],
+                        types: TypeEnv::new(),
+                        params: IndexMap::from([(t_id!("x"), ValueType::IntType)]),
+                        return_type: ValueType::IntType,
+                    },
+                    Function {
+                        name: t_id!(LABEL_MAIN),
+                        // f = double; print_int(f(21))
+                        body: vec![
+                            Statement::Assign(
+                                AssignDest::Id(t_id!("f")),
+                                Expr::Id(t_id!("double")),
+                            ),
+                            Statement::Expr(Expr::Call(
+                                Box::new(Expr::Id(t_id!("print_int"))),
+                                vec![Expr::Call(
+                                    Box::new(Expr::Id(t_id!("f"))),
+                                    vec![Expr::Constant(Value::I64(21))],
+                                )],
+                            )),
+                        ],
+                        types: TypeEnv::new(),
+                        params: IndexMap::new(),
+                        return_type: ValueType::IntType,
+                    },
+                ],
+                function_types: TypeEnv::new(),
+            },
+            inputs: VecDeque::new(),
+            expected_outputs: VecDeque::from(vec![42]),
+        });
+    }
+
+    #[test]
+    fn test_apply_with_different_functions() {
+        // Apply the same higher-order function with two different function arguments
+        //
+        // fn double(x: int) -> int { return x + x }
+        // fn inc(x: int) -> int { return x + 1 }
+        // fn apply(f: (int) -> int, x: int) -> int { return f(x) }
+        // fn main() { print_int(apply(double, 10)); print_int(apply(inc, 10)) }
+        // Expected: 20, 11
+        let fn_int_to_int =
+            ValueType::FunctionType(vec![ValueType::IntType], Box::new(ValueType::IntType));
+
+        execute_test_case(TestCase {
+            ast: Program {
+                functions: vec![
+                    Function {
+                        name: t_id!("double"),
+                        body: vec![Statement::Return(Expr::BinaryOp(
+                            Box::new(Expr::Id(t_id!("x"))),
+                            BinaryOperator::Add,
+                            Box::new(Expr::Id(t_id!("x"))),
+                        ))],
+                        types: TypeEnv::new(),
+                        params: IndexMap::from([(t_id!("x"), ValueType::IntType)]),
+                        return_type: ValueType::IntType,
+                    },
+                    Function {
+                        name: t_id!("inc"),
+                        body: vec![Statement::Return(Expr::BinaryOp(
+                            Box::new(Expr::Id(t_id!("x"))),
+                            BinaryOperator::Add,
+                            Box::new(Expr::Constant(Value::I64(1))),
+                        ))],
+                        types: TypeEnv::new(),
+                        params: IndexMap::from([(t_id!("x"), ValueType::IntType)]),
+                        return_type: ValueType::IntType,
+                    },
+                    Function {
+                        name: t_id!("apply"),
+                        body: vec![Statement::Return(Expr::Call(
+                            Box::new(Expr::Id(t_id!("f"))),
+                            vec![Expr::Id(t_id!("x"))],
+                        ))],
+                        types: TypeEnv::new(),
+                        params: IndexMap::from([
+                            (t_id!("f"), fn_int_to_int.clone()),
+                            (t_id!("x"), ValueType::IntType),
+                        ]),
+                        return_type: ValueType::IntType,
+                    },
+                    Function {
+                        name: t_id!(LABEL_MAIN),
+                        body: vec![
+                            Statement::Expr(Expr::Call(
+                                Box::new(Expr::Id(t_id!("print_int"))),
+                                vec![Expr::Call(
+                                    Box::new(Expr::Id(t_id!("apply"))),
+                                    vec![
+                                        Expr::Id(t_id!("double")),
+                                        Expr::Constant(Value::I64(10)),
+                                    ],
+                                )],
+                            )),
+                            Statement::Expr(Expr::Call(
+                                Box::new(Expr::Id(t_id!("print_int"))),
+                                vec![Expr::Call(
+                                    Box::new(Expr::Id(t_id!("apply"))),
+                                    vec![
+                                        Expr::Id(t_id!("inc")),
+                                        Expr::Constant(Value::I64(10)),
+                                    ],
+                                )],
+                            )),
+                        ],
+                        types: TypeEnv::new(),
+                        params: IndexMap::new(),
+                        return_type: ValueType::IntType,
+                    },
+                ],
+                function_types: TypeEnv::new(),
+            },
+            inputs: VecDeque::new(),
+            expected_outputs: VecDeque::from(vec![20, 11]),
         });
     }
 }

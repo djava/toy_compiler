@@ -85,3 +85,121 @@ fn globalize_for_expr(e: &mut Expr, func_types: &TypeEnv) {
         Expr::Allocate(_, _) | Expr::Constant(_) | Expr::GlobalSymbol(_) => {}
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use crate::utils::t_id;
+    use indexmap::IndexMap;
+    use test_support::compiler::{
+        constants::LABEL_MAIN,
+        passes::{ASTPass, GlobalizeFunctions},
+        syntax_trees::{ast::*, shared::*},
+    };
+
+    #[test]
+    fn test_globalize_call_func() {
+        // Call(Id("foo"), [Const(1)]) should become Call(GlobalSymbol("foo"), [Const(1)])
+        // when "foo" is in function_types
+        let program = Program {
+            functions: vec![Function {
+                name: t_id!(LABEL_MAIN),
+                body: vec![Statement::Expr(Expr::Call(
+                    Box::new(Expr::Id(t_id!("foo"))),
+                    vec![Expr::Constant(Value::I64(1))],
+                ))],
+                types: TypeEnv::new(),
+                params: IndexMap::new(),
+                return_type: ValueType::IntType,
+            }],
+            function_types: TypeEnv::from([(
+                t_id!("foo"),
+                ValueType::FunctionType(vec![ValueType::IntType], Box::new(ValueType::IntType)),
+            )]),
+        };
+
+        let result = GlobalizeFunctions.run_pass(program);
+        let body = &result.functions[0].body;
+
+        assert_eq!(
+            body[0],
+            Statement::Expr(Expr::Call(
+                Box::new(Expr::GlobalSymbol(t_id!("foo"))),
+                vec![Expr::Constant(Value::I64(1))],
+            ))
+        );
+    }
+
+    #[test]
+    fn test_globalize_func_as_arg() {
+        // Call(GlobalSymbol("bar"), [Id("foo")]) should globalize the arg Id("foo")
+        // to GlobalSymbol("foo") when "foo" is a function
+        let program = Program {
+            functions: vec![Function {
+                name: t_id!(LABEL_MAIN),
+                body: vec![Statement::Expr(Expr::Call(
+                    Box::new(Expr::GlobalSymbol(t_id!("bar"))),
+                    vec![Expr::Id(t_id!("foo"))],
+                ))],
+                types: TypeEnv::new(),
+                params: IndexMap::new(),
+                return_type: ValueType::IntType,
+            }],
+            function_types: TypeEnv::from([
+                (
+                    t_id!("foo"),
+                    ValueType::FunctionType(vec![], Box::new(ValueType::IntType)),
+                ),
+                (
+                    t_id!("bar"),
+                    ValueType::FunctionType(
+                        vec![ValueType::FunctionType(vec![], Box::new(ValueType::IntType))],
+                        Box::new(ValueType::NoneType),
+                    ),
+                ),
+            ]),
+        };
+
+        let result = GlobalizeFunctions.run_pass(program);
+        let body = &result.functions[0].body;
+
+        assert_eq!(
+            body[0],
+            Statement::Expr(Expr::Call(
+                Box::new(Expr::GlobalSymbol(t_id!("bar"))),
+                vec![Expr::GlobalSymbol(t_id!("foo"))],
+            ))
+        );
+    }
+
+    #[test]
+    fn test_globalize_leaves_local_vars_alone() {
+        // Call(Id("foo"), [Id("x")]) where "x" is NOT a function should leave "x" as Id
+        let program = Program {
+            functions: vec![Function {
+                name: t_id!(LABEL_MAIN),
+                body: vec![Statement::Expr(Expr::Call(
+                    Box::new(Expr::Id(t_id!("foo"))),
+                    vec![Expr::Id(t_id!("x"))],
+                ))],
+                types: TypeEnv::new(),
+                params: IndexMap::new(),
+                return_type: ValueType::IntType,
+            }],
+            function_types: TypeEnv::from([(
+                t_id!("foo"),
+                ValueType::FunctionType(vec![ValueType::IntType], Box::new(ValueType::IntType)),
+            )]),
+        };
+
+        let result = GlobalizeFunctions.run_pass(program);
+        let body = &result.functions[0].body;
+
+        assert_eq!(
+            body[0],
+            Statement::Expr(Expr::Call(
+                Box::new(Expr::GlobalSymbol(t_id!("foo"))),
+                vec![Expr::Id(t_id!("x"))], // x stays as Id since it's not a function
+            ))
+        );
+    }
+}
