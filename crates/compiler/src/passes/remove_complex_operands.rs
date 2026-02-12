@@ -198,7 +198,7 @@ fn rco_expr(e: &Expr, needs_atomicity: bool) -> ExprTransformation {
             new_expr: e.clone(),
             ephemeral_assigns: vec![],
         },
-        Expr::Call(name, args) => {
+        Expr::Call(func, args) => {
             let mut ephemeral_assigns = vec![];
             let mut new_args = vec![];
             // Each arg must be transformed, and all the ephermal
@@ -209,7 +209,10 @@ fn rco_expr(e: &Expr, needs_atomicity: bool) -> ExprTransformation {
                 new_args.push(arg_transform.new_expr);
             }
 
-            let transformed_call = Expr::Call(name.clone(), new_args);
+            let func_transform = rco_expr(&**func, true);
+            ephemeral_assigns.extend(func_transform.ephemeral_assigns);
+
+            let transformed_call = Expr::Call(Box::new(func_transform.new_expr), new_args);
 
             let new_expr = if needs_atomicity {
                 let id = Identifier::new_ephemeral();

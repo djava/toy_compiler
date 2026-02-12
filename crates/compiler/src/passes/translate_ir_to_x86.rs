@@ -173,17 +173,23 @@ fn translate_subscript(dest: AssignDest, atom: ir::Atom, idx: i64) -> Vec<Instr>
 }
 
 fn translate_atom(dest: AssignDest, atom: ir::Atom) -> Vec<Instr> {
+    let mut ret = vec![];
     if let AssignDest::Subscript(id, _idx) = &dest {
-        vec![
+        ret.push(
             Instr::movq(
                 x86::Arg::Variable(id.clone()),
                 x86::Arg::Reg(x86::Register::r11),
-            ),
-            Instr::movq(atom_to_arg(atom), assigndest_to_arg(dest)),
-        ]
-    } else {
-        vec![Instr::movq(atom_to_arg(atom), assigndest_to_arg(dest))]
+            ));
     }
+
+    if let ir::Atom::GlobalSymbol(_) = &atom {
+        // Global symbols (functions) must be leaq'd, not just mov'd from
+        ret.push(Instr::leaq(atom_to_arg(atom), assigndest_to_arg(dest)));
+    } else {
+        ret.push(Instr::movq(atom_to_arg(atom), assigndest_to_arg(dest)));
+    }
+
+    ret
 }
 
 fn translate_allocation(dest: AssignDest, bytes: usize, value_type: ValueType) -> Vec<Instr> {

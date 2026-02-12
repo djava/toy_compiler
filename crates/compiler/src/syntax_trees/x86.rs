@@ -204,6 +204,14 @@ fn fmt_label(label: &Identifier) -> String {
     }
 }
 
+fn fmt_arg_for_jmp_call(arg: &Arg) -> String {
+    match arg {
+        Arg::Global(id) => fmt_label(id),
+        Arg::Reg(reg) => format!("*{reg}"),
+        _ => panic!("Invalid arg for jmp/callq: {arg}")
+    }
+}
+
 impl Display for Instr {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
@@ -213,7 +221,7 @@ impl Display for Instr {
             Instr::movq(arg, arg1) => write!(f, "movq {arg}, {arg1}"),
             Instr::pushq(arg) => write!(f, "pushq {arg}"),
             Instr::popq(arg) => write!(f, "popq {arg}"),
-            Instr::callq(arg, _) => write!(f, "callq {arg}",),
+            Instr::callq(arg, _) => write!(f, "callq {}", fmt_arg_for_jmp_call(arg)),
             Instr::retq => write!(f, "retq"),
             Instr::xorq(arg, arg1) => write!(f, "xorq {arg}, {arg1}"),
             Instr::cmpq(arg, arg1) => write!(f, "cmpq {arg}, {arg1}"),
@@ -226,8 +234,8 @@ impl Display for Instr {
             Instr::andq(arg, arg1) => write!(f, "andq {arg}, {arg1}"),
             Instr::imulq(arg, arg1) => write!(f, "imulq {arg}, {arg1}"),
             Instr::leaq(arg, arg1) => write!(f, "leaq {arg}, {arg1}"),
-            Instr::callq_ind(arg, _) => write!(f, "callq *{arg}"),
-            Instr::jmp_tail(arg, _) => write!(f, "jmp *{arg}"),
+            Instr::callq_ind(arg, _) => write!(f, "callq {}", fmt_arg_for_jmp_call(arg)),
+            Instr::jmp_tail(arg, _) => write!(f, "jmp {}", fmt_arg_for_jmp_call(arg)),
         }
     }
 }
@@ -260,6 +268,7 @@ impl Display for X86Program {
             }
             writeln!(f)?;
         }
+        writeln!(f, "\t.section .note.GNU-stack,\"\",@progbits")?;
         Ok(())
     }
 }
