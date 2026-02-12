@@ -87,7 +87,7 @@ parser! {
         rule plus() -> Token<'input> = "+" { Token::Plus }
         rule minus() -> Token<'input> = "-" { Token::Minus }
         rule comma() -> Token<'input> = "," { Token::Comma }
-        rule newline() -> Token<'input> = "\n" { Token::Newline }
+        rule newline() -> Token<'input> = "\r"? "\n" { Token::Newline }
         rule open_curly() -> Token<'input> = "{" { Token::OpenCurly }
         rule close_curly() -> Token<'input> = "}" { Token::CloseCurly }
         rule open_bracket() -> Token<'input> = "[" { Token::OpenBracket }

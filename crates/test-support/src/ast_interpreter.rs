@@ -32,16 +32,19 @@ fn interpret_expr(
             }
         }
         Constant(v) => Some(v.clone()),
-        Call(name, args) => {
-            if name == &id!("read_int") && args.is_empty() {
+        Call(func, args) => {
+            if **func == GlobalSymbol(id!("read_int")) && args.is_empty() {
                 Some(Value::I64(inputs.pop_front().expect("Ran out of inputs")))
-            } else if name == &id!("print_int") && args.len() == 1 {
+            } else if **func == GlobalSymbol(id!("print_int")) && args.len() == 1 {
                 let val = interpret_expr(&args[0], inputs, outputs, val_env, func_env).expect_int();
                 outputs.push_back(val);
 
                 Some(Value::None)
             } else {
-                if let Some(func) = func_env.iter().find(|f| f.name == *name) {
+                let func_val = interpret_expr(&**func, inputs, outputs, val_env, func_env);
+                if let Some(Value::Function(name, _, _)) = func_val
+                    && let Some(func) = func_env.iter().find(|f| f.name == name)
+                {
                     let mut arg_vals = vec![];
                     for a in args {
                         let val = interpret_expr(a, inputs, outputs, val_env, func_env);
@@ -56,7 +59,7 @@ fn interpret_expr(
                         func.params
                             .iter()
                             .zip(arg_vals)
-                            .map(|((id, _typ), arg)| (AssignDest::Id(id.clone()), arg)),
+                            .map(|((id, _typ), arg)| (id.clone(), arg)),
                     );
 
                     interpret_statement_chain(
@@ -71,9 +74,9 @@ fn interpret_expr(
                 }
             }
         }
-        Id(id) => {
+        Id(id) | GlobalSymbol(id) => {
             let val = val_env
-                .get(&AssignDest::Id(id.clone()))
+                .get(id)
                 .expect(format!("Unknown variable name: {id:?}").as_str())
                 .clone();
             Some(val)
@@ -93,7 +96,13 @@ fn interpret_expr(
         }
         StatementBlock(statements, expr) => {
             if !statements.is_empty() {
-                interpret_statement_chain(&mut statements.iter(), inputs, outputs, val_env, func_env);
+                interpret_statement_chain(
+                    &mut statements.iter(),
+                    inputs,
+                    outputs,
+                    val_env,
+                    func_env,
+                );
             }
 
             interpret_expr(expr, inputs, outputs, val_env, func_env)
@@ -101,7 +110,6 @@ fn interpret_expr(
         Tuple(_exprs) => todo!(),
         Subscript(_expr, _value) => todo!(),
         Allocate(_, _value_type) => todo!(),
-        GlobalSymbol(_) => todo!(),
     }
 }
 
@@ -122,9 +130,20 @@ fn interpret_statement_chain<'a>(
             interpret_expr(e, inputs, outputs, val_env, func_env);
             return interpret_statement_chain(statements, inputs, outputs, val_env, func_env);
         }
-        Statement::Assign(id, e) => {
-            let result = interpret_expr(e, inputs, outputs, val_env, func_env).coerce_int();
-            val_env.insert(id.clone(), Value::I64(result));
+        Statement::Assign(dest, e) => {
+            let result = interpret_expr(e, inputs, outputs, val_env, func_env).unwrap();
+            match dest {
+                AssignDest::Id(id) => {
+                    val_env.insert(id.clone(), result);
+                }
+                AssignDest::Subscript(id, index) => {
+                    if let Some(Value::Tuple(elems)) = val_env.get_mut(id) {
+                        elems[*index as usize] = result;
+                    } else {
+                        panic!("Assigned to invalid subscript assigndest: `{dest:?}`")
+                    }
+                }
+            }
 
             return interpret_statement_chain(statements, inputs, outputs, val_env, func_env);
         }
@@ -173,6 +192,19 @@ pub fn interpret(m: &Program, inputs: &mut VecDeque<i64>, outputs: &mut VecDeque
 
     if !main_function.body.is_empty() {
         let mut val_env = ValueEnv::new();
+
+        // Add all the functions into val_env
+        for f in &m.functions {
+            val_env.insert(
+                f.name.clone(),
+                Value::Function(
+                    f.name.clone(),
+                    f.params.values().cloned().collect(),
+                    f.return_type.clone(),
+                ),
+            );
+        }
+
         interpret_statement_chain(
             &mut main_function.body.iter(),
             inputs,

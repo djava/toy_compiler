@@ -1,6 +1,6 @@
+use bitfield_struct::bitfield;
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
-use bitfield_struct::bitfield;
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum Identifier {
@@ -11,7 +11,7 @@ pub enum Identifier {
 impl Identifier {
     pub fn new_ephemeral() -> Identifier {
         static COUNTER: Mutex<u64> = Mutex::new(0);
-        
+
         let id = {
             let mut c = COUNTER.lock().unwrap();
             let id = *c;
@@ -47,6 +47,9 @@ impl From<&Value> for ValueType {
             Value::I64(_) => Self::IntType,
             Value::Bool(_) => Self::BoolType,
             Value::Tuple(elems) => Self::TupleType(elems.iter().map(ValueType::from).collect()),
+            Value::Function(_, arg_types, ret_type) => {
+                Self::FunctionType(arg_types.clone(), Box::new(ret_type.clone()))
+            }
             Value::None => Self::NoneType,
         }
     }
@@ -57,6 +60,7 @@ pub enum Value {
     I64(i64),
     Bool(bool),
     Tuple(Vec<Value>),
+    Function(Identifier, Vec<ValueType>, ValueType),
     None,
 }
 
@@ -65,7 +69,8 @@ impl Into<i64> for Value {
         match self {
             Value::I64(val) => val,
             Value::Bool(val) => val as _,
-            Value::Tuple(_) => panic!("Cannot convert Value::Pointer into i64"),
+            Value::Tuple(_) => panic!("Cannot convert Value::Tuple into i64"),
+            Value::Function(_, _, _) => panic!("Cannot convert Value::Function into i64"),
             Value::None => panic!("Cannot convert Value::None into i64"),
         }
     }
@@ -77,6 +82,7 @@ impl Into<bool> for Value {
             Value::I64(val) => val != 0,
             Value::Bool(val) => val,
             Value::Tuple(elems) => !elems.is_empty(),
+            Value::Function(_, _, _) => panic!("Cannot convert Value::Function into bool"),
             Value::None => panic!("Cannot convert Value::None into bool"),
         }
     }
@@ -88,6 +94,7 @@ impl Into<bool> for &Value {
             Value::I64(val) => *val != 0,
             Value::Bool(val) => *val,
             Value::Tuple(elems) => !elems.is_empty(),
+            Value::Function(_, _, _) => panic!("Cannot convert Value::Function into bool"),
             Value::None => panic!("Cannot convert Value::None into bool"),
         }
     }
@@ -99,11 +106,11 @@ impl From<&Value> for i64 {
             Value::I64(val) => *val,
             Value::Bool(val) => *val as _,
             Value::Tuple(_) => panic!("Cannot convert Value::Tuple into i64"),
+            Value::Function(_, _, _) => panic!("Cannot convert Value::Function into i64"),
             Value::None => panic!("Cannot convert Value::None into i64"),
         }
     }
 }
-
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum BinaryOperator {
@@ -150,8 +157,8 @@ impl BinaryOperator {
                 Equals => Some(BoolType),
                 NotEquals => Some(BoolType),
                 Is => Some(BoolType),
-                _ => None
-            }
+                _ => None,
+            },
             (_, _) => None,
         }
     }
@@ -187,9 +194,8 @@ impl UnaryOperator {
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum AssignDest {
     Id(Identifier),
-    Subscript(Identifier, i64)
+    Subscript(Identifier, i64),
 }
-
 
 #[bitfield(u64, order = Lsb)]
 pub struct TupleTag {
@@ -199,5 +205,5 @@ pub struct TupleTag {
     #[bits(50)]
     pub pointer_mask: u64,
     #[bits(7)]
-    __: u8
+    __: u8,
 }

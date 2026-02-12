@@ -46,7 +46,7 @@ impl IRtoX86Pass for TranslateIRtoX86 {
                 gc_stack_size: 0,
                 types: f.types,
                 callee_saved_used: vec![],
-                header: vec![]
+                header: vec![],
             });
         }
         X86Program {
@@ -90,7 +90,7 @@ fn translate_statement(s: ir::Statement, exit_block: &Identifier) -> Vec<Instr> 
         ir::Statement::If(cond, pos_label, neg_label) => {
             translate_conditional(cond, pos_label, neg_label)
         }
-        ir::Statement::TailCall(func_id, args) => {
+        ir::Statement::TailCall(func, args) => {
             if args.len() > MAX_REGISTER_ARGS {
                 unimplemented!(
                     "Only register arg passing is implemented, max of {MAX_REGISTER_ARGS} args"
@@ -100,10 +100,10 @@ fn translate_statement(s: ir::Statement, exit_block: &Identifier) -> Vec<Instr> 
             if SPECIAL_FUNCTIONS
                 .iter()
                 .map(|(name, _, _)| name)
-                .find(|n| id!(**n) == func_id)
+                .find(|n| &ir::Atom::GlobalSymbol(id!(**n)) == &func)
                 .is_some()
             {
-                return translate_call(None, ir::Atom::Variable(func_id), args);
+                return translate_call(None, func, args);
             }
 
             let mut instrs = vec![];
@@ -115,11 +115,18 @@ fn translate_statement(s: ir::Statement, exit_block: &Identifier) -> Vec<Instr> 
             }
 
             // Jump to the function
-            instrs.push(Instr::leaq(
-                x86::Arg::Global(func_id),
-                x86::Arg::Reg(Register::rax),
-            ));
-            instrs.push(Instr::jmp_tail(x86::Arg::Reg(Register::rax), num_args as _));
+            match func {
+                ir::Atom::Variable(_) => {
+                    instrs.extend([
+                        Instr::movq(atom_to_arg(func), x86::Arg::Reg(Register::rax)),
+                        Instr::jmp_tail(x86::Arg::Reg(Register::rax), num_args as _),
+                    ]);
+                }
+                ir::Atom::GlobalSymbol(id) => {
+                    instrs.push(Instr::jmp_tail(x86::Arg::Global(id), num_args as _));
+                }
+                ir::Atom::Constant(_) => panic!("func was Atom::Constant??"),
+            }
             instrs
         }
     }
@@ -516,7 +523,7 @@ const SPECIAL_FUNCTIONS: [(
         vec![
             Instr::movq(x86::Arg::Reg(Register::r15), x86::Arg::Reg(Register::rdi)),
             Instr::movq(atom_to_arg(args.remove(0)), x86::Arg::Reg(Register::rsi)),
-            Instr::callq(id!(GC_COLLECT), 2),
+            Instr::callq(x86::Arg::Global(id!(GC_COLLECT)), 2),
         ]
     }),
     (FN_LEN, 1, |mut args, dest_opt| {
@@ -570,24 +577,18 @@ fn translate_call(dest_opt: Option<AssignDest>, func: ir::Atom, args: Vec<ir::At
         instrs.push(Instr::movq(atom_to_arg(arg_expr), x86::Arg::Reg(reg)));
     }
 
+    // Jump to the function
     match func {
-        ir::Atom::Variable(func_name) => {
-            let addr_var = Identifier::new_ephemeral();
-            instrs.push(Instr::leaq(
-                x86::Arg::Global(func_name),
-                x86::Arg::Variable(addr_var.clone()),
-            ));
-            instrs.push(Instr::callq_ind(
-                x86::Arg::Variable(addr_var.clone()),
-                num_args as u16,
-            ));
+        ir::Atom::Variable(_) => {
+            instrs.extend([
+                Instr::movq(atom_to_arg(func), x86::Arg::Reg(Register::rax)),
+                Instr::callq(x86::Arg::Reg(Register::rax), num_args as _),
+            ]);
         }
-
-        ir::Atom::GlobalSymbol(name) => {
-            instrs.push(Instr::callq(name, num_args as _));
+        ir::Atom::GlobalSymbol(id) => {
+            instrs.push(Instr::callq(x86::Arg::Global(id), num_args as _));
         }
-
-        ir::Atom::Constant(_) => panic!("Tried to call a non-function value?"),
+        ir::Atom::Constant(_) => panic!("func was Atom::Constant??"),
     }
 
     if let Some(dest) = dest_opt {

@@ -359,7 +359,7 @@ fn locs_read(i: &Instr) -> Vec<Location> {
             }
         }
         Instr::callq(_, num_args) => {
-            if *num_args >= MAX_REGISTER_ARGS as u16 {
+            if *num_args > MAX_REGISTER_ARGS as u16 {
                 unimplemented!("Spilling args onto stack not implemented");
             }
 
@@ -421,7 +421,7 @@ fn locs_written(i: &Instr) -> Vec<Location> {
 
             // Consider r15 to be written by a call to __gc_collect()
             // because it might do the GC copy and change the gc stack ptr
-            if let Identifier::Named(name) = func_id
+            if let Arg::Global(Identifier::Named(name)) = func_id
                 && &**name == GC_COLLECT
             {
                 locations.push(Location::Reg(Register::r15));

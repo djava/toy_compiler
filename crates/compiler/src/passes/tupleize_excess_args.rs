@@ -522,7 +522,7 @@ mod tests {
                         name: t_id!("b"),
                         params: IndexMap::new(),
                         body: vec![Statement::Expr(Expr::Call(
-                            t_id!("a"),
+                            Box::new(Expr::GlobalSymbol(t_id!("a"))),
                             vec![ast_const_int(1); 4],
                         ))],
                         types: TypeEnv::new(),
@@ -589,7 +589,7 @@ mod tests {
                         name: t_id!("b"),
                         params: IndexMap::new(),
                         body: vec![Statement::Expr(Expr::Call(
-                            t_id!("a"),
+                            Box::new(Expr::GlobalSymbol(t_id!("a"))),
                             vec![ast_const_int(1); 17],
                         ))],
                         types: TypeEnv::new(),

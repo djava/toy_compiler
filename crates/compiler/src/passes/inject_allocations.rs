@@ -89,7 +89,7 @@ fn get_initialize_tuple_expr(elems: &mut Vec<Expr>, tup_type: ValueType) -> Expr
     let fromspace_end = Expr::GlobalSymbol(id!(GC_FROMSPACE_END));
     let collect = |n| {
         Expr::Call(
-            id!(GC_COLLECT),
+            Box::new(Expr::GlobalSymbol(id!(GC_COLLECT))),
             vec![Expr::Constant(Value::I64(n))],
         )
     };

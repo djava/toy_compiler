@@ -1,6 +1,6 @@
 use crate::{
     constants::*,
-    syntax_trees::{ast, shared::*},
+    syntax_trees::{ast, shared::*}, utils::id,
 };
 
 impl ast::Expr {
@@ -36,81 +36,37 @@ impl ast::Expr {
                 .expect(format!("Unknown Identifier: {id:?}").as_str())
                 .clone(),
             Constant(v) => ValueType::from(v),
-            Call(id, args) => {
-                if env.contains_key(id) {
-                    let func_type = env[id].clone();
-                    if let ValueType::FunctionType(arg_types, ret_type) = func_type {
-                        assert_eq!(
-                            args.len(),
-                            arg_types.len(),
-                            "Wrong number of args passed to `{id:?}`"
-                        );
+            Call(func, args) => {
+                let func_type = func.type_check(env);
+                if let ValueType::FunctionType(arg_types, ret_type) = func_type {
+                    assert_eq!(
+                        args.len(),
+                        arg_types.len(),
+                        "Wrong number of args passed to `{func:?}`"
+                    );
+
+                    if **func == Id(id!(FN_LEN)) {
+                        // This one is actually special, it can be
+                        // called with any tuple type and there's no way
+                        // to express that in ValueType right now so
+                        // this is what we're doing
+
+                        // Worth noting that this sucks because you
+                        // can't use len indirectly now :(
+                        assert!(matches!(args[0].type_check(env), ValueType::TupleType(_)));
+                    } else {
                         for (a, typ) in args.iter().zip(arg_types) {
                             assert_eq!(
                                 a.type_check(env),
                                 typ,
-                                "Passed wrong arg type `{a:?}` to function `{id:?}`"
+                                "Passed wrong arg type `{a:?}` to function `{func:?}`"
                             )
                         }
-
-                        *ret_type
-                    } else {
-                        panic!("Tried to call non-function: {id:?}");
                     }
+
+                    *ret_type
                 } else {
-                    match id {
-                        Identifier::Named(name) => {
-                            if name.as_ref() == FN_READ_INT {
-                                assert!(
-                                    args.is_empty(),
-                                    "Passed {} of args to {name}, expected 0",
-                                    args.len()
-                                );
-                                ValueType::IntType
-                            } else if name.as_ref() == FN_PRINT_INT {
-                                assert_eq!(
-                                    args.len(),
-                                    1,
-                                    "Passed {} args to {name}, expected 1",
-                                    args.len()
-                                );
-                                assert_eq!(
-                                    args[0].type_check(env),
-                                    ValueType::IntType,
-                                    "Passed wrong arg type to {name}, expected I64"
-                                );
-                                ValueType::NoneType
-                            } else if name.as_ref() == FN_LEN {
-                                assert_eq!(
-                                    args.len(),
-                                    1,
-                                    "Passed {} args to {name}, expected 1",
-                                    args.len()
-                                );
-                                assert!(
-                                    matches!(args[0].type_check(env), ValueType::TupleType(_)),
-                                    "Passed wrong arg type to {name}, expected tuple"
-                                );
-                                ValueType::IntType
-                            } else if name.as_ref() == GC_COLLECT {
-                                assert_eq!(
-                                    args.len(),
-                                    1,
-                                    "Passed {} args to {name}, expected 1",
-                                    args.len()
-                                );
-                                assert!(
-                                    matches!(args[0].type_check(env), ValueType::IntType),
-                                    "Passed wrong arg type to {name}, expected int"
-                                );
-
-                                ValueType::NoneType
-                            } else {
-                                unimplemented!("Unknown function name: {name:?}")
-                            }
-                        }
-                        _ => unimplemented!("Unknown function id: {id:?}"),
-                    }
+                    panic!("Tried to call non-function: {func:?}");
                 }
             }
             Ternary(cond, pos, neg) => {
@@ -150,7 +106,10 @@ impl ast::Expr {
                 }
             }
             Allocate(_, value_type) => ValueType::PointerType(Box::new(value_type.clone())),
-            GlobalSymbol(_) => ValueType::IntType,
+            GlobalSymbol(id) => env
+                .get(id)
+                .expect(format!("Unknown global symbol: {id:?}").as_str())
+                .clone(),
         }
     }
 }
@@ -207,6 +166,25 @@ impl ast::Statement {
 
 impl ast::Program {
     pub fn type_check(&mut self) {
+        let special_functions = [
+            (
+                id!(FN_READ_INT),
+                ValueType::FunctionType(vec![], Box::new(ValueType::IntType)),
+            ),
+            (
+                id!(FN_PRINT_INT),
+                ValueType::FunctionType(vec![ValueType::IntType], Box::new(ValueType::NoneType)),
+            ),
+            (
+                id!(FN_LEN),
+                ValueType::FunctionType(vec![ValueType::TupleType(vec![])], Box::new(ValueType::IntType)),
+            ),
+            (
+                id!(GC_COLLECT),
+                ValueType::FunctionType(vec![ValueType::IntType], Box::new(ValueType::NoneType)),
+            ),
+        ];
+
         let function_types = {
             let mut map = TypeEnv::new();
             for f in &self.functions {
@@ -218,14 +196,16 @@ impl ast::Program {
                     ),
                 );
             }
+            
+            map.extend(special_functions);
             map
         };
-        
+
         for f in self.functions.iter_mut() {
             // Start with dict of other global-scope functions so they
             // can be recognized
             f.types = function_types.clone();
-            
+
             // Allow type-checker to recognize params
             for (n, t) in f.params.iter() {
                 f.types.insert(n.clone(), t.clone());

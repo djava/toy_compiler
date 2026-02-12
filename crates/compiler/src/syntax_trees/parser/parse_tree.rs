@@ -197,7 +197,7 @@ parser! {
                 { Function { name, params, return_type: ret.unwrap_or(ValueType::NoneType), statements: body } }
 
         pub rule module() -> Module<'t> =
-            functions:(function() ** ([Token::Newline]+)) eof() { Module { functions } }
+            [Token::Newline]* functions:(function() ** ([Token::Newline]+)) eof() { Module { functions } }
     }
 }
 

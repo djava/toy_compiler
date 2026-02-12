@@ -437,7 +437,7 @@ mod tests {
         execute_test_case(TestCase {
             ast: Program { functions: vec![Function { name: t_id!(LABEL_MAIN),
                 body: vec![Statement::Expr(Expr::Call(
-                    t_id!("print_int"),
+                    Box::new(Expr::GlobalSymbol(t_id!("print_int"))),
                     vec![Expr::BinaryOp(
                         Box::new(Expr::Constant(Value::I64(40))),
                         BinaryOperator::Add,
@@ -458,8 +458,8 @@ mod tests {
         execute_test_case(TestCase {
             ast: Program { functions: vec![Function { name: t_id!(LABEL_MAIN),
                 body: vec![Statement::Expr(Expr::Call(
-                    t_id!("print_int"),
-                    vec![Expr::Call(t_id!("read_int"), vec![])],
+                    Box::new(Expr::GlobalSymbol(t_id!("print_int"))),
+                    vec![Expr::Call(Box::new(Expr::GlobalSymbol(t_id!("read_int"))), vec![])],
                 ))],
                 types: TypeEnv::new(),
                 params: IndexMap::new(),
@@ -475,11 +475,11 @@ mod tests {
         execute_test_case(TestCase {
             ast: Program { functions: vec![Function { name: t_id!(LABEL_MAIN),
                 body: vec![Statement::Expr(Expr::Call(
-                    t_id!("print_int"),
+                    Box::new(Expr::GlobalSymbol(t_id!("print_int"))),
                     vec![Expr::BinaryOp(
-                        Box::new(Expr::Call(t_id!("read_int"), vec![])),
+                        Box::new(Expr::Call(Box::new(Expr::GlobalSymbol(t_id!("read_int"))), vec![])),
                         BinaryOperator::Subtract,
-                        Box::new(Expr::Call(t_id!("read_int"), vec![])),
+                        Box::new(Expr::Call(Box::new(Expr::GlobalSymbol(t_id!("read_int"))), vec![])),
                     )],
                 ))],
                 types: TypeEnv::new(),
@@ -496,7 +496,7 @@ mod tests {
         execute_test_case(TestCase {
             ast: Program { functions: vec![Function { name: t_id!(LABEL_MAIN),
                 body: vec![Statement::Expr(Expr::Call(
-                    t_id!("print_int"),
+                    Box::new(Expr::GlobalSymbol(t_id!("print_int"))),
                     vec![Expr::Constant(Value::I64(0))],
                 ))],
                 types: TypeEnv::new(),
@@ -513,7 +513,7 @@ mod tests {
         execute_test_case(TestCase {
             ast: Program { functions: vec![Function { name: t_id!(LABEL_MAIN),
                 body: vec![Statement::Expr(Expr::Call(
-                    t_id!("print_int"),
+                    Box::new(Expr::GlobalSymbol(t_id!("print_int"))),
                     vec![Expr::BinaryOp(
                         Box::new(Expr::BinaryOp(
                             Box::new(Expr::Constant(Value::I64(40))),
@@ -542,10 +542,10 @@ mod tests {
         execute_test_case(TestCase {
             ast: Program { functions: vec![Function { name: t_id!(LABEL_MAIN),
                 body: vec![Statement::Expr(Expr::Call(
-                    t_id!("print_int"),
+                    Box::new(Expr::GlobalSymbol(t_id!("print_int"))),
                     vec![Expr::BinaryOp(
                         Box::new(Expr::BinaryOp(
-                            Box::new(Expr::Call(t_id!("read_int"), vec![])),
+                            Box::new(Expr::Call(Box::new(Expr::GlobalSymbol(t_id!("read_int"))), vec![])),
                             BinaryOperator::Add,
                             Box::new(Expr::Constant(Value::I64(2))),
                         )),
@@ -571,7 +571,7 @@ mod tests {
         execute_test_case(TestCase {
             ast: Program { functions: vec![Function { name: t_id!(LABEL_MAIN),
                 body: vec![Statement::Expr(Expr::Call(
-                    t_id!("print_int"),
+                    Box::new(Expr::GlobalSymbol(t_id!("print_int"))),
                     vec![Expr::BinaryOp(
                         Box::new(Expr::Constant(Value::I64(6))),
                         BinaryOperator::Multiply,
@@ -594,9 +594,9 @@ mod tests {
         execute_test_case(TestCase {
             ast: Program { functions: vec![Function { name: t_id!(LABEL_MAIN),
                 body: vec![Statement::Expr(Expr::Call(
-                    t_id!("print_int"),
+                    Box::new(Expr::GlobalSymbol(t_id!("print_int"))),
                     vec![Expr::BinaryOp(
-                        Box::new(Expr::Call(t_id!("read_int"), vec![])),
+                        Box::new(Expr::Call(Box::new(Expr::GlobalSymbol(t_id!("read_int"))), vec![])),
                         BinaryOperator::Multiply,
                         Box::new(Expr::BinaryOp(
                             Box::new(Expr::Constant(Value::I64(3))),
@@ -620,7 +620,7 @@ mod tests {
         execute_test_case(TestCase {
             ast: Program { functions: vec![Function { name: t_id!(LABEL_MAIN),
                 body: vec![Statement::Expr(Expr::Call(
-                    t_id!("print_int"),
+                    Box::new(Expr::GlobalSymbol(t_id!("print_int"))),
                     vec![Expr::BinaryOp(
                         Box::new(Expr::Constant(Value::I64(0))),
                         BinaryOperator::Multiply,
@@ -643,7 +643,7 @@ mod tests {
         execute_test_case(TestCase {
             ast: Program { functions: vec![Function { name: t_id!(LABEL_MAIN),
                 body: vec![Statement::Expr(Expr::Call(
-                    t_id!("print_int"),
+                    Box::new(Expr::GlobalSymbol(t_id!("print_int"))),
                     vec![Expr::BinaryOp(
                         Box::new(Expr::BinaryOp(
                             Box::new(Expr::Constant(Value::I64(2))),
@@ -689,7 +689,7 @@ mod tests {
                         ),
                         vec![
                             Statement::Expr(Expr::Call(
-                                t_id!("print_int"),
+                                Box::new(Expr::GlobalSymbol(t_id!("print_int"))),
                                 vec![Expr::Id(t_id!("x"))],
                             )),
                             Statement::Assign(
@@ -724,12 +724,12 @@ mod tests {
                     Statement::WhileLoop(
                         Expr::Constant(Value::Bool(false)),
                         vec![Statement::Expr(Expr::Call(
-                            t_id!("print_int"),
+                            Box::new(Expr::GlobalSymbol(t_id!("print_int"))),
                             vec![Expr::Constant(Value::I64(100))],
                         ))],
                     ),
                     Statement::Expr(Expr::Call(
-                        t_id!("print_int"),
+                        Box::new(Expr::GlobalSymbol(t_id!("print_int"))),
                         vec![Expr::Constant(Value::I64(42))],
                     )),
                 ],
@@ -764,7 +764,7 @@ mod tests {
                         ),
                         vec![
                             Statement::Expr(Expr::Call(
-                                t_id!("print_int"),
+                                Box::new(Expr::GlobalSymbol(t_id!("print_int"))),
                                 vec![Expr::BinaryOp(
                                     Box::new(Expr::Constant(Value::I64(10))),
                                     BinaryOperator::Add,

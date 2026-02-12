@@ -71,7 +71,7 @@ impl X86Env {
             }
             Arg::Variable(id) => {
                 self.vars
-                    .insert(AssignDest::Id(id.clone()), Value::I64(value));
+                    .insert(id.clone(), Value::I64(value));
             }
             Arg::Deref(reg, offset) => {
                 let base = self.regs[*reg as usize];
@@ -134,7 +134,7 @@ impl X86Env {
             Arg::Reg(n) => self.regs[*n as usize],
             Arg::Variable(id) => self
                 .vars
-                .get(&AssignDest::Id(id.clone()))
+                .get(id)
                 .map(|val| i64::from(val))
                 .expect(format!("Unknown x86var identifier: {id:?}").as_str()),
             Arg::Deref(reg, offset) => {
@@ -318,15 +318,16 @@ fn run_instr(
             );
             Continuation::Next
         }
-        Instr::callq(label, _num_args) => {
-            if let Some(func_idx) = env.functions.iter().position(|f| f == label) {
-                if execute_special_functions(func_idx, inputs, outputs, env) {
-                    Continuation::Next
-                } else {
-                    Continuation::Call(func_idx)
-                }
+        Instr::callq(s, _num_args) => {
+            let func = env.read_arg(s);
+            let func_idx = (func as usize) & !FUNCTIONS_OFFSET;
+            if execute_special_functions(func_idx, inputs, outputs, env) {
+                // If this is a special function, then
+                // execute_special_functions() will take care of
+                // everything including return value, so just `Next` it.
+                Continuation::Next
             } else {
-                panic!("Unknown function call to: `{label:?}`");
+                Continuation::Call(func_idx)
             }
         }
         Instr::retq => Continuation::Return,

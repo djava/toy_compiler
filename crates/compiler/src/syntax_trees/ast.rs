@@ -7,7 +7,7 @@ pub enum Expr {
     Constant(Value),
     BinaryOp(Box<Expr>, BinaryOperator, Box<Expr>),
     UnaryOp(UnaryOperator, Box<Expr>),
-    Call(Identifier, Vec<Expr>),
+    Call(Box<Expr>, Vec<Expr>),
     Id(Identifier),
     Ternary(Box<Expr>, Box<Expr>, Box<Expr>),
     StatementBlock(Vec<Statement>, Box<Expr>),

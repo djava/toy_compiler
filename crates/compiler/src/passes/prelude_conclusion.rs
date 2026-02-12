@@ -89,7 +89,7 @@ fn generate_prelude(f: &mut Function) -> Vec<Instr> {
         prelude_instrs.extend([
             Instr::movq(Arg::Immediate(GC_STACK_SIZE), Arg::Reg(Register::rdi)),
             Instr::movq(Arg::Immediate(GC_HEAP_SIZE), Arg::Reg(Register::rsi)),
-            Instr::callq(id!(GC_INITIALIZE), 2),
+            Instr::callq(Arg::Global(id!(GC_INITIALIZE)), 2),
             Instr::movq(
                 Arg::Global(id!(GC_ROOTSTACK_BEGIN)),
                 Arg::Reg(Register::r15),

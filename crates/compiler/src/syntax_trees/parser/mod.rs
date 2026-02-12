@@ -374,7 +374,7 @@ mod tests {
                 functions: vec![ast::Function {
                     name: t_id!(LABEL_MAIN),
                     body: vec![ast::Statement::Expr(ast::Expr::Call(
-                        t_id!("print"),
+                        Box::new(ast::Expr::Id(t_id!("print"))),
                         vec![ast::Expr::Id(t_id!("x"))],
                     ))],
                     types: HashMap::new(),
@@ -416,7 +416,7 @@ mod tests {
                 functions: vec![ast::Function {
                     name: t_id!(LABEL_MAIN),
                     body: vec![ast::Statement::Expr(ast::Expr::Call(
-                        t_id!("oogabooga"),
+                        Box::new(ast::Expr::Id(t_id!("oogabooga"))),
                         vec![],
                     ))],
                     types: HashMap::new(),
@@ -486,7 +486,7 @@ mod tests {
                 functions: vec![ast::Function {
                     name: t_id!(LABEL_MAIN),
                     body: vec![ast::Statement::Expr(ast::Expr::Call(
-                        t_id!("print"),
+                        Box::new(ast::Expr::Id(t_id!("print"))),
                         vec![ast::Expr::BinaryOp(
                             Box::new(ast::Expr::BinaryOp(
                                 Box::new(ast::Expr::Constant(Value::I64(1))),
@@ -498,7 +498,7 @@ mod tests {
                                 )),
                             )),
                             BinaryOperator::Subtract,
-                            Box::new(ast::Expr::Call(t_id!("read_int"), vec![])),
+                            Box::new(ast::Expr::Call(Box::new(ast::Expr::Id(t_id!("read_int"))), vec![])),
                         )],
                     ))],
                     types: HashMap::new(),
@@ -558,7 +558,7 @@ mod tests {
                 functions: vec![ast::Function {
                     name: t_id!(LABEL_MAIN),
                     body: vec![ast::Statement::Expr(ast::Expr::Call(
-                        t_id!("print"),
+                        Box::new(ast::Expr::Id(t_id!("print"))),
                         vec![
                             ast::Expr::Id(t_id!("x")),
                             ast::Expr::Id(t_id!("y")),
@@ -613,7 +613,7 @@ mod tests {
                     name: t_id!(LABEL_MAIN),
                     body: vec![ast::Statement::Assign(
                         AssignDest::Id(t_id!("x")),
-                        ast::Expr::Call(t_id!("Fffoo"), vec![ast::Expr::Constant(Value::I64(1))]),
+                        ast::Expr::Call(Box::new(ast::Expr::Id(t_id!("Fffoo"))), vec![ast::Expr::Constant(Value::I64(1))]),
                     )],
                     types: HashMap::new(),
                     params: IndexMap::new(),
@@ -687,7 +687,7 @@ whatevn = x
                             ast::Expr::Constant(Value::I64(100)),
                         ),
                         ast::Statement::Expr(ast::Expr::Call(
-                            t_id!("print"),
+                            Box::new(ast::Expr::Id(t_id!("print"))),
                             vec![ast::Expr::Constant(Value::I64(1000))],
                         )),
                         ast::Statement::Assign(
@@ -885,7 +885,7 @@ whatevn = x
                 functions: vec![ast::Function {
                     name: t_id!(LABEL_MAIN),
                     body: vec![ast::Statement::Expr(ast::Expr::Call(
-                        t_id!("truefoofalse"),
+                        Box::new(ast::Expr::Id(t_id!("truefoofalse"))),
                         vec![ast::Expr::BinaryOp(
                             Box::new(ast::Expr::BinaryOp(
                                 Box::new(ast::Expr::UnaryOp(
@@ -1330,7 +1330,7 @@ else { 3 }
                             Box::new(ast::Expr::Constant(Value::I64(1))),
                         ),
                         vec![ast::Statement::Expr(ast::Expr::Call(
-                            t_id!("print"),
+                            Box::new(ast::Expr::Id(t_id!("print"))),
                             vec![ast::Expr::Id(t_id!("x"))],
                         ))],
                         vec![],
@@ -1405,7 +1405,7 @@ if true { x = 1
                                 ast::Expr::Constant(Value::I64(1)),
                             ),
                             ast::Statement::Expr(ast::Expr::Call(
-                                t_id!("print"),
+                                Box::new(ast::Expr::Id(t_id!("print"))),
                                 vec![ast::Expr::Id(t_id!("x"))],
                             )),
                         ],
@@ -1887,7 +1887,7 @@ else { 5 }
                                 BinaryOperator::Add,
                                 Box::new(ast::Expr::Constant(Value::I64(2))),
                             ),
-                            ast::Expr::Call(t_id!("read_int"), vec![]),
+                            ast::Expr::Call(Box::new(ast::Expr::Id(t_id!("read_int"))), vec![]),
                             ast::Expr::Constant(Value::Bool(true)),
                         ]),
                     )],
@@ -2048,7 +2048,7 @@ else { 5 }
                 functions: vec![ast::Function {
                     name: t_id!(LABEL_MAIN),
                     body: vec![ast::Statement::Expr(ast::Expr::Call(
-                        t_id!("print"),
+                        Box::new(ast::Expr::Id(t_id!("print"))),
                         vec![ast::Expr::Tuple(vec![
                             ast::Expr::Constant(Value::I64(1)),
                             ast::Expr::Constant(Value::I64(2)),
@@ -2290,7 +2290,7 @@ else { 5 }
                 functions: vec![ast::Function {
                     name: t_id!(LABEL_MAIN),
                     body: vec![ast::Statement::Expr(ast::Expr::Subscript(
-                        Box::new(ast::Expr::Call(t_id!("foo"), vec![])),
+                        Box::new(ast::Expr::Call(Box::new(ast::Expr::Id(t_id!("foo"))), vec![])),
                         0,
                     ))],
                     types: HashMap::new(),
@@ -2978,7 +2978,7 @@ x[0] = 42
                 functions: vec![ast::Function {
                     name: t_id!("greet"),
                     body: vec![ast::Statement::Expr(ast::Expr::Call(
-                        t_id!("print_int"),
+                        Box::new(ast::Expr::Id(t_id!("print_int"))),
                         vec![ast::Expr::Constant(Value::I64(42))],
                     ))],
                     types: HashMap::new(),
@@ -3200,9 +3200,9 @@ x[0] = 42
                     ast::Function {
                         name: t_id!("main"),
                         body: vec![ast::Statement::Expr(ast::Expr::Call(
-                            t_id!("print_int"),
+                            Box::new(ast::Expr::Id(t_id!("print_int"))),
                             vec![ast::Expr::Call(
-                                t_id!("double"),
+                                Box::new(ast::Expr::Id(t_id!("double"))),
                                 vec![ast::Expr::Constant(Value::I64(21))],
                             )],
                         ))],
@@ -3298,7 +3298,7 @@ x[0] = 42
                             ast::Expr::Constant(Value::I64(10)),
                         ),
                         ast::Statement::Expr(ast::Expr::Call(
-                            t_id!("print_int"),
+                            Box::new(ast::Expr::Id(t_id!("print_int"))),
                             vec![ast::Expr::Id(t_id!("x"))],
                         )),
                         ast::Statement::Return(ast::Expr::Id(t_id!("x"))),

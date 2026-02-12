@@ -18,7 +18,7 @@ enum Continuation {
 fn interpret_atom(atom: &Atom, env: &mut ValueEnv) -> Value {
     match atom {
         Atom::Constant(value) => value.clone(),
-        Atom::Variable(id) => env[&AssignDest::Id(id.clone())].clone(),
+        Atom::Variable(id) => env[id].clone(),
         Atom::GlobalSymbol(_) => Value::I64(0), // I'm not sure about this but it's what the textbook code does
     }
 }
@@ -51,7 +51,7 @@ fn interpret_expr(
             op.try_eval(&l_val, &r_val).unwrap()
         }
         Expr::Call(func_name, args) => {
-            if func_name == &Atom::Variable(id!("print_int")) {
+            if func_name == &Atom::GlobalSymbol(id!("print_int")) {
                 if args.len() != 1 {
                     panic!("Wrong number of arguments to print_int()");
                 }
@@ -63,7 +63,7 @@ fn interpret_expr(
                 }
 
                 Value::None
-            } else if func_name == &Atom::Variable(id!("read_int")) {
+            } else if func_name == &Atom::GlobalSymbol(id!("read_int")) {
                 if args.len() != 0 {
                     panic!("Wrong number of args to read_int()");
                 }
@@ -74,9 +74,12 @@ fn interpret_expr(
                     panic!("Overflowed inputs");
                 }
             } else {
-                if let Some(func) = func_env.iter().find(|f| Atom::Variable(f.name.clone()) == *func_name) {
+                if let Some(func) = func_env
+                    .iter()
+                    .find(|f| Atom::GlobalSymbol(f.name.clone()) == *func_name)
+                {
                     let arg_vals = args.iter().map(|a| interpret_atom(a, val_env)).collect();
-                    return interpret_func(func, arg_vals, inputs, outputs, func_env)
+                    return interpret_func(func, arg_vals, inputs, outputs, func_env);
                 } else {
                     panic!();
                 }
@@ -105,9 +108,20 @@ fn interpret_statement(
             interpret_expr(expr, inputs, outputs, val_env, func_env);
             Continuation::Next
         }
-        Statement::Assign(dest_id, expr) => {
+        Statement::Assign(dest, expr) => {
             let value = interpret_expr(expr, inputs, outputs, val_env, func_env);
-            val_env.insert(dest_id.clone(), value);
+            match &dest {
+                AssignDest::Id(identifier) => {
+                    val_env.insert(identifier.clone(), value);
+                },
+                AssignDest::Subscript(identifier, index) => {
+                    if let Some(Value::Tuple(elems)) = val_env.get_mut(identifier) {
+                        elems[*index as usize] = value;
+                    } else {
+                        panic!();
+                    }
+                }
+            } 
             Continuation::Next
         }
         Statement::Return(expr) => Continuation::Return(interpret_atom(expr, val_env)),
@@ -120,13 +134,13 @@ fn interpret_statement(
                 Continuation::Jump(neg_label.clone())
             }
         }
-        Statement::TailCall(name, args) => {
+        Statement::TailCall(func, args) => {
             let ret_val = interpret_expr(
-                &Expr::Call(Atom::Variable(name.clone()), args.clone()),
+                &Expr::Call(func.clone(), args.clone()),
                 inputs,
                 outputs,
                 val_env,
-                func_env
+                func_env,
             );
             Continuation::Return(ret_val)
         }
@@ -179,7 +193,7 @@ pub fn interpret_func(
             typ
         );
 
-        val_env.insert(AssignDest::Id(id.clone()), val);
+        val_env.insert(id.clone(), val);
     }
 
     let mut block_idx = f

@@ -233,7 +233,7 @@ mod tests {
                         Box::new(Expr::BinaryOp(
                             Box::new(Expr::Constant(Value::I64(1))),
                             BinaryOperator::Equals,
-                            Box::new(Expr::Call(t_id!("read_int"), vec![])),
+                            Box::new(Expr::Call(Box::new(Expr::GlobalSymbol(t_id!("read_int"))), vec![])),
                         )),
                     )),
                     Statement::Expr(Expr::BinaryOp(
@@ -242,7 +242,7 @@ mod tests {
                         Box::new(Expr::BinaryOp(
                             Box::new(Expr::Constant(Value::I64(1))),
                             BinaryOperator::Equals,
-                            Box::new(Expr::Call(t_id!("read_int"), vec![])),
+                            Box::new(Expr::Call(Box::new(Expr::GlobalSymbol(t_id!("read_int"))), vec![])),
                         )),
                     )),
                 ],
@@ -268,7 +268,7 @@ mod tests {
                         Box::new(Expr::BinaryOp(
                             Box::new(Expr::Constant(Value::I64(1))),
                             BinaryOperator::Equals,
-                            Box::new(Expr::Call(t_id!("read_int"), vec![])),
+                            Box::new(Expr::Call(Box::new(Expr::GlobalSymbol(t_id!("read_int"))), vec![])),
                         )),
                     )),
                     Statement::Expr(Expr::BinaryOp(
@@ -277,7 +277,7 @@ mod tests {
                         Box::new(Expr::BinaryOp(
                             Box::new(Expr::Constant(Value::I64(1))),
                             BinaryOperator::Equals,
-                            Box::new(Expr::Call(t_id!("read_int"), vec![])),
+                            Box::new(Expr::Call(Box::new(Expr::GlobalSymbol(t_id!("read_int"))), vec![])),
                         )),
                     )),
                 ],

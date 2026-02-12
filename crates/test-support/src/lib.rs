@@ -12,14 +12,14 @@ pub mod x86_interpreter;
 mod interpreter_utils;
 use interpreter_utils::id;
 
-type ValueEnv = HashMap<AssignDest, Value>;
+type ValueEnv = HashMap<Identifier, Value>;
 
 pub fn ast_read_int() -> ast::Expr {
-    ast::Expr::Call(id!("read_int"), vec![])
+    ast::Expr::Call(Box::new(ast::Expr::GlobalSymbol(id!("read_int"))), vec![])
 }
 
 pub fn ast_print_int(e: ast::Expr) -> ast::Expr {
-    ast::Expr::Call(id!("print_int"), vec![e])
+    ast::Expr::Call(Box::new(ast::Expr::GlobalSymbol(id!("print_int"))), vec![e])
 }
 
 pub fn ast_const_int(i: i64) -> ast::Expr {
