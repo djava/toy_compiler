@@ -36,7 +36,7 @@ impl ast::Expr {
                     }
                 }
             }
-            Id(id) | GlobalSymbol(id) | Closure(id, _, _) => env
+            Id(id) | GlobalSymbol(id) => env
                 .get(id)
                 .expect(format!("Unknown Identifier: {id:?}").as_str())
                 .clone(),
@@ -128,6 +128,20 @@ impl ast::Expr {
                     panic!("No expected type for lambda");
                 }
             }
+            Closure(id, _, _) => {
+                let func_type = env.get(id).expect(format!("Unknown closure id: {id:?}").as_str());
+
+                if let ValueType::FunctionType(param_types, _) = func_type {
+                    if let Some(ValueType::TupleType(capture_types)) = param_types.get(0) {
+                        let capture_types = capture_types.iter().cloned();
+                        ValueType::TupleType([func_type.clone()].into_iter().chain(capture_types).collect())
+                    } else {
+                        panic!("Closure function didn't have captures as first arg")
+                    }
+                } else {
+                    panic!("func_type is non-function type??");
+                }
+            } 
         };
 
         // Exclude closures from type hint checks because they have been
