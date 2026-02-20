@@ -15,12 +15,13 @@ pub enum Expr {
     Subscript(Box<Expr>, i64),
     Allocate(usize, ValueType),
     GlobalSymbol(Identifier),
-    Lambda(Function)
+    Lambda(Function),
+    Closure(Identifier, Vec<Identifier>, usize)
 }
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum Statement {
-    Assign(AssignDest, Expr),
+    Assign(AssignDest, Expr, Option<ValueType>),
     Expr(Expr),
     Conditional(Expr, Vec<Statement>, Vec<Statement>),
     WhileLoop(Expr, Vec<Statement>),

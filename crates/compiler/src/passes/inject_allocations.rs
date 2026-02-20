@@ -1,4 +1,9 @@
-use crate::{constants::*, passes::ASTPass, syntax_trees::{ast::*, shared::*}, utils::global};
+use crate::{
+    constants::*,
+    passes::ASTPass,
+    syntax_trees::{ast::*, shared::*},
+    utils::global,
+};
 
 pub struct InjectAllocations;
 
@@ -34,9 +39,9 @@ fn replace_tuples_in_statement(statement: &mut Statement, type_env: &mut TypeEnv
                 replace_tuples_in_statement(s, type_env);
             }
         }
-        Statement::Assign(_, expr)
-        | Statement::Return(expr)
-        | Statement::Expr(expr) => replace_tuples_in_expr(expr, type_env),
+        Statement::Assign(_, expr, _) | Statement::Return(expr) | Statement::Expr(expr) => {
+            replace_tuples_in_expr(expr, type_env)
+        }
     }
 }
 
@@ -45,20 +50,20 @@ fn replace_tuples_in_expr(expr: &mut Expr, type_env: &mut TypeEnv) {
         Expr::BinaryOp(l, _, r) => {
             replace_tuples_in_expr(l, type_env);
             replace_tuples_in_expr(r, type_env);
-        },
+        }
         Expr::UnaryOp(_, expr) => {
             replace_tuples_in_expr(expr, type_env);
-        },
+        }
         Expr::Call(_, args) => {
             for a in args {
                 replace_tuples_in_expr(a, type_env);
             }
-        },
+        }
         Expr::Ternary(cond, pos, neg) => {
             replace_tuples_in_expr(cond, type_env);
             replace_tuples_in_expr(pos, type_env);
             replace_tuples_in_expr(neg, type_env);
-        },
+        }
         Expr::StatementBlock(body, expr) => {
             for s in body {
                 replace_tuples_in_statement(s, type_env);
@@ -66,10 +71,13 @@ fn replace_tuples_in_expr(expr: &mut Expr, type_env: &mut TypeEnv) {
             replace_tuples_in_expr(expr, type_env);
         }
         Expr::Tuple(elems) => {
+            // TODO: Passing None to e.type_check means that lambdas
+            // cant be in tuples... Annoying but I'd have to refactor
+            // quite a bit to make that work
             let tup_type = ValueType::TupleType(
                 elems
                     .iter_mut()
-                    .map(|e| e.type_check(type_env))
+                    .map(|e| e.type_check(type_env, &None))
                     .collect(),
             );
             *expr = get_initialize_tuple_expr(elems, tup_type);
@@ -77,7 +85,7 @@ fn replace_tuples_in_expr(expr: &mut Expr, type_env: &mut TypeEnv) {
         Expr::Subscript(expr, _) => {
             replace_tuples_in_expr(expr, type_env);
         }
-        Expr::Constant(_) | Expr::Id(_) | Expr::Allocate(_, _) | Expr::GlobalSymbol(_) => {}
+        Expr::Closure(..) | Expr::Constant(_) | Expr::Id(_) | Expr::Allocate(_, _) | Expr::GlobalSymbol(_) => {}
         Expr::Lambda(_) => panic!("Should've been removed already"),
     }
 }
@@ -108,6 +116,7 @@ fn get_initialize_tuple_expr(elems: &mut Vec<Expr>, tup_type: ValueType) -> Expr
                 BinaryOperator::Add,
                 Box::new(Expr::Constant(Value::I64(bytes))),
             ),
+            None,
         ),
         Statement::Conditional(
             Expr::BinaryOp(
@@ -121,14 +130,17 @@ fn get_initialize_tuple_expr(elems: &mut Vec<Expr>, tup_type: ValueType) -> Expr
         Statement::Assign(
             AssignDest::Id(out_ephemeral.clone()),
             Expr::Allocate(bytes as usize, tup_type),
+            None,
         ),
     ];
 
-    statements.extend(
-        elems.iter().enumerate().map(|(idx, e)| {
-            Statement::Assign(AssignDest::Subscript(out_ephemeral.clone(), idx as i64), e.clone())
-        }),
-    );
+    statements.extend(elems.iter().enumerate().map(|(idx, e)| {
+        Statement::Assign(
+            AssignDest::Subscript(out_ephemeral.clone(), idx as i64),
+            e.clone(),
+            None,
+        )
+    }));
 
     Expr::StatementBlock(statements, Box::new(Expr::Id(out_ephemeral)))
 }

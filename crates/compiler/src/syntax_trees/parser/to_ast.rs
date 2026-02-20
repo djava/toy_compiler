@@ -92,13 +92,15 @@ pub fn to_ast_statement<'a>(
 ) -> Option<ast::Statement> {
     match iter.next() {
         Some(pt::Statement::Expr(pte)) => Some(ast::Statement::Expr(to_ast_expr(pte, func_name))),
-        Some(pt::Statement::Assign(name, pte)) => Some(ast::Statement::Assign(
+        Some(pt::Statement::Assign(name, pte, type_hint)) => Some(ast::Statement::Assign(
             AssignDest::Id(local!(name, func_name.clone())),
             to_ast_expr(pte, func_name),
+            type_hint,
         )),
         Some(pt::Statement::SubscriptAssign(name, idx, pte)) => Some(ast::Statement::Assign(
             AssignDest::Subscript(local!(name, func_name.clone()), idx),
             to_ast_expr(pte, func_name),
+            None,
         )),
         Some(pt::Statement::If(cond, body)) => {
             // There could be many stacked else-if statements that we

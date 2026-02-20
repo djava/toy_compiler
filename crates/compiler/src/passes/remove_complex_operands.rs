@@ -31,21 +31,20 @@ impl ASTPass for RemoveComplexOperands {
 
 fn rco_statement(s: &Statement, new_body: &mut Vec<Statement>) {
     match s {
-        Statement::Assign(dest, expr) => {
+        Statement::Assign(dest, expr, _) => {
             let transform = rco_expr(&expr, false);
 
             // Take all the ephemeral transforms that happen
             // inside the expression and add them before this
             // statement
-            let ephemeral_assign_stmts = transform
-                .ephemeral_assigns
-                .iter()
-                .map(|(id, expr)| Statement::Assign(AssignDest::Id(id.clone()), expr.clone()));
+            let ephemeral_assign_stmts = transform.ephemeral_assigns.iter().map(|(id, expr)| {
+                Statement::Assign(AssignDest::Id(id.clone()), expr.clone(), None)
+            });
             new_body.extend(ephemeral_assign_stmts);
 
             // Add the updated version of this statement with
             // the new expression to the body
-            new_body.push(Statement::Assign(dest.clone(), transform.new_expr));
+            new_body.push(Statement::Assign(dest.clone(), transform.new_expr, None));
         }
         Statement::Expr(expr) => {
             // The expression statement itself doesn't need to
@@ -57,10 +56,9 @@ fn rco_statement(s: &Statement, new_body: &mut Vec<Statement>) {
             // Take all the ephemeral transforms that happen
             // inside the expression and add them before this
             // statement
-            let ephemeral_assign_stmts = transform
-                .ephemeral_assigns
-                .iter()
-                .map(|(id, expr)| Statement::Assign(AssignDest::Id(id.clone()), expr.clone()));
+            let ephemeral_assign_stmts = transform.ephemeral_assigns.iter().map(|(id, expr)| {
+                Statement::Assign(AssignDest::Id(id.clone()), expr.clone(), None)
+            });
             new_body.extend(ephemeral_assign_stmts);
 
             // Add the updated version of this statement with
@@ -71,10 +69,10 @@ fn rco_statement(s: &Statement, new_body: &mut Vec<Statement>) {
             // Condition must be non-atomic to enable good codegen
             let cond_transform = rco_expr(cond, false);
 
-            let ephemeral_assign_stmts = cond_transform
-                .ephemeral_assigns
-                .iter()
-                .map(|(id, expr)| Statement::Assign(AssignDest::Id(id.clone()), expr.clone()));
+            let ephemeral_assign_stmts =
+                cond_transform.ephemeral_assigns.iter().map(|(id, expr)| {
+                    Statement::Assign(AssignDest::Id(id.clone()), expr.clone(), None)
+                });
             new_body.extend(ephemeral_assign_stmts);
 
             let mut pos_new_body = Vec::new();
@@ -95,10 +93,10 @@ fn rco_statement(s: &Statement, new_body: &mut Vec<Statement>) {
 
             // Put cond in a statement block so that it recalculates it
             // every iteration
-            let ephemeral_assign_stmts = cond_transform
-                .ephemeral_assigns
-                .iter()
-                .map(|(id, expr)| Statement::Assign(AssignDest::Id(id.clone()), expr.clone()));
+            let ephemeral_assign_stmts =
+                cond_transform.ephemeral_assigns.iter().map(|(id, expr)| {
+                    Statement::Assign(AssignDest::Id(id.clone()), expr.clone(), None)
+                });
             let cond_statement_block = Expr::StatementBlock(
                 ephemeral_assign_stmts.collect(),
                 Box::new(cond_transform.new_expr),
@@ -118,10 +116,9 @@ fn rco_statement(s: &Statement, new_body: &mut Vec<Statement>) {
             // Take all the ephemeral transforms that happen
             // inside the expression and add them before this
             // statement
-            let ephemeral_assign_stmts = transform
-                .ephemeral_assigns
-                .iter()
-                .map(|(id, expr)| Statement::Assign(AssignDest::Id(id.clone()), expr.clone()));
+            let ephemeral_assign_stmts = transform.ephemeral_assigns.iter().map(|(id, expr)| {
+                Statement::Assign(AssignDest::Id(id.clone()), expr.clone(), None)
+            });
             new_body.extend(ephemeral_assign_stmts);
 
             // Add the updated version of this statement with
@@ -190,14 +187,6 @@ fn rco_expr(e: &Expr, needs_atomicity: bool) -> ExprTransformation {
                 ephemeral_assigns,
             }
         }
-        Expr::Constant(_) => ExprTransformation {
-            new_expr: e.clone(),
-            ephemeral_assigns: vec![],
-        },
-        Expr::Id(_) => ExprTransformation {
-            new_expr: e.clone(),
-            ephemeral_assigns: vec![],
-        },
         Expr::Call(func, args) => {
             let mut ephemeral_assigns = vec![];
             let mut new_args = vec![];
@@ -243,7 +232,7 @@ fn rco_expr(e: &Expr, needs_atomicity: bool) -> ExprTransformation {
                     transformed_pos
                         .ephemeral_assigns
                         .into_iter()
-                        .map(|(dest_id, e)| Statement::Assign(AssignDest::Id(dest_id), e))
+                        .map(|(dest_id, e)| Statement::Assign(AssignDest::Id(dest_id), e, None))
                         .collect(),
                     Box::new(transformed_pos.new_expr),
                 )
@@ -255,7 +244,7 @@ fn rco_expr(e: &Expr, needs_atomicity: bool) -> ExprTransformation {
                     transformed_neg
                         .ephemeral_assigns
                         .into_iter()
-                        .map(|(dest_id, e)| Statement::Assign(AssignDest::Id(dest_id), e))
+                        .map(|(dest_id, e)| Statement::Assign(AssignDest::Id(dest_id), e, None))
                         .collect(),
                     Box::new(transformed_neg.new_expr),
                 )
@@ -295,7 +284,7 @@ fn rco_expr(e: &Expr, needs_atomicity: bool) -> ExprTransformation {
             let new_expr = if needs_atomicity {
                 let id = Identifier::new_ephemeral();
                 let ephemeral_assign =
-                    Statement::Assign(AssignDest::Id(id.clone()), transformed_block);
+                    Statement::Assign(AssignDest::Id(id.clone()), transformed_block, None);
 
                 Expr::StatementBlock(vec![ephemeral_assign], Box::new(Expr::Id(id)))
             } else {
@@ -354,7 +343,10 @@ fn rco_expr(e: &Expr, needs_atomicity: bool) -> ExprTransformation {
                 ephemeral_assigns,
             }
         }
-        Expr::GlobalSymbol(_) => ExprTransformation {
+        Expr::Constant(_)
+        | Expr::Id(_)
+        | Expr::Closure(..)
+        | Expr::GlobalSymbol(_) => ExprTransformation {
             new_expr: e.clone(),
             ephemeral_assigns: vec![],
         },
@@ -441,13 +433,13 @@ mod tests {
                     check_statement_invariants(s);
                 }
             }
-            Expr::Constant(_) | Expr::Id(_) | Expr::GlobalSymbol(_) | Expr::Allocate(_, _) => {}
+            Expr::Constant(_) | Expr::Id(_) | Expr::GlobalSymbol(_) | Expr::Allocate(_, _) | Expr::Closure(..) => {}
         }
     }
 
     fn check_statement_invariants(s: &Statement) {
         match s {
-            Statement::Assign(_, expr) => check_expr_invariants(expr),
+            Statement::Assign(_, expr, _) => check_expr_invariants(expr),
             Statement::Expr(expr) => check_expr_invariants(expr),
             Statement::Conditional(cond, pos, neg) => {
                 check_expr_invariants(cond);
@@ -521,7 +513,10 @@ mod tests {
                     name: t_global!(LABEL_MAIN),
                     body: vec![Statement::Expr(Expr::Call(
                         Box::new(Expr::GlobalSymbol(t_global!("print_int"))),
-                        vec![Expr::Call(Box::new(Expr::GlobalSymbol(t_global!("read_int"))), vec![])],
+                        vec![Expr::Call(
+                            Box::new(Expr::GlobalSymbol(t_global!("read_int"))),
+                            vec![],
+                        )],
                     ))],
                     types: TypeEnv::new(),
                     params: IndexMap::new(),
@@ -543,9 +538,15 @@ mod tests {
                     body: vec![Statement::Expr(Expr::Call(
                         Box::new(Expr::GlobalSymbol(t_global!("print_int"))),
                         vec![Expr::BinaryOp(
-                            Box::new(Expr::Call(Box::new(Expr::GlobalSymbol(t_global!("read_int"))), vec![])),
+                            Box::new(Expr::Call(
+                                Box::new(Expr::GlobalSymbol(t_global!("read_int"))),
+                                vec![],
+                            )),
                             BinaryOperator::Subtract,
-                            Box::new(Expr::Call(Box::new(Expr::GlobalSymbol(t_global!("read_int"))), vec![])),
+                            Box::new(Expr::Call(
+                                Box::new(Expr::GlobalSymbol(t_global!("read_int"))),
+                                vec![],
+                            )),
                         )],
                     ))],
                     types: TypeEnv::new(),
@@ -623,7 +624,10 @@ mod tests {
                         Box::new(Expr::GlobalSymbol(t_global!("print_int"))),
                         vec![Expr::BinaryOp(
                             Box::new(Expr::BinaryOp(
-                                Box::new(Expr::Call(Box::new(Expr::GlobalSymbol(t_global!("read_int"))), vec![])),
+                                Box::new(Expr::Call(
+                                    Box::new(Expr::GlobalSymbol(t_global!("read_int"))),
+                                    vec![],
+                                )),
                                 BinaryOperator::Add,
                                 Box::new(Expr::Constant(Value::I64(2))),
                             )),
@@ -656,8 +660,12 @@ mod tests {
                         Statement::Assign(
                             AssignDest::Id(t_global!("x")),
                             Expr::Constant(Value::I64(1000)),
+                            None,
                         ),
-                        Statement::Expr(Expr::Call(Box::new(Expr::GlobalSymbol(t_global!("print_int"))), vec![Expr::Id(t_global!("x"))])),
+                        Statement::Expr(Expr::Call(
+                            Box::new(Expr::GlobalSymbol(t_global!("print_int"))),
+                            vec![Expr::Id(t_global!("x"))],
+                        )),
                     ],
                     types: TypeEnv::new(),
                     params: IndexMap::new(),
@@ -690,7 +698,10 @@ mod tests {
                             AssignDest::Id(t_global!("foofoo")),
                             Expr::BinaryOp(
                                 Box::new(Expr::BinaryOp(
-                                    Box::new(Expr::Call(Box::new(Expr::GlobalSymbol(t_global!("read_int"))), vec![])),
+                                    Box::new(Expr::Call(
+                                        Box::new(Expr::GlobalSymbol(t_global!("read_int"))),
+                                        vec![],
+                                    )),
                                     BinaryOperator::Add,
                                     Box::new(Expr::Constant(Value::I64(2))),
                                 )),
@@ -701,6 +712,7 @@ mod tests {
                                     Box::new(Expr::Constant(Value::I64(2))),
                                 )),
                             ),
+                            None,
                         ),
                         Statement::Expr(Expr::Call(
                             Box::new(Expr::GlobalSymbol(t_global!("print_int"))),
@@ -728,7 +740,10 @@ mod tests {
                         Box::new(Expr::GlobalSymbol(t_global!("print_int"))),
                         vec![Expr::BinaryOp(
                             Box::new(Expr::BinaryOp(
-                                Box::new(Expr::Call(Box::new(Expr::GlobalSymbol(t_global!("read_int"))), vec![])),
+                                Box::new(Expr::Call(
+                                    Box::new(Expr::GlobalSymbol(t_global!("read_int"))),
+                                    vec![],
+                                )),
                                 BinaryOperator::Add,
                                 Box::new(Expr::Constant(Value::I64(2))),
                             )),
@@ -780,22 +795,31 @@ mod tests {
                         Statement::Assign(
                             AssignDest::Id(t_global!("foo")),
                             Expr::Call(Box::new(Expr::GlobalSymbol(t_global!("read_int"))), vec![]),
+                            None,
                         ),
                         Statement::Assign(
                             AssignDest::Id(t_global!("bar")),
                             Expr::BinaryOp(
-                                Box::new(Expr::Call(Box::new(Expr::GlobalSymbol(t_global!("read_int"))), vec![])),
+                                Box::new(Expr::Call(
+                                    Box::new(Expr::GlobalSymbol(t_global!("read_int"))),
+                                    vec![],
+                                )),
                                 BinaryOperator::Add,
                                 Box::new(Expr::Id(t_global!("foo"))),
                             ),
+                            None,
                         ),
                         Statement::Assign(
                             AssignDest::Id(t_global!("baz")),
                             Expr::BinaryOp(
-                                Box::new(Expr::Call(Box::new(Expr::GlobalSymbol(t_global!("read_int"))), vec![])),
+                                Box::new(Expr::Call(
+                                    Box::new(Expr::GlobalSymbol(t_global!("read_int"))),
+                                    vec![],
+                                )),
                                 BinaryOperator::Add,
                                 Box::new(Expr::Id(t_global!("bar"))),
                             ),
+                            None,
                         ),
                         Statement::Assign(
                             AssignDest::Id(t_global!("bop")),
@@ -808,11 +832,15 @@ mod tests {
                                 BinaryOperator::Add,
                                 Box::new(Expr::Id(t_global!("baz"))),
                             ),
+                            None,
                         ),
                         Statement::Expr(Expr::Call(
                             Box::new(Expr::GlobalSymbol(t_global!("print_int"))),
                             vec![Expr::BinaryOp(
-                                Box::new(Expr::Call(Box::new(Expr::GlobalSymbol(t_global!("read_int"))), vec![])),
+                                Box::new(Expr::Call(
+                                    Box::new(Expr::GlobalSymbol(t_global!("read_int"))),
+                                    vec![],
+                                )),
                                 BinaryOperator::Add,
                                 Box::new(Expr::Id(t_global!("bop"))),
                             )],
@@ -844,6 +872,7 @@ mod tests {
                         Statement::Assign(
                             AssignDest::Id(t_global!("x")),
                             Expr::Constant(Value::I64(5)),
+                            None,
                         ),
                         Statement::WhileLoop(
                             Expr::BinaryOp(
@@ -863,6 +892,7 @@ mod tests {
                                         BinaryOperator::Subtract,
                                         Box::new(Expr::Constant(Value::I64(1))),
                                     ),
+                                    None,
                                 ),
                             ],
                         ),
@@ -894,6 +924,7 @@ mod tests {
                         Statement::Assign(
                             AssignDest::Id(t_global!("x")),
                             Expr::Constant(Value::I64(10)),
+                            None,
                         ),
                         Statement::WhileLoop(
                             Expr::BinaryOp(
@@ -917,6 +948,7 @@ mod tests {
                                         BinaryOperator::Subtract,
                                         Box::new(Expr::Constant(Value::I64(1))),
                                     ),
+                                    None,
                                 ),
                             ],
                         ),
@@ -947,6 +979,7 @@ mod tests {
                         Statement::Assign(
                             AssignDest::Id(t_global!("i")),
                             Expr::Constant(Value::I64(3)),
+                            None,
                         ),
                         Statement::WhileLoop(
                             Expr::BinaryOp(
@@ -959,7 +992,10 @@ mod tests {
                                     Box::new(Expr::GlobalSymbol(t_global!("print_int"))),
                                     vec![Expr::BinaryOp(
                                         Box::new(Expr::BinaryOp(
-                                            Box::new(Expr::Call(Box::new(Expr::GlobalSymbol(t_global!("read_int"))), vec![])),
+                                            Box::new(Expr::Call(
+                                                Box::new(Expr::GlobalSymbol(t_global!("read_int"))),
+                                                vec![],
+                                            )),
                                             BinaryOperator::Add,
                                             Box::new(Expr::Constant(Value::I64(10))),
                                         )),
@@ -978,6 +1014,7 @@ mod tests {
                                         BinaryOperator::Subtract,
                                         Box::new(Expr::Constant(Value::I64(1))),
                                     ),
+                                    None,
                                 ),
                             ],
                         ),
@@ -1207,6 +1244,7 @@ mod tests {
                             Statement::Assign(
                                 AssignDest::Id(t_global!("f")),
                                 Expr::Id(t_global!("double")),
+                                None,
                             ),
                             Statement::Expr(Expr::Call(
                                 Box::new(Expr::Id(t_global!("print_int"))),

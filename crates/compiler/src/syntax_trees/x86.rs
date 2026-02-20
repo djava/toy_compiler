@@ -99,7 +99,7 @@ pub enum Directive {
     Label(Identifier),
     Globl(Identifier),
     AttSyntax,
-    Align(u8)
+    Align(u8),
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
@@ -178,13 +178,15 @@ impl Display for Arg {
                 Identifier::Local(id, func) => match &**func {
                     Identifier::Ephemeral(func_num) => write!(f, "@EE#{func_num}::{id}"),
                     Identifier::Global(func_name) => write!(f, "@{func_name}::{id}"),
-                    Identifier::Local(func_name, func_owner) => write!(f, "@{{{func_owner:?}::{func_name}}}::{id}"),
-                }
+                    Identifier::Local(func_name, func_owner) => {
+                        write!(f, "@{{{func_owner:?}::{func_name}}}::{id}")
+                    }
+                },
             },
             Arg::Global(id) => match id {
                 Identifier::Global(name) => write!(f, "{name}(%rip)"),
                 Identifier::Ephemeral(id) => write!(f, "__EE_{id}(%rip)"),
-                Identifier::Local(..) => panic!("A local cannot be a global")
+                Identifier::Local(..) => panic!("A local cannot be a global"),
             },
         }
     }
@@ -215,7 +217,7 @@ fn fmt_arg_for_jmp_call(arg: &Arg) -> String {
     match arg {
         Arg::Global(id) => fmt_label(id),
         Arg::Reg(reg) => format!("*{reg}"),
-        _ => panic!("Invalid arg for jmp/callq: {arg}")
+        _ => panic!("Invalid arg for jmp/callq: {arg}"),
     }
 }
 
@@ -253,7 +255,7 @@ impl Display for Directive {
             Self::Label(label) => write!(f, "{}:", fmt_label(label)),
             Self::Globl(label) => write!(f, "\t.globl {}", fmt_label(label)),
             Self::AttSyntax => write!(f, "\t.att_syntax"),
-            Self::Align(n) => write!(f,"\t.align {n}"),
+            Self::Align(n) => write!(f, "\t.align {n}"),
         }
     }
 }

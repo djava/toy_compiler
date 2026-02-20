@@ -43,7 +43,9 @@ impl ASTPass for TupleizeExcessArgs {
                 f.params = new_params;
 
                 // Update function_types map for the new type
-                if let ValueType::FunctionType(old_args_types, ret_type) = &m.function_types[&f.name] {
+                if let ValueType::FunctionType(old_args_types, ret_type) =
+                    &m.function_types[&f.name]
+                {
                     let mut new_args_types: Vec<_> = old_args_types
                         .iter()
                         .take(MAX_REGISTER_ARGS - 1)
@@ -57,8 +59,10 @@ impl ASTPass for TupleizeExcessArgs {
                         .collect();
                     new_args_types.push(ValueType::TupleType(excess_args_types));
 
-                    m.function_types
-                        .insert(f.name.clone(), ValueType::FunctionType(new_args_types, ret_type.clone()));
+                    m.function_types.insert(
+                        f.name.clone(),
+                        ValueType::FunctionType(new_args_types, ret_type.clone()),
+                    );
                 } else {
                     panic!("Couldn't find type-checker entry for {:?}", f.name);
                 }
@@ -83,7 +87,7 @@ fn replace_excess_use_for_statement(
     tuple_id: &Identifier,
 ) {
     match s {
-        Statement::Assign(assign_dest, expr) => {
+        Statement::Assign(assign_dest, expr, _) => {
             match assign_dest {
                 AssignDest::Id(id) => {
                     if let Some(subscript_idx) = excess_names.iter().position(|x| *x == id) {
@@ -167,14 +171,14 @@ fn replace_excess_use_for_expr(
             replace_excess_use_for_expr(expr, excess_names, tuple_id);
         }
 
-        Expr::Lambda(_) => todo!(),
-        Expr::Allocate(_, _) | Expr::Constant(_) | Expr::GlobalSymbol(_) => {}
+        Expr::Closure(..) | Expr::Allocate(_, _) | Expr::Constant(_) | Expr::GlobalSymbol(_) => {}
+        Expr::Lambda(_) => panic!("Should've been removed by now"),
     }
 }
 
 fn replace_excess_calls_for_statement(s: &mut Statement) {
     match s {
-        Statement::Assign(_, expr) | Statement::Expr(expr) | Statement::Return(expr) => {
+        Statement::Assign(_, expr, _) | Statement::Expr(expr) | Statement::Return(expr) => {
             replace_excess_calls_for_expr(expr);
         }
         Statement::Conditional(cond, pos_body, neg_body) => {
@@ -240,9 +244,8 @@ fn replace_excess_calls_for_expr(e: &mut Expr) {
             replace_excess_calls_for_expr(expr);
         }
 
-        Expr::Lambda(_) => todo!(),
-
-        Expr::Id(_) | Expr::Allocate(_, _) | Expr::Constant(_) | Expr::GlobalSymbol(_) => {}
+        Expr::Closure(..) | Expr::Id(_) | Expr::Allocate(_, _) | Expr::Constant(_) | Expr::GlobalSymbol(_) => {}
+        Expr::Lambda(_) => panic!("Should've been removed by now")
     }
 }
 
@@ -271,7 +274,7 @@ mod tests {
         map: &HashMap<Identifier, i64>,
     ) {
         match (before, after) {
-            (Statement::Assign(_, b_expr), Statement::Assign(_, a_expr))
+            (Statement::Assign(_, b_expr, _), Statement::Assign(_, a_expr, _))
             | (Statement::Expr(b_expr), Statement::Expr(a_expr)) => {
                 check_invariant_expr(b_expr, a_expr, tup_id, map);
             }
@@ -403,7 +406,10 @@ mod tests {
                 }],
                 function_types: TypeEnv::from_iter([(
                     t_global!("a"),
-                    ValueType::FunctionType(vec![ValueType::IntType; 4], Box::new(ValueType::NoneType)),
+                    ValueType::FunctionType(
+                        vec![ValueType::IntType; 4],
+                        Box::new(ValueType::NoneType),
+                    ),
                 )]),
             },
         });
@@ -438,7 +444,10 @@ mod tests {
                 }],
                 function_types: TypeEnv::from_iter([(
                     t_global!("a"),
-                    ValueType::FunctionType(vec![ValueType::IntType; 7], Box::new(ValueType::NoneType)),
+                    ValueType::FunctionType(
+                        vec![ValueType::IntType; 7],
+                        Box::new(ValueType::NoneType),
+                    ),
                 )]),
             },
         });
@@ -493,7 +502,10 @@ mod tests {
                 }],
                 function_types: TypeEnv::from_iter([(
                     t_global!("a"),
-                    ValueType::FunctionType(vec![ValueType::IntType; 17], Box::new(ValueType::NoneType)),
+                    ValueType::FunctionType(
+                        vec![ValueType::IntType; 17],
+                        Box::new(ValueType::NoneType),
+                    ),
                 )]),
             },
         });
@@ -534,7 +546,10 @@ mod tests {
                 ],
                 function_types: TypeEnv::from_iter([(
                     t_global!("a"),
-                    ValueType::FunctionType(vec![ValueType::IntType; 4], Box::new(ValueType::NoneType)),
+                    ValueType::FunctionType(
+                        vec![ValueType::IntType; 4],
+                        Box::new(ValueType::NoneType),
+                    ),
                 )]),
             },
         });
@@ -601,7 +616,10 @@ mod tests {
                 ],
                 function_types: TypeEnv::from_iter([(
                     t_global!("a"),
-                    ValueType::FunctionType(vec![ValueType::IntType; 17], Box::new(ValueType::NoneType)),
+                    ValueType::FunctionType(
+                        vec![ValueType::IntType; 17],
+                        Box::new(ValueType::NoneType),
+                    ),
                 )]),
             },
         });

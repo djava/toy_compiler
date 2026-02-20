@@ -19,7 +19,7 @@ impl ASTPass for ShortCircuiting {
 
 fn shortcircuit_statement(s: &mut Statement) {
     match s {
-        Statement::Assign(_, expr)
+        Statement::Assign(_, expr, _)
         | Statement::Expr(expr)
         | Statement::Conditional(expr, _, _)
         | Statement::Return(expr)
@@ -49,15 +49,17 @@ fn shortcircuit_expr(e: &mut Expr) {
             ss.iter_mut().for_each(shortcircuit_statement);
             shortcircuit_expr(&mut *e);
         }
-        Expr::Constant(_) | Expr::Id(_) => {}
         Expr::Tuple(elems) => {
             elems.iter_mut().for_each(shortcircuit_expr);
         }
         Expr::Subscript(tup, _idx) => {
             shortcircuit_expr(tup);
         }
-        Expr::Allocate(_, _) => {}
-        Expr::GlobalSymbol(_) => {}
+        Expr::Allocate(_, _)
+        | Expr::Constant(_)
+        | Expr::Id(_) => {}
+        | Expr::GlobalSymbol(_)
+        | Expr::Closure(..) => {}
         Expr::Lambda(_) => panic!("Should've been removed already"),
     }
 
@@ -84,8 +86,8 @@ fn shortcircuit_expr(e: &mut Expr) {
 mod tests {
     use std::collections::VecDeque;
 
-    use indexmap::IndexMap;
     use crate::utils::t_global;
+    use indexmap::IndexMap;
     use test_support::{
         compiler::{
             constants::LABEL_MAIN,
@@ -128,7 +130,7 @@ mod tests {
 
     fn assert_statement_no_and_or(s: &Statement) {
         match s {
-            Statement::Assign(_, expr) => assert_expr_no_and_or(&expr),
+            Statement::Assign(_, expr, _) => assert_expr_no_and_or(&expr),
             Statement::Expr(expr) => assert_expr_no_and_or(&expr),
             Statement::Conditional(expr, pos, neg) => {
                 assert_expr_no_and_or(&expr);
@@ -170,16 +172,20 @@ mod tests {
     #[test]
     fn test_simple() {
         let tc = TestCase {
-            ast: Program { functions: vec![Function { name: t_global!(LABEL_MAIN),
-                body: vec![Statement::Expr(Expr::BinaryOp(
-                    Box::new(Expr::Constant(Value::Bool(true))),
-                    BinaryOperator::And,
-                    Box::new(Expr::Constant(Value::Bool(false))),
-                ))],
-                types: TypeEnv::new(),
-                params: IndexMap::new(),
-                return_type: ValueType::IntType,
-            }], function_types: TypeEnv::new()},
+            ast: Program {
+                functions: vec![Function {
+                    name: t_global!(LABEL_MAIN),
+                    body: vec![Statement::Expr(Expr::BinaryOp(
+                        Box::new(Expr::Constant(Value::Bool(true))),
+                        BinaryOperator::And,
+                        Box::new(Expr::Constant(Value::Bool(false))),
+                    ))],
+                    types: TypeEnv::new(),
+                    params: IndexMap::new(),
+                    return_type: ValueType::IntType,
+                }],
+                function_types: TypeEnv::new(),
+            },
             inputs: VecDeque::new(),
             expected_outputs: VecDeque::new(),
         };
@@ -190,11 +196,10 @@ mod tests {
     #[test]
     fn test_nested() {
         let tc = TestCase {
-            ast: Program { functions: vec![Function { name: t_global!(LABEL_MAIN),
-                body: vec![Statement::Expr(Expr::BinaryOp(
-                    Box::new(Expr::Constant(Value::Bool(true))),
-                    BinaryOperator::And,
-                    Box::new(Expr::BinaryOp(
+            ast: Program {
+                functions: vec![Function {
+                    name: t_global!(LABEL_MAIN),
+                    body: vec![Statement::Expr(Expr::BinaryOp(
                         Box::new(Expr::Constant(Value::Bool(true))),
                         BinaryOperator::And,
                         Box::new(Expr::BinaryOp(
@@ -206,16 +211,21 @@ mod tests {
                                 Box::new(Expr::BinaryOp(
                                     Box::new(Expr::Constant(Value::Bool(true))),
                                     BinaryOperator::And,
-                                    Box::new(Expr::Constant(Value::Bool(false))),
+                                    Box::new(Expr::BinaryOp(
+                                        Box::new(Expr::Constant(Value::Bool(true))),
+                                        BinaryOperator::And,
+                                        Box::new(Expr::Constant(Value::Bool(false))),
+                                    )),
                                 )),
                             )),
                         )),
-                    )),
-                ))],
-                types: TypeEnv::new(),
-                params: IndexMap::new(),
-                return_type: ValueType::IntType,
-            }], function_types: TypeEnv::new()},
+                    ))],
+                    types: TypeEnv::new(),
+                    params: IndexMap::new(),
+                    return_type: ValueType::IntType,
+                }],
+                function_types: TypeEnv::new(),
+            },
             inputs: VecDeque::new(),
             expected_outputs: VecDeque::new(),
         };
@@ -226,31 +236,41 @@ mod tests {
     #[test]
     fn test_comparisons_and() {
         let tc = TestCase {
-            ast: Program { functions: vec![Function { name: t_global!(LABEL_MAIN),
-                body: vec![
-                    Statement::Expr(Expr::BinaryOp(
-                        Box::new(Expr::Constant(Value::Bool(true))),
-                        BinaryOperator::And,
-                        Box::new(Expr::BinaryOp(
-                            Box::new(Expr::Constant(Value::I64(1))),
-                            BinaryOperator::Equals,
-                            Box::new(Expr::Call(Box::new(Expr::GlobalSymbol(t_global!("read_int"))), vec![])),
+            ast: Program {
+                functions: vec![Function {
+                    name: t_global!(LABEL_MAIN),
+                    body: vec![
+                        Statement::Expr(Expr::BinaryOp(
+                            Box::new(Expr::Constant(Value::Bool(true))),
+                            BinaryOperator::And,
+                            Box::new(Expr::BinaryOp(
+                                Box::new(Expr::Constant(Value::I64(1))),
+                                BinaryOperator::Equals,
+                                Box::new(Expr::Call(
+                                    Box::new(Expr::GlobalSymbol(t_global!("read_int"))),
+                                    vec![],
+                                )),
+                            )),
                         )),
-                    )),
-                    Statement::Expr(Expr::BinaryOp(
-                        Box::new(Expr::Constant(Value::Bool(false))),
-                        BinaryOperator::And,
-                        Box::new(Expr::BinaryOp(
-                            Box::new(Expr::Constant(Value::I64(1))),
-                            BinaryOperator::Equals,
-                            Box::new(Expr::Call(Box::new(Expr::GlobalSymbol(t_global!("read_int"))), vec![])),
+                        Statement::Expr(Expr::BinaryOp(
+                            Box::new(Expr::Constant(Value::Bool(false))),
+                            BinaryOperator::And,
+                            Box::new(Expr::BinaryOp(
+                                Box::new(Expr::Constant(Value::I64(1))),
+                                BinaryOperator::Equals,
+                                Box::new(Expr::Call(
+                                    Box::new(Expr::GlobalSymbol(t_global!("read_int"))),
+                                    vec![],
+                                )),
+                            )),
                         )),
-                    )),
-                ],
-                types: TypeEnv::new(),
-                params: IndexMap::new(),
-                return_type: ValueType::IntType,
-            }], function_types: TypeEnv::new()},
+                    ],
+                    types: TypeEnv::new(),
+                    params: IndexMap::new(),
+                    return_type: ValueType::IntType,
+                }],
+                function_types: TypeEnv::new(),
+            },
             inputs: VecDeque::from([1]),
             expected_outputs: VecDeque::new(),
         };
@@ -261,31 +281,41 @@ mod tests {
     #[test]
     fn test_comparisons_or() {
         let tc = TestCase {
-            ast: Program { functions: vec![Function { name: t_global!(LABEL_MAIN),
-                body: vec![
-                    Statement::Expr(Expr::BinaryOp(
-                        Box::new(Expr::Constant(Value::Bool(true))),
-                        BinaryOperator::Or,
-                        Box::new(Expr::BinaryOp(
-                            Box::new(Expr::Constant(Value::I64(1))),
-                            BinaryOperator::Equals,
-                            Box::new(Expr::Call(Box::new(Expr::GlobalSymbol(t_global!("read_int"))), vec![])),
+            ast: Program {
+                functions: vec![Function {
+                    name: t_global!(LABEL_MAIN),
+                    body: vec![
+                        Statement::Expr(Expr::BinaryOp(
+                            Box::new(Expr::Constant(Value::Bool(true))),
+                            BinaryOperator::Or,
+                            Box::new(Expr::BinaryOp(
+                                Box::new(Expr::Constant(Value::I64(1))),
+                                BinaryOperator::Equals,
+                                Box::new(Expr::Call(
+                                    Box::new(Expr::GlobalSymbol(t_global!("read_int"))),
+                                    vec![],
+                                )),
+                            )),
                         )),
-                    )),
-                    Statement::Expr(Expr::BinaryOp(
-                        Box::new(Expr::Constant(Value::Bool(false))),
-                        BinaryOperator::Or,
-                        Box::new(Expr::BinaryOp(
-                            Box::new(Expr::Constant(Value::I64(1))),
-                            BinaryOperator::Equals,
-                            Box::new(Expr::Call(Box::new(Expr::GlobalSymbol(t_global!("read_int"))), vec![])),
+                        Statement::Expr(Expr::BinaryOp(
+                            Box::new(Expr::Constant(Value::Bool(false))),
+                            BinaryOperator::Or,
+                            Box::new(Expr::BinaryOp(
+                                Box::new(Expr::Constant(Value::I64(1))),
+                                BinaryOperator::Equals,
+                                Box::new(Expr::Call(
+                                    Box::new(Expr::GlobalSymbol(t_global!("read_int"))),
+                                    vec![],
+                                )),
+                            )),
                         )),
-                    )),
-                ],
-                types: TypeEnv::new(),
-                params: IndexMap::new(),
-                return_type: ValueType::IntType,
-            }], function_types: TypeEnv::new()},
+                    ],
+                    types: TypeEnv::new(),
+                    params: IndexMap::new(),
+                    return_type: ValueType::IntType,
+                }],
+                function_types: TypeEnv::new(),
+            },
             inputs: VecDeque::from([1]),
             expected_outputs: VecDeque::new(),
         };

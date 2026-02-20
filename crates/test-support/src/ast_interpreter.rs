@@ -111,6 +111,7 @@ fn interpret_expr(
         Subscript(_expr, _value) => todo!(),
         Allocate(_, _value_type) => todo!(),
         Lambda(_) => todo!(),
+        Closure(_, _, _) => todo!(),
     }
 }
 
@@ -131,7 +132,7 @@ fn interpret_statement_chain<'a>(
             interpret_expr(e, inputs, outputs, val_env, func_env);
             return interpret_statement_chain(statements, inputs, outputs, val_env, func_env);
         }
-        Statement::Assign(dest, e) => {
+        Statement::Assign(dest, e, _) => {
             let result = interpret_expr(e, inputs, outputs, val_env, func_env).unwrap();
             match dest {
                 AssignDest::Id(id) => {

@@ -100,11 +100,11 @@ fn interpret_expr(
                     _ => panic!("Invalid callee: {func_name:?}"),
                 };
 
-                if let Some(func) = func_env
-                    .iter()
-                    .find(|f| f.name == resolved_name)
-                {
-                    let arg_vals = args.iter().map(|a| interpret_atom(a, val_env, func_env)).collect();
+                if let Some(func) = func_env.iter().find(|f| f.name == resolved_name) {
+                    let arg_vals = args
+                        .iter()
+                        .map(|a| interpret_atom(a, val_env, func_env))
+                        .collect();
                     return interpret_func(func, arg_vals, inputs, outputs, func_env);
                 } else {
                     panic!("Unknown function: {resolved_name:?}");
@@ -139,7 +139,7 @@ fn interpret_statement(
             match &dest {
                 AssignDest::Id(identifier) => {
                     val_env.insert(identifier.clone(), value);
-                },
+                }
                 AssignDest::Subscript(identifier, index) => {
                     if let Some(Value::Tuple(elems)) = val_env.get_mut(identifier) {
                         elems[*index as usize] = value;
@@ -147,7 +147,7 @@ fn interpret_statement(
                         panic!();
                     }
                 }
-            } 
+            }
             Continuation::Next
         }
         Statement::Return(expr) => Continuation::Return(interpret_atom(expr, val_env, func_env)),

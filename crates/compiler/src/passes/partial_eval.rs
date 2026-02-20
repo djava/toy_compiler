@@ -26,9 +26,9 @@ impl ASTPass for PartialEval {
 
 fn partial_eval_statement(s: Statement, new_statements: &mut Vec<Statement>) {
     match s {
-        Statement::Assign(dest, mut e) => {
+        Statement::Assign(dest, mut e, _) => {
             partial_eval_expr(&mut e);
-            new_statements.push(Statement::Assign(dest, e));
+            new_statements.push(Statement::Assign(dest, e, None));
         }
         Statement::Expr(mut e) => {
             partial_eval_expr(&mut e);
@@ -82,7 +82,7 @@ fn partial_eval_statement(s: Statement, new_statements: &mut Vec<Statement>) {
         Statement::Return(mut expr) => {
             partial_eval_expr(&mut expr);
             new_statements.push(Statement::Return(expr));
-        },
+        }
     }
 }
 
@@ -117,9 +117,7 @@ fn partial_eval_expr(e: &mut Expr) {
                 };
                 if let Some((constant, var)) = maybe_single_constant {
                     match op {
-                        BinaryOperator::Add
-                            if constant == &Value::I64(0) =>
-                        {
+                        BinaryOperator::Add if constant == &Value::I64(0) => {
                             // x + 0 = 0
                             *e = *var.to_owned();
                         }
@@ -219,7 +217,8 @@ fn partial_eval_expr(e: &mut Expr) {
         Allocate(_, _) => {
             panic!("This pass should've happened before any Allocate calls are injected")
         }
-        Expr::Lambda(_) => panic!("Should've been removed already"),
+        Closure(..) => {}
+        Lambda(_) => panic!("Should've been removed already"),
     }
 }
 
@@ -321,8 +320,8 @@ impl UnaryOperatorExt for UnaryOperator {
 mod tests {
     use std::collections::VecDeque;
 
-    use indexmap::IndexMap;
     use crate::utils::t_global;
+    use indexmap::IndexMap;
     use test_support::{
         ast_interpreter::interpret,
         compiler::{
@@ -387,14 +386,14 @@ mod tests {
                 for s in &func.body {
                     check_statement_invariants(&s);
                 }
-            },
-            Expr::Constant(_) | Expr::Id(_) | Expr::GlobalSymbol(_) | Expr::Allocate(_, _) => {},
+            }
+            Expr::Constant(_) | Expr::Id(_) | Expr::GlobalSymbol(_) | Expr::Allocate(_, _) | Expr::Closure(..) => {}
         }
     }
 
     fn check_statement_invariants(s: &Statement) {
         match s {
-            Statement::Assign(_, expr) => check_expr_invariants(expr),
+            Statement::Assign(_, expr, _) => check_expr_invariants(expr),
             Statement::Expr(expr) => check_expr_invariants(expr),
             Statement::Conditional(cond, pos, neg) => {
                 check_expr_invariants(cond);
@@ -420,7 +419,11 @@ mod tests {
     }
 
     fn check_invariants(m: &Program) {
-        m.functions.iter().map(|f| &f.body).flatten().for_each(check_statement_invariants);
+        m.functions
+            .iter()
+            .map(|f| &f.body)
+            .flatten()
+            .for_each(check_statement_invariants);
     }
 
     fn execute_test_case(mut tc: TestCase) {
@@ -441,19 +444,23 @@ mod tests {
     #[test]
     fn test_add() {
         execute_test_case(TestCase {
-            ast: Program { functions: vec![Function { name: t_global!(LABEL_MAIN),
-                body: vec![Statement::Expr(Expr::Call(
-                    Box::new(Expr::GlobalSymbol(t_global!("print_int"))),
-                    vec![Expr::BinaryOp(
-                        Box::new(Expr::Constant(Value::I64(40))),
-                        BinaryOperator::Add,
-                        Box::new(Expr::Constant(Value::I64(2))),
-                    )],
-                ))],
-                types: TypeEnv::new(),
-                params: IndexMap::new(),
-                return_type: ValueType::IntType,
-            }], function_types: TypeEnv::new()},
+            ast: Program {
+                functions: vec![Function {
+                    name: t_global!(LABEL_MAIN),
+                    body: vec![Statement::Expr(Expr::Call(
+                        Box::new(Expr::GlobalSymbol(t_global!("print_int"))),
+                        vec![Expr::BinaryOp(
+                            Box::new(Expr::Constant(Value::I64(40))),
+                            BinaryOperator::Add,
+                            Box::new(Expr::Constant(Value::I64(2))),
+                        )],
+                    ))],
+                    types: TypeEnv::new(),
+                    params: IndexMap::new(),
+                    return_type: ValueType::IntType,
+                }],
+                function_types: TypeEnv::new(),
+            },
             inputs: VecDeque::new(),
             expected_outputs: VecDeque::from(vec![42]),
         })
@@ -462,15 +469,22 @@ mod tests {
     #[test]
     fn test_input() {
         execute_test_case(TestCase {
-            ast: Program { functions: vec![Function { name: t_global!(LABEL_MAIN),
-                body: vec![Statement::Expr(Expr::Call(
-                    Box::new(Expr::GlobalSymbol(t_global!("print_int"))),
-                    vec![Expr::Call(Box::new(Expr::GlobalSymbol(t_global!("read_int"))), vec![])],
-                ))],
-                types: TypeEnv::new(),
-                params: IndexMap::new(),
-                return_type: ValueType::IntType,
-            }], function_types: TypeEnv::new()},
+            ast: Program {
+                functions: vec![Function {
+                    name: t_global!(LABEL_MAIN),
+                    body: vec![Statement::Expr(Expr::Call(
+                        Box::new(Expr::GlobalSymbol(t_global!("print_int"))),
+                        vec![Expr::Call(
+                            Box::new(Expr::GlobalSymbol(t_global!("read_int"))),
+                            vec![],
+                        )],
+                    ))],
+                    types: TypeEnv::new(),
+                    params: IndexMap::new(),
+                    return_type: ValueType::IntType,
+                }],
+                function_types: TypeEnv::new(),
+            },
             inputs: VecDeque::from(vec![42]),
             expected_outputs: VecDeque::from(vec![42]),
         })
@@ -479,19 +493,29 @@ mod tests {
     #[test]
     fn test_subinput() {
         execute_test_case(TestCase {
-            ast: Program { functions: vec![Function { name: t_global!(LABEL_MAIN),
-                body: vec![Statement::Expr(Expr::Call(
-                    Box::new(Expr::GlobalSymbol(t_global!("print_int"))),
-                    vec![Expr::BinaryOp(
-                        Box::new(Expr::Call(Box::new(Expr::GlobalSymbol(t_global!("read_int"))), vec![])),
-                        BinaryOperator::Subtract,
-                        Box::new(Expr::Call(Box::new(Expr::GlobalSymbol(t_global!("read_int"))), vec![])),
-                    )],
-                ))],
-                types: TypeEnv::new(),
-                params: IndexMap::new(),
-                return_type: ValueType::IntType,
-            }], function_types: TypeEnv::new()},
+            ast: Program {
+                functions: vec![Function {
+                    name: t_global!(LABEL_MAIN),
+                    body: vec![Statement::Expr(Expr::Call(
+                        Box::new(Expr::GlobalSymbol(t_global!("print_int"))),
+                        vec![Expr::BinaryOp(
+                            Box::new(Expr::Call(
+                                Box::new(Expr::GlobalSymbol(t_global!("read_int"))),
+                                vec![],
+                            )),
+                            BinaryOperator::Subtract,
+                            Box::new(Expr::Call(
+                                Box::new(Expr::GlobalSymbol(t_global!("read_int"))),
+                                vec![],
+                            )),
+                        )],
+                    ))],
+                    types: TypeEnv::new(),
+                    params: IndexMap::new(),
+                    return_type: ValueType::IntType,
+                }],
+                function_types: TypeEnv::new(),
+            },
             inputs: VecDeque::from(vec![5, 3]),
             expected_outputs: VecDeque::from(vec![2]),
         });
@@ -500,15 +524,19 @@ mod tests {
     #[test]
     fn test_zero() {
         execute_test_case(TestCase {
-            ast: Program { functions: vec![Function { name: t_global!(LABEL_MAIN),
-                body: vec![Statement::Expr(Expr::Call(
-                    Box::new(Expr::GlobalSymbol(t_global!("print_int"))),
-                    vec![Expr::Constant(Value::I64(0))],
-                ))],
-                types: TypeEnv::new(),
-                params: IndexMap::new(),
-                return_type: ValueType::IntType,
-            }], function_types: TypeEnv::new()},
+            ast: Program {
+                functions: vec![Function {
+                    name: t_global!(LABEL_MAIN),
+                    body: vec![Statement::Expr(Expr::Call(
+                        Box::new(Expr::GlobalSymbol(t_global!("print_int"))),
+                        vec![Expr::Constant(Value::I64(0))],
+                    ))],
+                    types: TypeEnv::new(),
+                    params: IndexMap::new(),
+                    return_type: ValueType::IntType,
+                }],
+                function_types: TypeEnv::new(),
+            },
             inputs: VecDeque::from(vec![]),
             expected_outputs: VecDeque::from(vec![0]),
         });
@@ -517,27 +545,31 @@ mod tests {
     #[test]
     fn test_nested() {
         execute_test_case(TestCase {
-            ast: Program { functions: vec![Function { name: t_global!(LABEL_MAIN),
-                body: vec![Statement::Expr(Expr::Call(
-                    Box::new(Expr::GlobalSymbol(t_global!("print_int"))),
-                    vec![Expr::BinaryOp(
-                        Box::new(Expr::BinaryOp(
-                            Box::new(Expr::Constant(Value::I64(40))),
+            ast: Program {
+                functions: vec![Function {
+                    name: t_global!(LABEL_MAIN),
+                    body: vec![Statement::Expr(Expr::Call(
+                        Box::new(Expr::GlobalSymbol(t_global!("print_int"))),
+                        vec![Expr::BinaryOp(
+                            Box::new(Expr::BinaryOp(
+                                Box::new(Expr::Constant(Value::I64(40))),
+                                BinaryOperator::Add,
+                                Box::new(Expr::Constant(Value::I64(2))),
+                            )),
                             BinaryOperator::Add,
-                            Box::new(Expr::Constant(Value::I64(2))),
-                        )),
-                        BinaryOperator::Add,
-                        Box::new(Expr::BinaryOp(
-                            Box::new(Expr::Constant(Value::I64(40))),
-                            BinaryOperator::Add,
-                            Box::new(Expr::Constant(Value::I64(2))),
-                        )),
-                    )],
-                ))],
-                types: TypeEnv::new(),
-                params: IndexMap::new(),
-                return_type: ValueType::IntType,
-            }], function_types: TypeEnv::new()},
+                            Box::new(Expr::BinaryOp(
+                                Box::new(Expr::Constant(Value::I64(40))),
+                                BinaryOperator::Add,
+                                Box::new(Expr::Constant(Value::I64(2))),
+                            )),
+                        )],
+                    ))],
+                    types: TypeEnv::new(),
+                    params: IndexMap::new(),
+                    return_type: ValueType::IntType,
+                }],
+                function_types: TypeEnv::new(),
+            },
             inputs: VecDeque::from(vec![]),
             expected_outputs: VecDeque::from(vec![84]),
         });
@@ -546,27 +578,34 @@ mod tests {
     #[test]
     fn test_mixed() {
         execute_test_case(TestCase {
-            ast: Program { functions: vec![Function { name: t_global!(LABEL_MAIN),
-                body: vec![Statement::Expr(Expr::Call(
-                    Box::new(Expr::GlobalSymbol(t_global!("print_int"))),
-                    vec![Expr::BinaryOp(
-                        Box::new(Expr::BinaryOp(
-                            Box::new(Expr::Call(Box::new(Expr::GlobalSymbol(t_global!("read_int"))), vec![])),
+            ast: Program {
+                functions: vec![Function {
+                    name: t_global!(LABEL_MAIN),
+                    body: vec![Statement::Expr(Expr::Call(
+                        Box::new(Expr::GlobalSymbol(t_global!("print_int"))),
+                        vec![Expr::BinaryOp(
+                            Box::new(Expr::BinaryOp(
+                                Box::new(Expr::Call(
+                                    Box::new(Expr::GlobalSymbol(t_global!("read_int"))),
+                                    vec![],
+                                )),
+                                BinaryOperator::Add,
+                                Box::new(Expr::Constant(Value::I64(2))),
+                            )),
                             BinaryOperator::Add,
-                            Box::new(Expr::Constant(Value::I64(2))),
-                        )),
-                        BinaryOperator::Add,
-                        Box::new(Expr::BinaryOp(
-                            Box::new(Expr::Constant(Value::I64(40))),
-                            BinaryOperator::Add,
-                            Box::new(Expr::Constant(Value::I64(2))),
-                        )),
-                    )],
-                ))],
-                types: TypeEnv::new(),
-                params: IndexMap::new(),
-                return_type: ValueType::IntType,
-            }], function_types: TypeEnv::new()},
+                            Box::new(Expr::BinaryOp(
+                                Box::new(Expr::Constant(Value::I64(40))),
+                                BinaryOperator::Add,
+                                Box::new(Expr::Constant(Value::I64(2))),
+                            )),
+                        )],
+                    ))],
+                    types: TypeEnv::new(),
+                    params: IndexMap::new(),
+                    return_type: ValueType::IntType,
+                }],
+                function_types: TypeEnv::new(),
+            },
             inputs: VecDeque::from(vec![-100]),
             expected_outputs: VecDeque::from(vec![44 - 100]),
         });
@@ -575,19 +614,23 @@ mod tests {
     #[test]
     fn test_multiply() {
         execute_test_case(TestCase {
-            ast: Program { functions: vec![Function { name: t_global!(LABEL_MAIN),
-                body: vec![Statement::Expr(Expr::Call(
-                    Box::new(Expr::GlobalSymbol(t_global!("print_int"))),
-                    vec![Expr::BinaryOp(
-                        Box::new(Expr::Constant(Value::I64(6))),
-                        BinaryOperator::Multiply,
-                        Box::new(Expr::Constant(Value::I64(7))),
-                    )],
-                ))],
-                types: TypeEnv::new(),
-                params: IndexMap::new(),
-                return_type: ValueType::IntType,
-            }], function_types: TypeEnv::new()},
+            ast: Program {
+                functions: vec![Function {
+                    name: t_global!(LABEL_MAIN),
+                    body: vec![Statement::Expr(Expr::Call(
+                        Box::new(Expr::GlobalSymbol(t_global!("print_int"))),
+                        vec![Expr::BinaryOp(
+                            Box::new(Expr::Constant(Value::I64(6))),
+                            BinaryOperator::Multiply,
+                            Box::new(Expr::Constant(Value::I64(7))),
+                        )],
+                    ))],
+                    types: TypeEnv::new(),
+                    params: IndexMap::new(),
+                    return_type: ValueType::IntType,
+                }],
+                function_types: TypeEnv::new(),
+            },
             inputs: VecDeque::new(),
             expected_outputs: VecDeque::from(vec![42]),
         })
@@ -598,23 +641,30 @@ mod tests {
         // print_int(read_int() * (3 * 4))
         // The inner (3 * 4) should fold to 12, leaving read_int() * 12
         execute_test_case(TestCase {
-            ast: Program { functions: vec![Function { name: t_global!(LABEL_MAIN),
-                body: vec![Statement::Expr(Expr::Call(
-                    Box::new(Expr::GlobalSymbol(t_global!("print_int"))),
-                    vec![Expr::BinaryOp(
-                        Box::new(Expr::Call(Box::new(Expr::GlobalSymbol(t_global!("read_int"))), vec![])),
-                        BinaryOperator::Multiply,
-                        Box::new(Expr::BinaryOp(
-                            Box::new(Expr::Constant(Value::I64(3))),
+            ast: Program {
+                functions: vec![Function {
+                    name: t_global!(LABEL_MAIN),
+                    body: vec![Statement::Expr(Expr::Call(
+                        Box::new(Expr::GlobalSymbol(t_global!("print_int"))),
+                        vec![Expr::BinaryOp(
+                            Box::new(Expr::Call(
+                                Box::new(Expr::GlobalSymbol(t_global!("read_int"))),
+                                vec![],
+                            )),
                             BinaryOperator::Multiply,
-                            Box::new(Expr::Constant(Value::I64(4))),
-                        )),
-                    )],
-                ))],
-                types: TypeEnv::new(),
-                params: IndexMap::new(),
-                return_type: ValueType::IntType,
-            }], function_types: TypeEnv::new()},
+                            Box::new(Expr::BinaryOp(
+                                Box::new(Expr::Constant(Value::I64(3))),
+                                BinaryOperator::Multiply,
+                                Box::new(Expr::Constant(Value::I64(4))),
+                            )),
+                        )],
+                    ))],
+                    types: TypeEnv::new(),
+                    params: IndexMap::new(),
+                    return_type: ValueType::IntType,
+                }],
+                function_types: TypeEnv::new(),
+            },
             inputs: VecDeque::from(vec![5]),
             expected_outputs: VecDeque::from(vec![60]),
         })
@@ -624,19 +674,23 @@ mod tests {
     fn test_multiply_by_zero_fold() {
         // print_int(0 * 0) should fold entirely to 0
         execute_test_case(TestCase {
-            ast: Program { functions: vec![Function { name: t_global!(LABEL_MAIN),
-                body: vec![Statement::Expr(Expr::Call(
-                    Box::new(Expr::GlobalSymbol(t_global!("print_int"))),
-                    vec![Expr::BinaryOp(
-                        Box::new(Expr::Constant(Value::I64(0))),
-                        BinaryOperator::Multiply,
-                        Box::new(Expr::Constant(Value::I64(0))),
-                    )],
-                ))],
-                types: TypeEnv::new(),
-                params: IndexMap::new(),
-                return_type: ValueType::IntType,
-            }], function_types: TypeEnv::new()},
+            ast: Program {
+                functions: vec![Function {
+                    name: t_global!(LABEL_MAIN),
+                    body: vec![Statement::Expr(Expr::Call(
+                        Box::new(Expr::GlobalSymbol(t_global!("print_int"))),
+                        vec![Expr::BinaryOp(
+                            Box::new(Expr::Constant(Value::I64(0))),
+                            BinaryOperator::Multiply,
+                            Box::new(Expr::Constant(Value::I64(0))),
+                        )],
+                    ))],
+                    types: TypeEnv::new(),
+                    params: IndexMap::new(),
+                    return_type: ValueType::IntType,
+                }],
+                function_types: TypeEnv::new(),
+            },
             inputs: VecDeque::new(),
             expected_outputs: VecDeque::from(vec![0]),
         })
@@ -647,27 +701,31 @@ mod tests {
         // print_int((2 * 3) + (4 * 5))
         // Should fold entirely to 26
         execute_test_case(TestCase {
-            ast: Program { functions: vec![Function { name: t_global!(LABEL_MAIN),
-                body: vec![Statement::Expr(Expr::Call(
-                    Box::new(Expr::GlobalSymbol(t_global!("print_int"))),
-                    vec![Expr::BinaryOp(
-                        Box::new(Expr::BinaryOp(
-                            Box::new(Expr::Constant(Value::I64(2))),
-                            BinaryOperator::Multiply,
-                            Box::new(Expr::Constant(Value::I64(3))),
-                        )),
-                        BinaryOperator::Add,
-                        Box::new(Expr::BinaryOp(
-                            Box::new(Expr::Constant(Value::I64(4))),
-                            BinaryOperator::Multiply,
-                            Box::new(Expr::Constant(Value::I64(5))),
-                        )),
-                    )],
-                ))],
-                types: TypeEnv::new(),
-                params: IndexMap::new(),
-                return_type: ValueType::IntType,
-            }], function_types: TypeEnv::new()},
+            ast: Program {
+                functions: vec![Function {
+                    name: t_global!(LABEL_MAIN),
+                    body: vec![Statement::Expr(Expr::Call(
+                        Box::new(Expr::GlobalSymbol(t_global!("print_int"))),
+                        vec![Expr::BinaryOp(
+                            Box::new(Expr::BinaryOp(
+                                Box::new(Expr::Constant(Value::I64(2))),
+                                BinaryOperator::Multiply,
+                                Box::new(Expr::Constant(Value::I64(3))),
+                            )),
+                            BinaryOperator::Add,
+                            Box::new(Expr::BinaryOp(
+                                Box::new(Expr::Constant(Value::I64(4))),
+                                BinaryOperator::Multiply,
+                                Box::new(Expr::Constant(Value::I64(5))),
+                            )),
+                        )],
+                    ))],
+                    types: TypeEnv::new(),
+                    params: IndexMap::new(),
+                    return_type: ValueType::IntType,
+                }],
+                function_types: TypeEnv::new(),
+            },
             inputs: VecDeque::new(),
             expected_outputs: VecDeque::from(vec![26]),
         })
@@ -681,38 +739,44 @@ mod tests {
         //     x = x - 1
         // }
         execute_test_case(TestCase {
-            ast: Program { functions: vec![Function { name: t_global!(LABEL_MAIN),
-                body: vec![
-                    Statement::Assign(
-                        AssignDest::Id(t_global!("x")),
-                        Expr::Constant(Value::I64(5)),
-                    ),
-                    Statement::WhileLoop(
-                        Expr::BinaryOp(
-                            Box::new(Expr::Id(t_global!("x"))),
-                            BinaryOperator::Greater,
-                            Box::new(Expr::Constant(Value::I64(0))),
+            ast: Program {
+                functions: vec![Function {
+                    name: t_global!(LABEL_MAIN),
+                    body: vec![
+                        Statement::Assign(
+                            AssignDest::Id(t_global!("x")),
+                            Expr::Constant(Value::I64(5)),
+                            None,
                         ),
-                        vec![
-                            Statement::Expr(Expr::Call(
-                                Box::new(Expr::GlobalSymbol(t_global!("print_int"))),
-                                vec![Expr::Id(t_global!("x"))],
-                            )),
-                            Statement::Assign(
-                                AssignDest::Id(t_global!("x")),
-                                Expr::BinaryOp(
-                                    Box::new(Expr::Id(t_global!("x"))),
-                                    BinaryOperator::Subtract,
-                                    Box::new(Expr::Constant(Value::I64(1))),
-                                ),
+                        Statement::WhileLoop(
+                            Expr::BinaryOp(
+                                Box::new(Expr::Id(t_global!("x"))),
+                                BinaryOperator::Greater,
+                                Box::new(Expr::Constant(Value::I64(0))),
                             ),
-                        ],
-                    ),
-                ],
-                types: TypeEnv::new(),
-                params: IndexMap::new(),
-                return_type: ValueType::IntType,
-            }], function_types: TypeEnv::new()},
+                            vec![
+                                Statement::Expr(Expr::Call(
+                                    Box::new(Expr::GlobalSymbol(t_global!("print_int"))),
+                                    vec![Expr::Id(t_global!("x"))],
+                                )),
+                                Statement::Assign(
+                                    AssignDest::Id(t_global!("x")),
+                                    Expr::BinaryOp(
+                                        Box::new(Expr::Id(t_global!("x"))),
+                                        BinaryOperator::Subtract,
+                                        Box::new(Expr::Constant(Value::I64(1))),
+                                    ),
+                                    None,
+                                ),
+                            ],
+                        ),
+                    ],
+                    types: TypeEnv::new(),
+                    params: IndexMap::new(),
+                    return_type: ValueType::IntType,
+                }],
+                function_types: TypeEnv::new(),
+            },
             inputs: VecDeque::new(),
             expected_outputs: VecDeque::from(vec![5, 4, 3, 2, 1]),
         });
@@ -725,24 +789,28 @@ mod tests {
         // }
         // print_int(42)
         execute_test_case(TestCase {
-            ast: Program { functions: vec![Function { name: t_global!(LABEL_MAIN),
-                body: vec![
-                    Statement::WhileLoop(
-                        Expr::Constant(Value::Bool(false)),
-                        vec![Statement::Expr(Expr::Call(
+            ast: Program {
+                functions: vec![Function {
+                    name: t_global!(LABEL_MAIN),
+                    body: vec![
+                        Statement::WhileLoop(
+                            Expr::Constant(Value::Bool(false)),
+                            vec![Statement::Expr(Expr::Call(
+                                Box::new(Expr::GlobalSymbol(t_global!("print_int"))),
+                                vec![Expr::Constant(Value::I64(100))],
+                            ))],
+                        ),
+                        Statement::Expr(Expr::Call(
                             Box::new(Expr::GlobalSymbol(t_global!("print_int"))),
-                            vec![Expr::Constant(Value::I64(100))],
-                        ))],
-                    ),
-                    Statement::Expr(Expr::Call(
-                        Box::new(Expr::GlobalSymbol(t_global!("print_int"))),
-                        vec![Expr::Constant(Value::I64(42))],
-                    )),
-                ],
-                types: TypeEnv::new(),
-                params: IndexMap::new(),
-                return_type: ValueType::IntType,
-            }], function_types: TypeEnv::new()},
+                            vec![Expr::Constant(Value::I64(42))],
+                        )),
+                    ],
+                    types: TypeEnv::new(),
+                    params: IndexMap::new(),
+                    return_type: ValueType::IntType,
+                }],
+                function_types: TypeEnv::new(),
+            },
             inputs: VecDeque::new(),
             expected_outputs: VecDeque::from(vec![42]), // Loop should be removed entirely
         });
@@ -756,42 +824,48 @@ mod tests {
         //     x = x - 1
         // }
         execute_test_case(TestCase {
-            ast: Program { functions: vec![Function { name: t_global!(LABEL_MAIN),
-                body: vec![
-                    Statement::Assign(
-                        AssignDest::Id(t_global!("x")),
-                        Expr::Constant(Value::I64(3)),
-                    ),
-                    Statement::WhileLoop(
-                        Expr::BinaryOp(
-                            Box::new(Expr::Id(t_global!("x"))),
-                            BinaryOperator::Greater,
-                            Box::new(Expr::Constant(Value::I64(0))),
+            ast: Program {
+                functions: vec![Function {
+                    name: t_global!(LABEL_MAIN),
+                    body: vec![
+                        Statement::Assign(
+                            AssignDest::Id(t_global!("x")),
+                            Expr::Constant(Value::I64(3)),
+                            None,
                         ),
-                        vec![
-                            Statement::Expr(Expr::Call(
-                                Box::new(Expr::GlobalSymbol(t_global!("print_int"))),
-                                vec![Expr::BinaryOp(
-                                    Box::new(Expr::Constant(Value::I64(10))),
-                                    BinaryOperator::Add,
-                                    Box::new(Expr::Constant(Value::I64(10))),
-                                )],
-                            )),
-                            Statement::Assign(
-                                AssignDest::Id(t_global!("x")),
-                                Expr::BinaryOp(
-                                    Box::new(Expr::Id(t_global!("x"))),
-                                    BinaryOperator::Subtract,
-                                    Box::new(Expr::Constant(Value::I64(1))),
-                                ),
+                        Statement::WhileLoop(
+                            Expr::BinaryOp(
+                                Box::new(Expr::Id(t_global!("x"))),
+                                BinaryOperator::Greater,
+                                Box::new(Expr::Constant(Value::I64(0))),
                             ),
-                        ],
-                    ),
-                ],
-                types: TypeEnv::new(),
-                params: IndexMap::new(),
-                return_type: ValueType::IntType,
-            }], function_types: TypeEnv::new()},
+                            vec![
+                                Statement::Expr(Expr::Call(
+                                    Box::new(Expr::GlobalSymbol(t_global!("print_int"))),
+                                    vec![Expr::BinaryOp(
+                                        Box::new(Expr::Constant(Value::I64(10))),
+                                        BinaryOperator::Add,
+                                        Box::new(Expr::Constant(Value::I64(10))),
+                                    )],
+                                )),
+                                Statement::Assign(
+                                    AssignDest::Id(t_global!("x")),
+                                    Expr::BinaryOp(
+                                        Box::new(Expr::Id(t_global!("x"))),
+                                        BinaryOperator::Subtract,
+                                        Box::new(Expr::Constant(Value::I64(1))),
+                                    ),
+                                    None,
+                                ),
+                            ],
+                        ),
+                    ],
+                    types: TypeEnv::new(),
+                    params: IndexMap::new(),
+                    return_type: ValueType::IntType,
+                }],
+                function_types: TypeEnv::new(),
+            },
             inputs: VecDeque::new(),
             expected_outputs: VecDeque::from(vec![20, 20, 20]),
         });

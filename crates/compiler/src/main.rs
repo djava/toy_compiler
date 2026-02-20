@@ -1,6 +1,6 @@
 use clap::Parser;
 use clio::*;
-use compiler::{syntax_trees::parser, pipeline::Pipeline};
+use compiler::{pipeline::Pipeline, syntax_trees::parser};
 use std::io::{Read, Write};
 
 #[derive(Parser, Debug)]
@@ -26,7 +26,7 @@ struct Args {
 
 fn main() {
     let mut args = Args::parse();
-    
+
     if args.emit_ast && args.emit_ir {
         panic!("--emit-ast and --emit-ir are mutually exclusive")
     }
@@ -51,7 +51,6 @@ fn main() {
         Pipeline::make_no_opt()
     };
 
-    
     if args.emit_ast {
         let final_ast = pipeline.run_ast_only(ast);
         write!(args.output, "{final_ast:#?}")
@@ -65,5 +64,4 @@ fn main() {
         write!(args.output, "{x86_program}")
             .expect(format!("Error on writing output file: `{}`", args.output.path()).as_str());
     }
-    
 }

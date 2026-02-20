@@ -1,4 +1,4 @@
-use crate::{syntax_trees::ast::Program, passes::ASTPass};
+use crate::{passes::ASTPass, syntax_trees::ast::Program};
 
 pub struct TypeCheck;
 

@@ -5,13 +5,17 @@ use crate::{
 };
 
 impl ast::Expr {
-    pub fn type_check(&mut self, env: &mut TypeEnv) -> ValueType {
+    pub fn type_check(
+        &mut self,
+        env: &mut TypeEnv,
+        expected_type: &Option<ValueType>,
+    ) -> ValueType {
         use ast::Expr::*;
 
-        match self {
+        let result_type = match self {
             BinaryOp(left, op, right) => {
-                let l_type = left.type_check(env);
-                let r_type = right.type_check(env);
+                let l_type = left.type_check(env, &None);
+                let r_type = right.type_check(env, &None);
 
                 let result_type = op.type_of(&l_type, &r_type).expect(
                     format!("Invalid argument types to op {op:?} - {l_type:?}, {r_type:?}")
@@ -20,7 +24,7 @@ impl ast::Expr {
                 result_type
             }
             UnaryOp(op, exp) => {
-                let exp_type = exp.type_check(env);
+                let exp_type = exp.type_check(env, &None);
                 match op {
                     UnaryOperator::Plus | UnaryOperator::Minus => {
                         assert_eq!(exp_type, ValueType::IntType);
@@ -32,13 +36,13 @@ impl ast::Expr {
                     }
                 }
             }
-            Id(id) => env
+            Id(id) | GlobalSymbol(id) | Closure(id, _, _) => env
                 .get(id)
                 .expect(format!("Unknown Identifier: {id:?}").as_str())
                 .clone(),
             Constant(v) => ValueType::from(&*v),
             Call(func, args) => {
-                let func_type = func.type_check(env);
+                let func_type = func.type_check(env, &None);
                 if let ValueType::FunctionType(arg_types, ret_type) = func_type {
                     assert_eq!(
                         args.len(),
@@ -54,11 +58,14 @@ impl ast::Expr {
 
                         // Worth noting that this sucks because you
                         // can't use len indirectly now :(
-                        assert!(matches!(args[0].type_check(env), ValueType::TupleType(_)));
+                        assert!(matches!(
+                            args[0].type_check(env, &None),
+                            ValueType::TupleType(_)
+                        ));
                     } else {
                         for (a, typ) in args.iter_mut().zip(arg_types) {
                             assert_eq!(
-                                a.type_check(env),
+                                a.type_check(env, &Some(typ.clone())),
                                 typ,
                                 "Passed wrong arg type `{a:?}` to function `{func:?}`"
                             )
@@ -71,11 +78,11 @@ impl ast::Expr {
                 }
             }
             Ternary(cond, pos, neg) => {
-                let cond_type = cond.type_check(env);
+                let cond_type = cond.type_check(env, &None);
                 assert!([ValueType::BoolType, ValueType::IntType].contains(&cond_type));
 
-                let pos_type = pos.type_check(env);
-                let neg_type = neg.type_check(env);
+                let pos_type = pos.type_check(env, expected_type);
+                let neg_type = neg.type_check(env, expected_type);
                 assert_eq!(
                     pos_type, neg_type,
                     "Both branches of a ternary must be the same type"
@@ -88,15 +95,18 @@ impl ast::Expr {
                     s.type_check(env);
                 }
 
-                expr.type_check(env)
+                expr.type_check(env, &None)
             }
             Tuple(elements) => {
-                let element_types: Vec<_> = elements.iter_mut().map(|e| e.type_check(env)).collect();
+                let element_types: Vec<_> = elements
+                    .iter_mut()
+                    .map(|e| e.type_check(env, &None))
+                    .collect();
 
                 ValueType::TupleType(element_types)
             }
             Subscript(tup, idx) => {
-                if let ValueType::TupleType(elems) = tup.type_check(env) {
+                if let ValueType::TupleType(elems) = tup.type_check(env, &None) {
                     assert!(
                         *idx >= 0 && *idx < elems.len() as i64,
                         "Indexed tuple out of bounds"
@@ -107,18 +117,29 @@ impl ast::Expr {
                 }
             }
             Allocate(_, value_type) => ValueType::PointerType(Box::new(value_type.clone())),
-            GlobalSymbol(id) => env
-                .get(id)
-                .expect(format!("Unknown global symbol: {id:?}").as_str())
-                .clone(),
             Lambda(func) => {
                 for (k, v) in env {
                     func.types.insert(k.clone(), v.clone());
                 }
 
-                ValueType::FunctionType(func.params.values().cloned().collect(), Box::new(func.return_type.clone()))
+                if let Some(lambda_type) = expected_type {
+                    lambda_type.clone()
+                } else {
+                    panic!("No expected type for lambda");
+                }
             }
+        };
+
+        // Exclude closures from type hint checks because they have been
+        // modified to a different type without changing the type
+        // hint... its fine
+        if let Some(expected) = expected_type
+            && !matches!(self, Closure(..))
+        {
+            assert_eq!(expected, &result_type, "Did not match expected type");
         }
+
+        result_type
     }
 }
 
@@ -127,8 +148,22 @@ impl ast::Statement {
         use ast::Statement::*;
 
         match self {
-            Assign(dest, e) => {
-                let t = e.type_check(env);
+            Assign(dest, e, opt_type_hint) => {
+                let mut t = e.type_check(env, opt_type_hint);
+
+                if t == ValueType::Indeterminate {
+                    if let Some(type_hint) = opt_type_hint {
+                        t = type_hint.clone();
+                    } else {
+                        panic!("Indeterminate typed assign-expression with no type hint");
+                    }
+                } else if let Some(type_hint) = opt_type_hint && !matches!(e, ast::Expr::Closure(..)) {
+                    // Exclude closures from type-hint checks because
+                    // their types change during the closurize_lambdas
+                    // pass but the type hint type doesnt change
+                    assert_eq!(t, *type_hint, "Type hint didn't match assignment type");
+                }
+
                 match dest {
                     AssignDest::Id(id) => {
                         if env.contains_key(id) {
@@ -147,10 +182,10 @@ impl ast::Statement {
                 }
             }
             Expr(e) => {
-                e.type_check(env);
+                e.type_check(env, &None);
             }
             Conditional(cond, pos, neg) => {
-                let cond_type = cond.type_check(env);
+                let cond_type = cond.type_check(env, &None);
                 assert!([ValueType::BoolType, ValueType::IntType].contains(&cond_type));
 
                 for s in pos.iter_mut().chain(neg) {
@@ -158,7 +193,7 @@ impl ast::Statement {
                 }
             }
             WhileLoop(cond, body) => {
-                let cond_type = cond.type_check(env);
+                let cond_type = cond.type_check(env, &None);
                 assert!([ValueType::BoolType, ValueType::IntType].contains(&cond_type));
 
                 for s in body {
@@ -166,8 +201,27 @@ impl ast::Statement {
                 }
             }
             Return(expr) => {
-                expr.type_check(env);
+                expr.type_check(env, &None);
             }
+        }
+    }
+}
+
+impl ast::Function {
+    pub fn type_check(&mut self) {
+        for s in self.body.iter_mut() {
+            // Allow type-checker to recognize params
+            for (n, t) in self.params.iter() {
+                self.types.insert(n.clone(), t.clone());
+            }
+
+            s.type_check(&mut self.types);
+        }
+    }
+
+    pub fn set_param_types(&mut self, param_types: Vec<ValueType>) {
+        for ((_, type_field), real_type) in self.params.iter_mut().zip(param_types) {
+            *type_field = real_type;
         }
     }
 }
@@ -181,14 +235,7 @@ impl ast::Program {
             // can be recognized
             f.types = self.function_types.clone();
 
-            // Allow type-checker to recognize params
-            for (n, t) in f.params.iter() {
-                f.types.insert(n.clone(), t.clone());
-            }
-
-            for s in f.body.iter_mut() {
-                s.type_check(&mut f.types);
-            }
+            f.type_check();
         }
     }
 

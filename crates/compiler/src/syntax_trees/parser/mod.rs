@@ -36,7 +36,7 @@ mod tests {
     macro_rules! main_local {
         ($name:expr) => {
             t_local!($name, t_global!(LABEL_MAIN))
-        }
+        };
     }
 
     use parse_tree as pt;
@@ -81,6 +81,7 @@ mod tests {
                     name: "main",
                     params: vec![],
                     return_type: ValueType::IntType,
+
                     statements: vec![pt::Statement::Expr(pt::Expr::Int(1))],
                 }],
             },
@@ -119,6 +120,7 @@ mod tests {
                     name: "main",
                     params: vec![],
                     return_type: ValueType::IntType,
+
                     statements: vec![pt::Statement::Expr(pt::Expr::Int(-100))],
                 }],
             },
@@ -159,6 +161,7 @@ mod tests {
                     name: "main",
                     params: vec![],
                     return_type: ValueType::IntType,
+
                     statements: vec![pt::Statement::Expr(pt::Expr::Binary(
                         Box::new(pt::Expr::Int(1)),
                         pt::Operator::Plus,
@@ -211,6 +214,7 @@ mod tests {
                     name: "main",
                     params: vec![],
                     return_type: ValueType::IntType,
+
                     statements: vec![pt::Statement::Expr(pt::Expr::Binary(
                         Box::new(pt::Expr::Int(1)),
                         pt::Operator::Plus,
@@ -268,6 +272,7 @@ mod tests {
                     name: "main",
                     params: vec![],
                     return_type: ValueType::IntType,
+
                     statements: vec![pt::Statement::Expr(pt::Expr::Unary(
                         pt::Operator::Minus,
                         Box::new(pt::Expr::Parens(Box::new(pt::Expr::Int(1)))),
@@ -316,6 +321,7 @@ mod tests {
                     name: "main",
                     params: vec![],
                     return_type: ValueType::IntType,
+
                     statements: vec![pt::Statement::Assign(
                         "x",
                         pt::Expr::Binary(
@@ -323,6 +329,7 @@ mod tests {
                             pt::Operator::Plus,
                             Box::new(pt::Expr::Int(-21912983)),
                         ),
+                        None,
                     )],
                 }],
             },
@@ -336,6 +343,7 @@ mod tests {
                             BinaryOperator::Add,
                             Box::new(ast::Expr::Constant(Value::I64(-21912983))),
                         ),
+                        None,
                     )],
                     types: HashMap::new(),
                     params: IndexMap::new(),
@@ -370,6 +378,7 @@ mod tests {
                     name: "main",
                     params: vec![],
                     return_type: ValueType::IntType,
+
                     statements: vec![pt::Statement::Expr(pt::Expr::Call(
                         Box::new(pt::Expr::Id("print")),
                         vec![pt::Expr::Id("x")],
@@ -415,7 +424,11 @@ mod tests {
                     name: "main",
                     params: vec![],
                     return_type: ValueType::IntType,
-                    statements: vec![pt::Statement::Expr(pt::Expr::Call(Box::new(pt::Expr::Id("oogabooga")), vec![]))],
+
+                    statements: vec![pt::Statement::Expr(pt::Expr::Call(
+                        Box::new(pt::Expr::Id("oogabooga")),
+                        vec![],
+                    ))],
                 }],
             },
             expected_ast: ast::Program {
@@ -470,6 +483,7 @@ mod tests {
                     name: "main",
                     params: vec![],
                     return_type: ValueType::IntType,
+
                     statements: vec![pt::Statement::Expr(pt::Expr::Call(
                         Box::new(pt::Expr::Id("print")),
                         vec![pt::Expr::Binary(
@@ -504,7 +518,10 @@ mod tests {
                                 )),
                             )),
                             BinaryOperator::Subtract,
-                            Box::new(ast::Expr::Call(Box::new(ast::Expr::Id(main_local!("read_int"))), vec![])),
+                            Box::new(ast::Expr::Call(
+                                Box::new(ast::Expr::Id(main_local!("read_int"))),
+                                vec![],
+                            )),
                         )],
                     ))],
                     types: HashMap::new(),
@@ -548,6 +565,7 @@ mod tests {
                     name: "main",
                     params: vec![],
                     return_type: ValueType::IntType,
+
                     statements: vec![pt::Statement::Expr(pt::Expr::Call(
                         Box::new(pt::Expr::Id("print")),
                         vec![
@@ -608,9 +626,11 @@ mod tests {
                     name: "main",
                     params: vec![],
                     return_type: ValueType::IntType,
+
                     statements: vec![pt::Statement::Assign(
                         "x",
                         pt::Expr::Call(Box::new(pt::Expr::Id("Fffoo")), vec![pt::Expr::Int(1)]),
+                        None,
                     )],
                 }],
             },
@@ -619,7 +639,11 @@ mod tests {
                     name: t_global!(LABEL_MAIN),
                     body: vec![ast::Statement::Assign(
                         AssignDest::Id(main_local!("x")),
-                        ast::Expr::Call(Box::new(ast::Expr::Id(main_local!("Fffoo"))), vec![ast::Expr::Constant(Value::I64(1))]),
+                        ast::Expr::Call(
+                            Box::new(ast::Expr::Id(main_local!("Fffoo"))),
+                            vec![ast::Expr::Constant(Value::I64(1))],
+                        ),
+                        None,
                     )],
                     types: HashMap::new(),
                     params: IndexMap::new(),
@@ -672,10 +696,14 @@ whatevn = x
                     name: "main",
                     params: vec![],
                     return_type: ValueType::IntType,
+
                     statements: vec![
-                        pt::Statement::Assign("x", pt::Expr::Int(100)),
-                        pt::Statement::Expr(pt::Expr::Call(Box::new(pt::Expr::Id("print")), vec![pt::Expr::Int(1000)])),
-                        pt::Statement::Assign("whatevn", pt::Expr::Id("x")),
+                        pt::Statement::Assign("x", pt::Expr::Int(100), None),
+                        pt::Statement::Expr(pt::Expr::Call(
+                            Box::new(pt::Expr::Id("print")),
+                            vec![pt::Expr::Int(1000)],
+                        )),
+                        pt::Statement::Assign("whatevn", pt::Expr::Id("x"), None),
                         pt::Statement::Expr(pt::Expr::Binary(
                             Box::new(pt::Expr::Int(101010)),
                             pt::Operator::Plus,
@@ -691,6 +719,7 @@ whatevn = x
                         ast::Statement::Assign(
                             AssignDest::Id(main_local!("x")),
                             ast::Expr::Constant(Value::I64(100)),
+                            None,
                         ),
                         ast::Statement::Expr(ast::Expr::Call(
                             Box::new(ast::Expr::Id(main_local!("print"))),
@@ -699,6 +728,7 @@ whatevn = x
                         ast::Statement::Assign(
                             AssignDest::Id(main_local!("whatevn")),
                             ast::Expr::Id(main_local!("x")),
+                            None,
                         ),
                         ast::Statement::Expr(ast::Expr::BinaryOp(
                             Box::new(ast::Expr::Constant(Value::I64(101010))),
@@ -740,6 +770,7 @@ whatevn = x
                     name: "main",
                     params: vec![],
                     return_type: ValueType::IntType,
+
                     statements: vec![pt::Statement::Expr(pt::Expr::Binary(
                         Box::new(pt::Expr::Int(2)),
                         pt::Operator::Plus,
@@ -793,6 +824,7 @@ whatevn = x
                     name: "main",
                     params: vec![],
                     return_type: ValueType::IntType,
+
                     statements: vec![pt::Statement::Expr(pt::Expr::Binary(
                         Box::new(pt::Expr::Bool(false)),
                         pt::Operator::And,
@@ -858,6 +890,7 @@ whatevn = x
                     name: "main",
                     params: vec![],
                     return_type: ValueType::IntType,
+
                     statements: vec![pt::Statement::Expr(pt::Expr::Call(
                         Box::new(pt::Expr::Id("truefoofalse")),
                         vec![pt::Expr::Binary(
@@ -951,6 +984,7 @@ whatevn = x
                     name: "main",
                     params: vec![],
                     return_type: ValueType::IntType,
+
                     statements: vec![pt::Statement::Expr(pt::Expr::Ternary(
                         Box::new(pt::Expr::Bool(true)),
                         Box::new(pt::Expr::Int(1)),
@@ -1005,6 +1039,7 @@ whatevn = x
                     name: "main",
                     params: vec![],
                     return_type: ValueType::IntType,
+
                     statements: vec![pt::Statement::Expr(pt::Expr::Ternary(
                         Box::new(pt::Expr::Bool(true)),
                         Box::new(pt::Expr::Int(1)),
@@ -1065,6 +1100,7 @@ whatevn = x
                     name: "main",
                     params: vec![],
                     return_type: ValueType::IntType,
+
                     statements: vec![pt::Statement::Expr(pt::Expr::Ternary(
                         Box::new(pt::Expr::Binary(
                             Box::new(pt::Expr::Int(1)),
@@ -1122,6 +1158,7 @@ whatevn = x
                     name: "main",
                     params: vec![],
                     return_type: ValueType::IntType,
+
                     statements: vec![pt::Statement::If(
                         pt::Expr::Bool(true),
                         vec![pt::Statement::Expr(pt::Expr::Int(1))],
@@ -1180,6 +1217,7 @@ else { 2 }
                     name: "main",
                     params: vec![],
                     return_type: ValueType::IntType,
+
                     statements: vec![
                         pt::Statement::If(
                             pt::Expr::Bool(true),
@@ -1249,6 +1287,7 @@ else { 3 }
                     name: "main",
                     params: vec![],
                     return_type: ValueType::IntType,
+
                     statements: vec![
                         pt::Statement::If(
                             pt::Expr::Bool(true),
@@ -1313,6 +1352,7 @@ else { 3 }
                     name: "main",
                     params: vec![],
                     return_type: ValueType::IntType,
+
                     statements: vec![pt::Statement::If(
                         pt::Expr::Binary(
                             Box::new(pt::Expr::Id("x")),
@@ -1391,11 +1431,15 @@ if true { x = 1
                     name: "main",
                     params: vec![],
                     return_type: ValueType::IntType,
+
                     statements: vec![pt::Statement::If(
                         pt::Expr::Bool(true),
                         vec![
-                            pt::Statement::Assign("x", pt::Expr::Int(1)),
-                            pt::Statement::Expr(pt::Expr::Call(Box::new(pt::Expr::Id("print")), vec![pt::Expr::Id("x")])),
+                            pt::Statement::Assign("x", pt::Expr::Int(1), None),
+                            pt::Statement::Expr(pt::Expr::Call(
+                                Box::new(pt::Expr::Id("print")),
+                                vec![pt::Expr::Id("x")],
+                            )),
                         ],
                     )],
                 }],
@@ -1409,6 +1453,7 @@ if true { x = 1
                             ast::Statement::Assign(
                                 AssignDest::Id(main_local!("x")),
                                 ast::Expr::Constant(Value::I64(1)),
+                                None,
                             ),
                             ast::Statement::Expr(ast::Expr::Call(
                                 Box::new(ast::Expr::Id(main_local!("print"))),
@@ -1450,6 +1495,7 @@ if true { x = 1
                     name: "main",
                     params: vec![],
                     return_type: ValueType::IntType,
+
                     statements: vec![pt::Statement::If(pt::Expr::Bool(true), vec![])],
                 }],
             },
@@ -1537,6 +1583,7 @@ else { 5 }
                     name: "main",
                     params: vec![],
                     return_type: ValueType::IntType,
+
                     statements: vec![
                         pt::Statement::If(
                             pt::Expr::Binary(
@@ -1649,6 +1696,7 @@ else { 5 }
                     name: "main",
                     params: vec![],
                     return_type: ValueType::IntType,
+
                     statements: vec![
                         pt::Statement::If(
                             pt::Expr::Bool(true),
@@ -1710,6 +1758,7 @@ else { 5 }
                     name: "main",
                     params: vec![],
                     return_type: ValueType::IntType,
+
                     statements: vec![
                         pt::Statement::If(
                             pt::Expr::Bool(true),
@@ -1769,6 +1818,7 @@ else { 5 }
                     name: "main",
                     params: vec![],
                     return_type: ValueType::IntType,
+
                     statements: vec![pt::Statement::Expr(pt::Expr::Tuple(vec![
                         pt::Expr::Int(1),
                         pt::Expr::Int(2),
@@ -1815,6 +1865,7 @@ else { 5 }
                     name: "main",
                     params: vec![],
                     return_type: ValueType::IntType,
+
                     statements: vec![pt::Statement::Expr(pt::Expr::Tuple(vec![pt::Expr::Int(
                         42,
                     )]))],
@@ -1868,6 +1919,7 @@ else { 5 }
                     name: "main",
                     params: vec![],
                     return_type: ValueType::IntType,
+
                     statements: vec![pt::Statement::Assign(
                         "x",
                         pt::Expr::Tuple(vec![
@@ -1879,6 +1931,7 @@ else { 5 }
                             pt::Expr::Call(Box::new(pt::Expr::Id("read_int")), vec![]),
                             pt::Expr::Bool(true),
                         ]),
+                        None,
                     )],
                 }],
             },
@@ -1893,9 +1946,13 @@ else { 5 }
                                 BinaryOperator::Add,
                                 Box::new(ast::Expr::Constant(Value::I64(2))),
                             ),
-                            ast::Expr::Call(Box::new(ast::Expr::Id(main_local!("read_int"))), vec![]),
+                            ast::Expr::Call(
+                                Box::new(ast::Expr::Id(main_local!("read_int"))),
+                                vec![],
+                            ),
                             ast::Expr::Constant(Value::Bool(true)),
                         ]),
+                        None,
                     )],
                     types: HashMap::new(),
                     params: IndexMap::new(),
@@ -1939,6 +1996,7 @@ else { 5 }
                     name: "main",
                     params: vec![],
                     return_type: ValueType::IntType,
+
                     statements: vec![pt::Statement::Expr(pt::Expr::Tuple(vec![
                         pt::Expr::Tuple(vec![pt::Expr::Int(1), pt::Expr::Int(2)]),
                         pt::Expr::Tuple(vec![pt::Expr::Int(3), pt::Expr::Int(4)]),
@@ -1993,6 +2051,7 @@ else { 5 }
                     name: "main",
                     params: vec![],
                     return_type: ValueType::IntType,
+
                     statements: vec![pt::Statement::Expr(pt::Expr::Tuple(vec![
                         pt::Expr::Int(1),
                         pt::Expr::Int(2),
@@ -2044,6 +2103,7 @@ else { 5 }
                     name: "main",
                     params: vec![],
                     return_type: ValueType::IntType,
+
                     statements: vec![pt::Statement::Expr(pt::Expr::Call(
                         Box::new(pt::Expr::Id("print")),
                         vec![pt::Expr::Tuple(vec![pt::Expr::Int(1), pt::Expr::Int(2)])],
@@ -2095,6 +2155,7 @@ else { 5 }
                     name: "main",
                     params: vec![],
                     return_type: ValueType::IntType,
+
                     statements: vec![pt::Statement::Expr(pt::Expr::Subscript(
                         Box::new(pt::Expr::Id("x")),
                         0,
@@ -2141,6 +2202,7 @@ else { 5 }
                     name: "main",
                     params: vec![],
                     return_type: ValueType::IntType,
+
                     statements: vec![pt::Statement::Expr(pt::Expr::Subscript(
                         Box::new(pt::Expr::Id("myvar")),
                         2,
@@ -2187,6 +2249,7 @@ else { 5 }
                     name: "main",
                     params: vec![],
                     return_type: ValueType::IntType,
+
                     statements: vec![pt::Statement::Expr(pt::Expr::Subscript(
                         Box::new(pt::Expr::Id("x")),
                         -1,
@@ -2237,6 +2300,7 @@ else { 5 }
                     name: "main",
                     params: vec![],
                     return_type: ValueType::IntType,
+
                     statements: vec![pt::Statement::Expr(pt::Expr::Subscript(
                         Box::new(pt::Expr::Subscript(Box::new(pt::Expr::Id("x")), 0)),
                         1,
@@ -2247,7 +2311,10 @@ else { 5 }
                 functions: vec![ast::Function {
                     name: t_global!(LABEL_MAIN),
                     body: vec![ast::Statement::Expr(ast::Expr::Subscript(
-                        Box::new(ast::Expr::Subscript(Box::new(ast::Expr::Id(main_local!("x"))), 0)),
+                        Box::new(ast::Expr::Subscript(
+                            Box::new(ast::Expr::Id(main_local!("x"))),
+                            0,
+                        )),
                         1,
                     ))],
                     types: HashMap::new(),
@@ -2286,6 +2353,7 @@ else { 5 }
                     name: "main",
                     params: vec![],
                     return_type: ValueType::IntType,
+
                     statements: vec![pt::Statement::Expr(pt::Expr::Subscript(
                         Box::new(pt::Expr::Call(Box::new(pt::Expr::Id("foo")), vec![])),
                         0,
@@ -2296,7 +2364,10 @@ else { 5 }
                 functions: vec![ast::Function {
                     name: t_global!(LABEL_MAIN),
                     body: vec![ast::Statement::Expr(ast::Expr::Subscript(
-                        Box::new(ast::Expr::Call(Box::new(ast::Expr::Id(main_local!("foo"))), vec![])),
+                        Box::new(ast::Expr::Call(
+                            Box::new(ast::Expr::Id(main_local!("foo"))),
+                            vec![],
+                        )),
                         0,
                     ))],
                     types: HashMap::new(),
@@ -2335,6 +2406,7 @@ else { 5 }
                     name: "main",
                     params: vec![],
                     return_type: ValueType::IntType,
+
                     statements: vec![pt::Statement::Expr(pt::Expr::Binary(
                         Box::new(pt::Expr::Subscript(Box::new(pt::Expr::Id("x")), 0)),
                         pt::Operator::Plus,
@@ -2346,7 +2418,10 @@ else { 5 }
                 functions: vec![ast::Function {
                     name: t_global!(LABEL_MAIN),
                     body: vec![ast::Statement::Expr(ast::Expr::BinaryOp(
-                        Box::new(ast::Expr::Subscript(Box::new(ast::Expr::Id(main_local!("x"))), 0)),
+                        Box::new(ast::Expr::Subscript(
+                            Box::new(ast::Expr::Id(main_local!("x"))),
+                            0,
+                        )),
                         BinaryOperator::Add,
                         Box::new(ast::Expr::Constant(Value::I64(1))),
                     ))],
@@ -2390,6 +2465,7 @@ else { 5 }
                     name: "main",
                     params: vec![],
                     return_type: ValueType::IntType,
+
                     statements: vec![pt::Statement::Expr(pt::Expr::Subscript(
                         Box::new(pt::Expr::Parens(Box::new(pt::Expr::Tuple(vec![
                             pt::Expr::Int(1),
@@ -2447,6 +2523,7 @@ else { 5 }
                     name: "main",
                     params: vec![],
                     return_type: ValueType::IntType,
+
                     statements: vec![pt::Statement::Expr(pt::Expr::Ternary(
                         Box::new(pt::Expr::Subscript(Box::new(pt::Expr::Id("x")), 0)),
                         Box::new(pt::Expr::Int(1)),
@@ -2458,7 +2535,10 @@ else { 5 }
                 functions: vec![ast::Function {
                     name: t_global!(LABEL_MAIN),
                     body: vec![ast::Statement::Expr(ast::Expr::Ternary(
-                        Box::new(ast::Expr::Subscript(Box::new(ast::Expr::Id(main_local!("x"))), 0)),
+                        Box::new(ast::Expr::Subscript(
+                            Box::new(ast::Expr::Id(main_local!("x"))),
+                            0,
+                        )),
                         Box::new(ast::Expr::Constant(Value::I64(1))),
                         Box::new(ast::Expr::Constant(Value::I64(2))),
                     ))],
@@ -2499,6 +2579,7 @@ else { 5 }
                     name: "main",
                     params: vec![],
                     return_type: ValueType::IntType,
+
                     statements: vec![pt::Statement::SubscriptAssign("x", 0, pt::Expr::Int(1))],
                 }],
             },
@@ -2508,6 +2589,7 @@ else { 5 }
                     body: vec![ast::Statement::Assign(
                         AssignDest::Subscript(main_local!("x"), 0),
                         ast::Expr::Constant(Value::I64(1)),
+                        None,
                     )],
                     types: HashMap::new(),
                     params: IndexMap::new(),
@@ -2544,6 +2626,7 @@ else { 5 }
                     name: "main",
                     params: vec![],
                     return_type: ValueType::IntType,
+
                     statements: vec![pt::Statement::SubscriptAssign("tup", 3, pt::Expr::Int(42))],
                 }],
             },
@@ -2553,6 +2636,7 @@ else { 5 }
                     body: vec![ast::Statement::Assign(
                         AssignDest::Subscript(main_local!("tup"), 3),
                         ast::Expr::Constant(Value::I64(42)),
+                        None,
                     )],
                     types: HashMap::new(),
                     params: IndexMap::new(),
@@ -2592,6 +2676,7 @@ else { 5 }
                     name: "main",
                     params: vec![],
                     return_type: ValueType::IntType,
+
                     statements: vec![pt::Statement::SubscriptAssign(
                         "x",
                         1,
@@ -2613,6 +2698,7 @@ else { 5 }
                             BinaryOperator::Add,
                             Box::new(ast::Expr::Constant(Value::I64(1))),
                         ),
+                        None,
                     )],
                     types: HashMap::new(),
                     params: IndexMap::new(),
@@ -2654,6 +2740,7 @@ else { 5 }
                     name: "main",
                     params: vec![],
                     return_type: ValueType::IntType,
+
                     statements: vec![pt::Statement::SubscriptAssign(
                         "x",
                         0,
@@ -2670,6 +2757,7 @@ else { 5 }
                             ast::Expr::Constant(Value::I64(1)),
                             ast::Expr::Constant(Value::I64(2)),
                         ]),
+                        None,
                     )],
                     types: HashMap::new(),
                     params: IndexMap::new(),
@@ -2706,6 +2794,7 @@ else { 5 }
                     name: "main",
                     params: vec![],
                     return_type: ValueType::IntType,
+
                     statements: vec![pt::Statement::SubscriptAssign("x", -1, pt::Expr::Int(99))],
                 }],
             },
@@ -2715,6 +2804,7 @@ else { 5 }
                     body: vec![ast::Statement::Assign(
                         AssignDest::Subscript(main_local!("x"), -1),
                         ast::Expr::Constant(Value::I64(99)),
+                        None,
                     )],
                     types: HashMap::new(),
                     params: IndexMap::new(),
@@ -2755,6 +2845,7 @@ else { 5 }
                     name: "main",
                     params: vec![],
                     return_type: ValueType::IntType,
+
                     statements: vec![pt::Statement::If(
                         pt::Expr::Bool(true),
                         vec![pt::Statement::SubscriptAssign("x", 0, pt::Expr::Int(1))],
@@ -2769,6 +2860,7 @@ else { 5 }
                         vec![ast::Statement::Assign(
                             AssignDest::Subscript(main_local!("x"), 0),
                             ast::Expr::Constant(Value::I64(1)),
+                            None,
                         )],
                         vec![],
                     )],
@@ -2811,6 +2903,7 @@ else { 5 }
                     name: "main",
                     params: vec![],
                     return_type: ValueType::IntType,
+
                     statements: vec![pt::Statement::SubscriptAssign(
                         "x",
                         0,
@@ -2824,6 +2917,7 @@ else { 5 }
                     body: vec![ast::Statement::Assign(
                         AssignDest::Subscript(main_local!("x"), 0),
                         ast::Expr::Subscript(Box::new(ast::Expr::Id(main_local!("y"))), 1),
+                        None,
                     )],
                     types: HashMap::new(),
                     params: IndexMap::new(),
@@ -2874,10 +2968,12 @@ x[0] = 42
                     name: "main",
                     params: vec![],
                     return_type: ValueType::IntType,
+
                     statements: vec![
                         pt::Statement::Assign(
                             "x",
                             pt::Expr::Tuple(vec![pt::Expr::Int(1), pt::Expr::Int(2)]),
+                            None,
                         ),
                         pt::Statement::SubscriptAssign("x", 0, pt::Expr::Int(42)),
                     ],
@@ -2893,10 +2989,12 @@ x[0] = 42
                                 ast::Expr::Constant(Value::I64(1)),
                                 ast::Expr::Constant(Value::I64(2)),
                             ]),
+                            None,
                         ),
                         ast::Statement::Assign(
                             AssignDest::Subscript(main_local!("x"), 0),
                             ast::Expr::Constant(Value::I64(42)),
+                            None,
                         ),
                     ],
                     types: HashMap::new(),
@@ -2918,14 +3016,23 @@ x[0] = 42
         let tc = ParserTestCase {
             input_str: r"fn add(x: int, y: int) -> int { x + y }",
             expected_tokens: vec![
-                Token::Fn, Token::Identifier("add"),
+                Token::Fn,
+                Token::Identifier("add"),
                 Token::OpenParen,
-                Token::Identifier("x"), Token::Colon, Token::IntType, Token::Comma,
-                Token::Identifier("y"), Token::Colon, Token::IntType,
+                Token::Identifier("x"),
+                Token::Colon,
+                Token::IntType,
+                Token::Comma,
+                Token::Identifier("y"),
+                Token::Colon,
+                Token::IntType,
                 Token::CloseParen,
-                Token::RightArrow, Token::IntType,
+                Token::RightArrow,
+                Token::IntType,
                 Token::OpenCurly,
-                Token::Identifier("x"), Token::Plus, Token::Identifier("y"),
+                Token::Identifier("x"),
+                Token::Plus,
+                Token::Identifier("y"),
                 Token::CloseCurly,
             ],
             expected_parse_tree: pt::Module {
@@ -2933,6 +3040,7 @@ x[0] = 42
                     name: "add",
                     params: vec![("x", ValueType::IntType), ("y", ValueType::IntType)],
                     return_type: ValueType::IntType,
+
                     statements: vec![pt::Statement::Expr(pt::Expr::Binary(
                         Box::new(pt::Expr::Id("x")),
                         pt::Operator::Plus,
@@ -2968,10 +3076,15 @@ x[0] = 42
         let tc = ParserTestCase {
             input_str: r"fn greet() { print_int(42) }",
             expected_tokens: vec![
-                Token::Fn, Token::Identifier("greet"),
-                Token::OpenParen, Token::CloseParen,
+                Token::Fn,
+                Token::Identifier("greet"),
+                Token::OpenParen,
+                Token::CloseParen,
                 Token::OpenCurly,
-                Token::Identifier("print_int"), Token::OpenParen, Token::Int(42), Token::CloseParen,
+                Token::Identifier("print_int"),
+                Token::OpenParen,
+                Token::Int(42),
+                Token::CloseParen,
                 Token::CloseCurly,
             ],
             expected_parse_tree: pt::Module {
@@ -2979,9 +3092,11 @@ x[0] = 42
                     name: "greet",
                     params: vec![],
                     return_type: ValueType::NoneType,
-                    statements: vec![pt::Statement::Expr(
-                        pt::Expr::Call(Box::new(pt::Expr::Id("print_int")), vec![pt::Expr::Int(42)]),
-                    )],
+
+                    statements: vec![pt::Statement::Expr(pt::Expr::Call(
+                        Box::new(pt::Expr::Id("print_int")),
+                        vec![pt::Expr::Int(42)],
+                    ))],
                 }],
             },
             expected_ast: ast::Program {
@@ -3007,13 +3122,19 @@ x[0] = 42
         let tc = ParserTestCase {
             input_str: r"fn negate(x: int) -> int { 0 - x }",
             expected_tokens: vec![
-                Token::Fn, Token::Identifier("negate"),
+                Token::Fn,
+                Token::Identifier("negate"),
                 Token::OpenParen,
-                Token::Identifier("x"), Token::Colon, Token::IntType,
+                Token::Identifier("x"),
+                Token::Colon,
+                Token::IntType,
                 Token::CloseParen,
-                Token::RightArrow, Token::IntType,
+                Token::RightArrow,
+                Token::IntType,
                 Token::OpenCurly,
-                Token::Int(0), Token::Minus, Token::Identifier("x"),
+                Token::Int(0),
+                Token::Minus,
+                Token::Identifier("x"),
                 Token::CloseCurly,
             ],
             expected_parse_tree: pt::Module {
@@ -3021,6 +3142,7 @@ x[0] = 42
                     name: "negate",
                     params: vec![("x", ValueType::IntType)],
                     return_type: ValueType::IntType,
+
                     statements: vec![pt::Statement::Expr(pt::Expr::Binary(
                         Box::new(pt::Expr::Int(0)),
                         pt::Operator::Minus,
@@ -3052,18 +3174,25 @@ x[0] = 42
         let tc = ParserTestCase {
             input_str: r"fn check(flag: bool) -> int { 1 }",
             expected_tokens: vec![
-                Token::Fn, Token::Identifier("check"),
+                Token::Fn,
+                Token::Identifier("check"),
                 Token::OpenParen,
-                Token::Identifier("flag"), Token::Colon, Token::BoolType,
+                Token::Identifier("flag"),
+                Token::Colon,
+                Token::BoolType,
                 Token::CloseParen,
-                Token::RightArrow, Token::IntType,
-                Token::OpenCurly, Token::Int(1), Token::CloseCurly,
+                Token::RightArrow,
+                Token::IntType,
+                Token::OpenCurly,
+                Token::Int(1),
+                Token::CloseCurly,
             ],
             expected_parse_tree: pt::Module {
                 functions: vec![pt::Function {
                     name: "check",
                     params: vec![("flag", ValueType::BoolType)],
                     return_type: ValueType::IntType,
+
                     statements: vec![pt::Statement::Expr(pt::Expr::Int(1))],
                 }],
             },
@@ -3072,7 +3201,10 @@ x[0] = 42
                     name: check_id.clone(),
                     body: vec![ast::Statement::Expr(ast::Expr::Constant(Value::I64(1)))],
                     types: HashMap::new(),
-                    params: IndexMap::from([(t_local!("flag", check_id.clone()), ValueType::BoolType)]),
+                    params: IndexMap::from([(
+                        t_local!("flag", check_id.clone()),
+                        ValueType::BoolType,
+                    )]),
                     return_type: ValueType::IntType,
                 }],
                 function_types: HashMap::new(),
@@ -3087,13 +3219,18 @@ x[0] = 42
         let tc = ParserTestCase {
             input_str: r"fn id(x: int) -> int { return x }",
             expected_tokens: vec![
-                Token::Fn, Token::Identifier("id"),
+                Token::Fn,
+                Token::Identifier("id"),
                 Token::OpenParen,
-                Token::Identifier("x"), Token::Colon, Token::IntType,
+                Token::Identifier("x"),
+                Token::Colon,
+                Token::IntType,
                 Token::CloseParen,
-                Token::RightArrow, Token::IntType,
+                Token::RightArrow,
+                Token::IntType,
                 Token::OpenCurly,
-                Token::Return, Token::Identifier("x"),
+                Token::Return,
+                Token::Identifier("x"),
                 Token::CloseCurly,
             ],
             expected_parse_tree: pt::Module {
@@ -3101,13 +3238,17 @@ x[0] = 42
                     name: "id",
                     params: vec![("x", ValueType::IntType)],
                     return_type: ValueType::IntType,
+
                     statements: vec![pt::Statement::Return(Some(pt::Expr::Id("x")))],
                 }],
             },
             expected_ast: ast::Program {
                 functions: vec![ast::Function {
                     name: id_id.clone(),
-                    body: vec![ast::Statement::Return(ast::Expr::Id(t_local!("x", id_id.clone())))],
+                    body: vec![ast::Statement::Return(ast::Expr::Id(t_local!(
+                        "x",
+                        id_id.clone()
+                    )))],
                     types: HashMap::new(),
                     params: IndexMap::from([(t_local!("x", id_id.clone()), ValueType::IntType)]),
                     return_type: ValueType::IntType,
@@ -3124,8 +3265,10 @@ x[0] = 42
         let tc = ParserTestCase {
             input_str: r"fn donothing() { return }",
             expected_tokens: vec![
-                Token::Fn, Token::Identifier("donothing"),
-                Token::OpenParen, Token::CloseParen,
+                Token::Fn,
+                Token::Identifier("donothing"),
+                Token::OpenParen,
+                Token::CloseParen,
                 Token::OpenCurly,
                 Token::Return,
                 Token::CloseCurly,
@@ -3135,6 +3278,7 @@ x[0] = 42
                     name: "donothing",
                     params: vec![],
                     return_type: ValueType::NoneType,
+
                     statements: vec![pt::Statement::Return(None)],
                 }],
             },
@@ -3158,21 +3302,34 @@ x[0] = 42
         let tc = ParserTestCase {
             input_str: "fn double(x: int) -> int { x + x }\nfn main() -> int { print_int(double(21)) }",
             expected_tokens: vec![
-                Token::Fn, Token::Identifier("double"),
+                Token::Fn,
+                Token::Identifier("double"),
                 Token::OpenParen,
-                Token::Identifier("x"), Token::Colon, Token::IntType,
+                Token::Identifier("x"),
+                Token::Colon,
+                Token::IntType,
                 Token::CloseParen,
-                Token::RightArrow, Token::IntType,
+                Token::RightArrow,
+                Token::IntType,
                 Token::OpenCurly,
-                Token::Identifier("x"), Token::Plus, Token::Identifier("x"),
+                Token::Identifier("x"),
+                Token::Plus,
+                Token::Identifier("x"),
                 Token::CloseCurly,
                 Token::Newline,
-                Token::Fn, Token::Identifier("main"),
-                Token::OpenParen, Token::CloseParen,
-                Token::RightArrow, Token::IntType,
+                Token::Fn,
+                Token::Identifier("main"),
+                Token::OpenParen,
+                Token::CloseParen,
+                Token::RightArrow,
+                Token::IntType,
                 Token::OpenCurly,
-                Token::Identifier("print_int"), Token::OpenParen,
-                Token::Identifier("double"), Token::OpenParen, Token::Int(21), Token::CloseParen,
+                Token::Identifier("print_int"),
+                Token::OpenParen,
+                Token::Identifier("double"),
+                Token::OpenParen,
+                Token::Int(21),
+                Token::CloseParen,
                 Token::CloseParen,
                 Token::CloseCurly,
             ],
@@ -3182,6 +3339,7 @@ x[0] = 42
                         name: "double",
                         params: vec![("x", ValueType::IntType)],
                         return_type: ValueType::IntType,
+
                         statements: vec![pt::Statement::Expr(pt::Expr::Binary(
                             Box::new(pt::Expr::Id("x")),
                             pt::Operator::Plus,
@@ -3192,9 +3350,13 @@ x[0] = 42
                         name: "main",
                         params: vec![],
                         return_type: ValueType::IntType,
+
                         statements: vec![pt::Statement::Expr(pt::Expr::Call(
                             Box::new(pt::Expr::Id("print_int")),
-                            vec![pt::Expr::Call(Box::new(pt::Expr::Id("double")), vec![pt::Expr::Int(21)])],
+                            vec![pt::Expr::Call(
+                                Box::new(pt::Expr::Id("double")),
+                                vec![pt::Expr::Int(21)],
+                            )],
                         ))],
                     },
                 ],
@@ -3238,13 +3400,19 @@ x[0] = 42
         let tc = ParserTestCase {
             input_str: r"fn is_zero(x: int) -> bool { x == 0 }",
             expected_tokens: vec![
-                Token::Fn, Token::Identifier("is_zero"),
+                Token::Fn,
+                Token::Identifier("is_zero"),
                 Token::OpenParen,
-                Token::Identifier("x"), Token::Colon, Token::IntType,
+                Token::Identifier("x"),
+                Token::Colon,
+                Token::IntType,
                 Token::CloseParen,
-                Token::RightArrow, Token::BoolType,
+                Token::RightArrow,
+                Token::BoolType,
                 Token::OpenCurly,
-                Token::Identifier("x"), Token::DoubleEquals, Token::Int(0),
+                Token::Identifier("x"),
+                Token::DoubleEquals,
+                Token::Int(0),
                 Token::CloseCurly,
             ],
             expected_parse_tree: pt::Module {
@@ -3252,6 +3420,7 @@ x[0] = 42
                     name: "is_zero",
                     params: vec![("x", ValueType::IntType)],
                     return_type: ValueType::BoolType,
+
                     statements: vec![pt::Statement::Expr(pt::Expr::Binary(
                         Box::new(pt::Expr::Id("x")),
                         pt::Operator::Equals,
@@ -3282,15 +3451,24 @@ x[0] = 42
         let tc = ParserTestCase {
             input_str: "fn main() -> int { x = 10\nprint_int(x)\nreturn x }",
             expected_tokens: vec![
-                Token::Fn, Token::Identifier("main"),
-                Token::OpenParen, Token::CloseParen,
-                Token::RightArrow, Token::IntType,
+                Token::Fn,
+                Token::Identifier("main"),
+                Token::OpenParen,
+                Token::CloseParen,
+                Token::RightArrow,
+                Token::IntType,
                 Token::OpenCurly,
-                Token::Identifier("x"), Token::Equals, Token::Int(10),
+                Token::Identifier("x"),
+                Token::Equals,
+                Token::Int(10),
                 Token::Newline,
-                Token::Identifier("print_int"), Token::OpenParen, Token::Identifier("x"), Token::CloseParen,
+                Token::Identifier("print_int"),
+                Token::OpenParen,
+                Token::Identifier("x"),
+                Token::CloseParen,
                 Token::Newline,
-                Token::Return, Token::Identifier("x"),
+                Token::Return,
+                Token::Identifier("x"),
                 Token::CloseCurly,
             ],
             expected_parse_tree: pt::Module {
@@ -3298,9 +3476,13 @@ x[0] = 42
                     name: "main",
                     params: vec![],
                     return_type: ValueType::IntType,
+
                     statements: vec![
-                        pt::Statement::Assign("x", pt::Expr::Int(10)),
-                        pt::Statement::Expr(pt::Expr::Call(Box::new(pt::Expr::Id("print_int")), vec![pt::Expr::Id("x")])),
+                        pt::Statement::Assign("x", pt::Expr::Int(10), None),
+                        pt::Statement::Expr(pt::Expr::Call(
+                            Box::new(pt::Expr::Id("print_int")),
+                            vec![pt::Expr::Id("x")],
+                        )),
                         pt::Statement::Return(Some(pt::Expr::Id("x"))),
                     ],
                 }],
@@ -3312,6 +3494,7 @@ x[0] = 42
                         ast::Statement::Assign(
                             AssignDest::Id(main_local!("x")),
                             ast::Expr::Constant(Value::I64(10)),
+                            None,
                         ),
                         ast::Statement::Expr(ast::Expr::Call(
                             Box::new(ast::Expr::Id(main_local!("print_int"))),
@@ -3335,14 +3518,20 @@ x[0] = 42
         let tc = ParserTestCase {
             input_str: r"fn square(n: int) -> int { return n * n }",
             expected_tokens: vec![
-                Token::Fn, Token::Identifier("square"),
+                Token::Fn,
+                Token::Identifier("square"),
                 Token::OpenParen,
-                Token::Identifier("n"), Token::Colon, Token::IntType,
+                Token::Identifier("n"),
+                Token::Colon,
+                Token::IntType,
                 Token::CloseParen,
-                Token::RightArrow, Token::IntType,
+                Token::RightArrow,
+                Token::IntType,
                 Token::OpenCurly,
                 Token::Return,
-                Token::Identifier("n"), Token::Asterisk, Token::Identifier("n"),
+                Token::Identifier("n"),
+                Token::Asterisk,
+                Token::Identifier("n"),
                 Token::CloseCurly,
             ],
             expected_parse_tree: pt::Module {
@@ -3350,6 +3539,7 @@ x[0] = 42
                     name: "square",
                     params: vec![("n", ValueType::IntType)],
                     return_type: ValueType::IntType,
+
                     statements: vec![pt::Statement::Return(Some(pt::Expr::Binary(
                         Box::new(pt::Expr::Id("n")),
                         pt::Operator::Asterisk,
@@ -3381,21 +3571,36 @@ x[0] = 42
         let tc = ParserTestCase {
             input_str: r"fn first(p: tuple<int, int>) -> int { p[0] }",
             expected_tokens: vec![
-                Token::Fn, Token::Identifier("first"),
+                Token::Fn,
+                Token::Identifier("first"),
                 Token::OpenParen,
-                Token::Identifier("p"), Token::Colon,
-                Token::TupleType, Token::Less, Token::IntType, Token::Comma, Token::IntType, Token::Greater,
+                Token::Identifier("p"),
+                Token::Colon,
+                Token::TupleType,
+                Token::Less,
+                Token::IntType,
+                Token::Comma,
+                Token::IntType,
+                Token::Greater,
                 Token::CloseParen,
-                Token::RightArrow, Token::IntType,
+                Token::RightArrow,
+                Token::IntType,
                 Token::OpenCurly,
-                Token::Identifier("p"), Token::OpenBracket, Token::Int(0), Token::CloseBracket,
+                Token::Identifier("p"),
+                Token::OpenBracket,
+                Token::Int(0),
+                Token::CloseBracket,
                 Token::CloseCurly,
             ],
             expected_parse_tree: pt::Module {
                 functions: vec![pt::Function {
                     name: "first",
-                    params: vec![("p", ValueType::TupleType(vec![ValueType::IntType, ValueType::IntType]))],
+                    params: vec![(
+                        "p",
+                        ValueType::TupleType(vec![ValueType::IntType, ValueType::IntType]),
+                    )],
                     return_type: ValueType::IntType,
+
                     statements: vec![pt::Statement::Expr(pt::Expr::Subscript(
                         Box::new(pt::Expr::Id("p")),
                         0,
@@ -3428,15 +3633,30 @@ x[0] = 42
         let tc = ParserTestCase {
             input_str: r"fn pair(a: int, b: int) -> tuple<int, int> { (a, b) }",
             expected_tokens: vec![
-                Token::Fn, Token::Identifier("pair"),
+                Token::Fn,
+                Token::Identifier("pair"),
                 Token::OpenParen,
-                Token::Identifier("a"), Token::Colon, Token::IntType, Token::Comma,
-                Token::Identifier("b"), Token::Colon, Token::IntType,
+                Token::Identifier("a"),
+                Token::Colon,
+                Token::IntType,
+                Token::Comma,
+                Token::Identifier("b"),
+                Token::Colon,
+                Token::IntType,
                 Token::CloseParen,
                 Token::RightArrow,
-                Token::TupleType, Token::Less, Token::IntType, Token::Comma, Token::IntType, Token::Greater,
+                Token::TupleType,
+                Token::Less,
+                Token::IntType,
+                Token::Comma,
+                Token::IntType,
+                Token::Greater,
                 Token::OpenCurly,
-                Token::OpenParen, Token::Identifier("a"), Token::Comma, Token::Identifier("b"), Token::CloseParen,
+                Token::OpenParen,
+                Token::Identifier("a"),
+                Token::Comma,
+                Token::Identifier("b"),
+                Token::CloseParen,
                 Token::CloseCurly,
             ],
             expected_parse_tree: pt::Module {
@@ -3444,6 +3664,7 @@ x[0] = 42
                     name: "pair",
                     params: vec![("a", ValueType::IntType), ("b", ValueType::IntType)],
                     return_type: ValueType::TupleType(vec![ValueType::IntType, ValueType::IntType]),
+
                     statements: vec![pt::Statement::Expr(pt::Expr::Tuple(vec![
                         pt::Expr::Id("a"),
                         pt::Expr::Id("b"),
@@ -3476,23 +3697,40 @@ x[0] = 42
         let tc = ParserTestCase {
             input_str: r"fn mix(x: int, p: tuple<int, bool>) -> bool { true }",
             expected_tokens: vec![
-                Token::Fn, Token::Identifier("mix"),
+                Token::Fn,
+                Token::Identifier("mix"),
                 Token::OpenParen,
-                Token::Identifier("x"), Token::Colon, Token::IntType, Token::Comma,
-                Token::Identifier("p"), Token::Colon,
-                Token::TupleType, Token::Less, Token::IntType, Token::Comma, Token::BoolType, Token::Greater,
+                Token::Identifier("x"),
+                Token::Colon,
+                Token::IntType,
+                Token::Comma,
+                Token::Identifier("p"),
+                Token::Colon,
+                Token::TupleType,
+                Token::Less,
+                Token::IntType,
+                Token::Comma,
+                Token::BoolType,
+                Token::Greater,
                 Token::CloseParen,
-                Token::RightArrow, Token::BoolType,
-                Token::OpenCurly, Token::Bool(true), Token::CloseCurly,
+                Token::RightArrow,
+                Token::BoolType,
+                Token::OpenCurly,
+                Token::Bool(true),
+                Token::CloseCurly,
             ],
             expected_parse_tree: pt::Module {
                 functions: vec![pt::Function {
                     name: "mix",
                     params: vec![
                         ("x", ValueType::IntType),
-                        ("p", ValueType::TupleType(vec![ValueType::IntType, ValueType::BoolType])),
+                        (
+                            "p",
+                            ValueType::TupleType(vec![ValueType::IntType, ValueType::BoolType]),
+                        ),
                     ],
                     return_type: ValueType::BoolType,
+
                     statements: vec![pt::Statement::Expr(pt::Expr::Bool(true))],
                 }],
             },
@@ -3503,7 +3741,10 @@ x[0] = 42
                     types: HashMap::new(),
                     params: IndexMap::from([
                         (t_local!("x", mix_id.clone()), ValueType::IntType),
-                        (t_local!("p", mix_id.clone()), ValueType::TupleType(vec![ValueType::IntType, ValueType::BoolType])),
+                        (
+                            t_local!("p", mix_id.clone()),
+                            ValueType::TupleType(vec![ValueType::IntType, ValueType::BoolType]),
+                        ),
                     ]),
                     return_type: ValueType::BoolType,
                 }],
@@ -3519,19 +3760,33 @@ x[0] = 42
         let tc = ParserTestCase {
             input_str: r"fn deep(t: tuple<tuple<int, int>, bool>) -> int { t[0][0] }",
             expected_tokens: vec![
-                Token::Fn, Token::Identifier("deep"),
+                Token::Fn,
+                Token::Identifier("deep"),
                 Token::OpenParen,
-                Token::Identifier("t"), Token::Colon,
-                Token::TupleType, Token::Less,
-                Token::TupleType, Token::Less, Token::IntType, Token::Comma, Token::IntType, Token::Greater,
-                Token::Comma, Token::BoolType,
+                Token::Identifier("t"),
+                Token::Colon,
+                Token::TupleType,
+                Token::Less,
+                Token::TupleType,
+                Token::Less,
+                Token::IntType,
+                Token::Comma,
+                Token::IntType,
+                Token::Greater,
+                Token::Comma,
+                Token::BoolType,
                 Token::Greater,
                 Token::CloseParen,
-                Token::RightArrow, Token::IntType,
+                Token::RightArrow,
+                Token::IntType,
                 Token::OpenCurly,
                 Token::Identifier("t"),
-                Token::OpenBracket, Token::Int(0), Token::CloseBracket,
-                Token::OpenBracket, Token::Int(0), Token::CloseBracket,
+                Token::OpenBracket,
+                Token::Int(0),
+                Token::CloseBracket,
+                Token::OpenBracket,
+                Token::Int(0),
+                Token::CloseBracket,
                 Token::CloseCurly,
             ],
             expected_parse_tree: pt::Module {
@@ -3545,6 +3800,7 @@ x[0] = 42
                         ]),
                     )],
                     return_type: ValueType::IntType,
+
                     statements: vec![pt::Statement::Expr(pt::Expr::Subscript(
                         Box::new(pt::Expr::Subscript(Box::new(pt::Expr::Id("t")), 0)),
                         0,
@@ -3609,6 +3865,7 @@ x[0] = 42
                     name: "main",
                     params: vec![],
                     return_type: ValueType::IntType,
+
                     statements: vec![pt::Statement::Expr(pt::Expr::Call(
                         Box::new(pt::Expr::Parens(Box::new(pt::Expr::Ternary(
                             Box::new(pt::Expr::Binary(
@@ -3675,6 +3932,7 @@ x[0] = 42
                     name: "main",
                     params: vec![],
                     return_type: ValueType::IntType,
+
                     statements: vec![pt::Statement::Expr(pt::Expr::Call(
                         Box::new(pt::Expr::Subscript(Box::new(pt::Expr::Id("t")), 0)),
                         vec![pt::Expr::Int(10)],
@@ -3685,7 +3943,10 @@ x[0] = 42
                 functions: vec![ast::Function {
                     name: t_global!(LABEL_MAIN),
                     body: vec![ast::Statement::Expr(ast::Expr::Call(
-                        Box::new(ast::Expr::Subscript(Box::new(ast::Expr::Id(main_local!("t"))), 0)),
+                        Box::new(ast::Expr::Subscript(
+                            Box::new(ast::Expr::Id(main_local!("t"))),
+                            0,
+                        )),
                         vec![ast::Expr::Constant(Value::I64(10))],
                     ))],
                     types: HashMap::new(),
@@ -3704,18 +3965,32 @@ x[0] = 42
         let tc = ParserTestCase {
             input_str: r"fn wrap(x: int) -> tuple<tuple<int, int>, bool> { ((x, x), true) }",
             expected_tokens: vec![
-                Token::Fn, Token::Identifier("wrap"),
+                Token::Fn,
+                Token::Identifier("wrap"),
                 Token::OpenParen,
-                Token::Identifier("x"), Token::Colon, Token::IntType,
+                Token::Identifier("x"),
+                Token::Colon,
+                Token::IntType,
                 Token::CloseParen,
                 Token::RightArrow,
-                Token::TupleType, Token::Less,
-                Token::TupleType, Token::Less, Token::IntType, Token::Comma, Token::IntType, Token::Greater,
-                Token::Comma, Token::BoolType,
+                Token::TupleType,
+                Token::Less,
+                Token::TupleType,
+                Token::Less,
+                Token::IntType,
+                Token::Comma,
+                Token::IntType,
+                Token::Greater,
+                Token::Comma,
+                Token::BoolType,
                 Token::Greater,
                 Token::OpenCurly,
                 Token::OpenParen,
-                Token::OpenParen, Token::Identifier("x"), Token::Comma, Token::Identifier("x"), Token::CloseParen,
+                Token::OpenParen,
+                Token::Identifier("x"),
+                Token::Comma,
+                Token::Identifier("x"),
+                Token::CloseParen,
                 Token::Comma,
                 Token::Bool(true),
                 Token::CloseParen,
@@ -3764,33 +4039,46 @@ x[0] = 42
         let input_str = r"fn main() -> int { lambda x: x + 1 }";
 
         let tokens = tokenize(input_str).unwrap();
-        assert_eq!(tokens, vec![
-            Token::Fn, Token::Identifier("main"),
-            Token::OpenParen, Token::CloseParen,
-            Token::RightArrow, Token::IntType,
-            Token::OpenCurly,
-            Token::Lambda,
-            Token::Identifier("x"), Token::Colon,
-            Token::Identifier("x"), Token::Plus, Token::Int(1),
-            Token::CloseCurly,
-        ]);
+        assert_eq!(
+            tokens,
+            vec![
+                Token::Fn,
+                Token::Identifier("main"),
+                Token::OpenParen,
+                Token::CloseParen,
+                Token::RightArrow,
+                Token::IntType,
+                Token::OpenCurly,
+                Token::Lambda,
+                Token::Identifier("x"),
+                Token::Colon,
+                Token::Identifier("x"),
+                Token::Plus,
+                Token::Int(1),
+                Token::CloseCurly,
+            ]
+        );
 
         let parse_tree = parse_tree::parse_tokens(&tokens).unwrap();
-        assert_eq!(parse_tree, pt::Module {
-            functions: vec![pt::Function {
-                name: "main",
-                params: vec![],
-                return_type: ValueType::IntType,
-                statements: vec![pt::Statement::Expr(pt::Expr::Lambda(
-                    vec!["x"],
-                    vec![pt::Statement::Return(Some(pt::Expr::Binary(
-                        Box::new(pt::Expr::Id("x")),
-                        pt::Operator::Plus,
-                        Box::new(pt::Expr::Int(1)),
-                    )))],
-                ))],
-            }],
-        });
+        assert_eq!(
+            parse_tree,
+            pt::Module {
+                functions: vec![pt::Function {
+                    name: "main",
+                    params: vec![],
+                    return_type: ValueType::IntType,
+
+                    statements: vec![pt::Statement::Expr(pt::Expr::Lambda(
+                        vec!["x"],
+                        vec![pt::Statement::Return(Some(pt::Expr::Binary(
+                            Box::new(pt::Expr::Id("x")),
+                            pt::Operator::Plus,
+                            Box::new(pt::Expr::Int(1)),
+                        )))],
+                    ))],
+                }],
+            }
+        );
 
         let ast = to_ast::to_ast(parse_tree);
         // Check the main function has one statement with a Lambda expr
@@ -3813,34 +4101,48 @@ x[0] = 42
         let input_str = r"fn main() -> int { lambda x, y: x + y }";
 
         let tokens = tokenize(input_str).unwrap();
-        assert_eq!(tokens, vec![
-            Token::Fn, Token::Identifier("main"),
-            Token::OpenParen, Token::CloseParen,
-            Token::RightArrow, Token::IntType,
-            Token::OpenCurly,
-            Token::Lambda,
-            Token::Identifier("x"), Token::Comma,
-            Token::Identifier("y"), Token::Colon,
-            Token::Identifier("x"), Token::Plus, Token::Identifier("y"),
-            Token::CloseCurly,
-        ]);
+        assert_eq!(
+            tokens,
+            vec![
+                Token::Fn,
+                Token::Identifier("main"),
+                Token::OpenParen,
+                Token::CloseParen,
+                Token::RightArrow,
+                Token::IntType,
+                Token::OpenCurly,
+                Token::Lambda,
+                Token::Identifier("x"),
+                Token::Comma,
+                Token::Identifier("y"),
+                Token::Colon,
+                Token::Identifier("x"),
+                Token::Plus,
+                Token::Identifier("y"),
+                Token::CloseCurly,
+            ]
+        );
 
         let parse_tree = parse_tree::parse_tokens(&tokens).unwrap();
-        assert_eq!(parse_tree, pt::Module {
-            functions: vec![pt::Function {
-                name: "main",
-                params: vec![],
-                return_type: ValueType::IntType,
-                statements: vec![pt::Statement::Expr(pt::Expr::Lambda(
-                    vec!["x", "y"],
-                    vec![pt::Statement::Return(Some(pt::Expr::Binary(
-                        Box::new(pt::Expr::Id("x")),
-                        pt::Operator::Plus,
-                        Box::new(pt::Expr::Id("y")),
-                    )))],
-                ))],
-            }],
-        });
+        assert_eq!(
+            parse_tree,
+            pt::Module {
+                functions: vec![pt::Function {
+                    name: "main",
+                    params: vec![],
+                    return_type: ValueType::IntType,
+
+                    statements: vec![pt::Statement::Expr(pt::Expr::Lambda(
+                        vec!["x", "y"],
+                        vec![pt::Statement::Return(Some(pt::Expr::Binary(
+                            Box::new(pt::Expr::Id("x")),
+                            pt::Operator::Plus,
+                            Box::new(pt::Expr::Id("y")),
+                        )))],
+                    ))],
+                }],
+            }
+        );
 
         let ast = to_ast::to_ast(parse_tree);
         assert_eq!(ast.functions.len(), 1);
@@ -3859,28 +4161,39 @@ x[0] = 42
         let input_str = r"fn main() -> int { lambda: 42 }";
 
         let tokens = tokenize(input_str).unwrap();
-        assert_eq!(tokens, vec![
-            Token::Fn, Token::Identifier("main"),
-            Token::OpenParen, Token::CloseParen,
-            Token::RightArrow, Token::IntType,
-            Token::OpenCurly,
-            Token::Lambda, Token::Colon,
-            Token::Int(42),
-            Token::CloseCurly,
-        ]);
+        assert_eq!(
+            tokens,
+            vec![
+                Token::Fn,
+                Token::Identifier("main"),
+                Token::OpenParen,
+                Token::CloseParen,
+                Token::RightArrow,
+                Token::IntType,
+                Token::OpenCurly,
+                Token::Lambda,
+                Token::Colon,
+                Token::Int(42),
+                Token::CloseCurly,
+            ]
+        );
 
         let parse_tree = parse_tree::parse_tokens(&tokens).unwrap();
-        assert_eq!(parse_tree, pt::Module {
-            functions: vec![pt::Function {
-                name: "main",
-                params: vec![],
-                return_type: ValueType::IntType,
-                statements: vec![pt::Statement::Expr(pt::Expr::Lambda(
-                    vec![],
-                    vec![pt::Statement::Return(Some(pt::Expr::Int(42)))],
-                ))],
-            }],
-        });
+        assert_eq!(
+            parse_tree,
+            pt::Module {
+                functions: vec![pt::Function {
+                    name: "main",
+                    params: vec![],
+                    return_type: ValueType::IntType,
+
+                    statements: vec![pt::Statement::Expr(pt::Expr::Lambda(
+                        vec![],
+                        vec![pt::Statement::Return(Some(pt::Expr::Int(42)))],
+                    ))],
+                }],
+            }
+        );
 
         let ast = to_ast::to_ast(parse_tree);
         match &ast.functions[0].body[0] {
@@ -3898,19 +4211,28 @@ x[0] = 42
         let input_str = r"fn main() -> int { (lambda x: x)(5) }";
 
         let tokens = tokenize(input_str).unwrap();
-        assert_eq!(tokens, vec![
-            Token::Fn, Token::Identifier("main"),
-            Token::OpenParen, Token::CloseParen,
-            Token::RightArrow, Token::IntType,
-            Token::OpenCurly,
-            Token::OpenParen,
-            Token::Lambda,
-            Token::Identifier("x"), Token::Colon,
-            Token::Identifier("x"),
-            Token::CloseParen,
-            Token::OpenParen, Token::Int(5), Token::CloseParen,
-            Token::CloseCurly,
-        ]);
+        assert_eq!(
+            tokens,
+            vec![
+                Token::Fn,
+                Token::Identifier("main"),
+                Token::OpenParen,
+                Token::CloseParen,
+                Token::RightArrow,
+                Token::IntType,
+                Token::OpenCurly,
+                Token::OpenParen,
+                Token::Lambda,
+                Token::Identifier("x"),
+                Token::Colon,
+                Token::Identifier("x"),
+                Token::CloseParen,
+                Token::OpenParen,
+                Token::Int(5),
+                Token::CloseParen,
+                Token::CloseCurly,
+            ]
+        );
 
         let parse_tree = parse_tree::parse_tokens(&tokens).unwrap();
         // Should parse as Call(Lambda(...), [Int(5)])
@@ -3937,18 +4259,28 @@ x[0] = 42
         let input_str = r"fn main() -> int { foo(lambda x: x + 1) }";
 
         let tokens = tokenize(input_str).unwrap();
-        assert_eq!(tokens, vec![
-            Token::Fn, Token::Identifier("main"),
-            Token::OpenParen, Token::CloseParen,
-            Token::RightArrow, Token::IntType,
-            Token::OpenCurly,
-            Token::Identifier("foo"), Token::OpenParen,
-            Token::Lambda,
-            Token::Identifier("x"), Token::Colon,
-            Token::Identifier("x"), Token::Plus, Token::Int(1),
-            Token::CloseParen,
-            Token::CloseCurly,
-        ]);
+        assert_eq!(
+            tokens,
+            vec![
+                Token::Fn,
+                Token::Identifier("main"),
+                Token::OpenParen,
+                Token::CloseParen,
+                Token::RightArrow,
+                Token::IntType,
+                Token::OpenCurly,
+                Token::Identifier("foo"),
+                Token::OpenParen,
+                Token::Lambda,
+                Token::Identifier("x"),
+                Token::Colon,
+                Token::Identifier("x"),
+                Token::Plus,
+                Token::Int(1),
+                Token::CloseParen,
+                Token::CloseCurly,
+            ]
+        );
 
         let parse_tree = parse_tree::parse_tokens(&tokens).unwrap();
         match &parse_tree.functions[0].statements[0] {
@@ -3976,21 +4308,29 @@ x[0] = 42
         let input_str = r"fn main() -> int { f = lambda x: x }";
 
         let tokens = tokenize(input_str).unwrap();
-        assert_eq!(tokens, vec![
-            Token::Fn, Token::Identifier("main"),
-            Token::OpenParen, Token::CloseParen,
-            Token::RightArrow, Token::IntType,
-            Token::OpenCurly,
-            Token::Identifier("f"), Token::Equals,
-            Token::Lambda,
-            Token::Identifier("x"), Token::Colon,
-            Token::Identifier("x"),
-            Token::CloseCurly,
-        ]);
+        assert_eq!(
+            tokens,
+            vec![
+                Token::Fn,
+                Token::Identifier("main"),
+                Token::OpenParen,
+                Token::CloseParen,
+                Token::RightArrow,
+                Token::IntType,
+                Token::OpenCurly,
+                Token::Identifier("f"),
+                Token::Equals,
+                Token::Lambda,
+                Token::Identifier("x"),
+                Token::Colon,
+                Token::Identifier("x"),
+                Token::CloseCurly,
+            ]
+        );
 
         let parse_tree = parse_tree::parse_tokens(&tokens).unwrap();
         match &parse_tree.functions[0].statements[0] {
-            pt::Statement::Assign("f", pt::Expr::Lambda(params, body)) => {
+            pt::Statement::Assign("f", pt::Expr::Lambda(params, body), _) => {
                 assert_eq!(*params, vec!["x"]);
                 assert_eq!(body.len(), 1);
             }
@@ -4004,22 +4344,30 @@ x[0] = 42
         let input_str = r"fn main() -> int { (lambda x: x, lambda y: y) }";
 
         let tokens = tokenize(input_str).unwrap();
-        assert_eq!(tokens, vec![
-            Token::Fn, Token::Identifier("main"),
-            Token::OpenParen, Token::CloseParen,
-            Token::RightArrow, Token::IntType,
-            Token::OpenCurly,
-            Token::OpenParen,
-            Token::Lambda,
-            Token::Identifier("x"), Token::Colon,
-            Token::Identifier("x"),
-            Token::Comma,
-            Token::Lambda,
-            Token::Identifier("y"), Token::Colon,
-            Token::Identifier("y"),
-            Token::CloseParen,
-            Token::CloseCurly,
-        ]);
+        assert_eq!(
+            tokens,
+            vec![
+                Token::Fn,
+                Token::Identifier("main"),
+                Token::OpenParen,
+                Token::CloseParen,
+                Token::RightArrow,
+                Token::IntType,
+                Token::OpenCurly,
+                Token::OpenParen,
+                Token::Lambda,
+                Token::Identifier("x"),
+                Token::Colon,
+                Token::Identifier("x"),
+                Token::Comma,
+                Token::Lambda,
+                Token::Identifier("y"),
+                Token::Colon,
+                Token::Identifier("y"),
+                Token::CloseParen,
+                Token::CloseCurly,
+            ]
+        );
 
         let parse_tree = parse_tree::parse_tokens(&tokens).unwrap();
         match &parse_tree.functions[0].statements[0] {
@@ -4044,21 +4392,30 @@ x[0] = 42
         let input_str = r"fn main() -> int { true ? lambda x: x : lambda y: y }";
 
         let tokens = tokenize(input_str).unwrap();
-        assert_eq!(tokens, vec![
-            Token::Fn, Token::Identifier("main"),
-            Token::OpenParen, Token::CloseParen,
-            Token::RightArrow, Token::IntType,
-            Token::OpenCurly,
-            Token::Bool(true), Token::QuestionMark,
-            Token::Lambda,
-            Token::Identifier("x"), Token::Colon,
-            Token::Identifier("x"),
-            Token::Colon,
-            Token::Lambda,
-            Token::Identifier("y"), Token::Colon,
-            Token::Identifier("y"),
-            Token::CloseCurly,
-        ]);
+        assert_eq!(
+            tokens,
+            vec![
+                Token::Fn,
+                Token::Identifier("main"),
+                Token::OpenParen,
+                Token::CloseParen,
+                Token::RightArrow,
+                Token::IntType,
+                Token::OpenCurly,
+                Token::Bool(true),
+                Token::QuestionMark,
+                Token::Lambda,
+                Token::Identifier("x"),
+                Token::Colon,
+                Token::Identifier("x"),
+                Token::Colon,
+                Token::Lambda,
+                Token::Identifier("y"),
+                Token::Colon,
+                Token::Identifier("y"),
+                Token::CloseCurly,
+            ]
+        );
 
         let parse_tree = parse_tree::parse_tokens(&tokens).unwrap();
         match &parse_tree.functions[0].statements[0] {
@@ -4086,21 +4443,34 @@ x[0] = 42
         let input_str = r"fn main() -> int { apply(lambda x, y: x + y, 1, 2) }";
 
         let tokens = tokenize(input_str).unwrap();
-        assert_eq!(tokens, vec![
-            Token::Fn, Token::Identifier("main"),
-            Token::OpenParen, Token::CloseParen,
-            Token::RightArrow, Token::IntType,
-            Token::OpenCurly,
-            Token::Identifier("apply"), Token::OpenParen,
-            Token::Lambda,
-            Token::Identifier("x"), Token::Comma,
-            Token::Identifier("y"), Token::Colon,
-            Token::Identifier("x"), Token::Plus, Token::Identifier("y"),
-            Token::Comma,
-            Token::Int(1), Token::Comma, Token::Int(2),
-            Token::CloseParen,
-            Token::CloseCurly,
-        ]);
+        assert_eq!(
+            tokens,
+            vec![
+                Token::Fn,
+                Token::Identifier("main"),
+                Token::OpenParen,
+                Token::CloseParen,
+                Token::RightArrow,
+                Token::IntType,
+                Token::OpenCurly,
+                Token::Identifier("apply"),
+                Token::OpenParen,
+                Token::Lambda,
+                Token::Identifier("x"),
+                Token::Comma,
+                Token::Identifier("y"),
+                Token::Colon,
+                Token::Identifier("x"),
+                Token::Plus,
+                Token::Identifier("y"),
+                Token::Comma,
+                Token::Int(1),
+                Token::Comma,
+                Token::Int(2),
+                Token::CloseParen,
+                Token::CloseCurly,
+            ]
+        );
 
         let parse_tree = parse_tree::parse_tokens(&tokens).unwrap();
         match &parse_tree.functions[0].statements[0] {

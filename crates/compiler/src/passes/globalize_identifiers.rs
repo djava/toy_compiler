@@ -20,9 +20,10 @@ impl ASTPass for GlobalizeIdentifiers {
         m
     }
 }
+
 fn globalize_for_statement(s: &mut Statement, global_types: &TypeEnv) {
     match s {
-        Statement::Assign(_, expr) | Statement::Expr(expr) | Statement::Return(expr) => {
+        Statement::Assign(_, expr, _) | Statement::Expr(expr) | Statement::Return(expr) => {
             globalize_for_expr(expr, global_types);
         }
         Statement::Conditional(cond, pos_body, neg_body) => {
@@ -46,7 +47,6 @@ fn globalize_for_statement(s: &mut Statement, global_types: &TypeEnv) {
 fn globalize_for_expr(e: &mut Expr, global_types: &TypeEnv) {
     match e {
         Expr::Id(id) => {
-            dbg!(&id);
             if let Identifier::Local(name, _) = id
                 && global_types.contains_key(&Identifier::Global(name.clone()))
             {
@@ -90,7 +90,8 @@ fn globalize_for_expr(e: &mut Expr, global_types: &TypeEnv) {
         Expr::Subscript(expr, _) => {
             globalize_for_expr(expr, global_types);
         }
-        Expr::Allocate(_, _) | Expr::Constant(_) | Expr::GlobalSymbol(_) => {}
+
+        Expr::Closure(..) | Expr::Allocate(_, _) | Expr::Constant(_) | Expr::GlobalSymbol(_) => {}
 
         Expr::Lambda(_) => panic!("Should've been removed already"),
     }
@@ -111,25 +112,27 @@ mod tests {
         // Call(Id("foo"), [Const(1)]) should become Call(GlobalSymbol("foo"), [Const(1)])
         // when "foo" is in function_types
         let program = Program {
-            functions: vec![Function {
-                name: t_global!(LABEL_MAIN),
-                body: vec![Statement::Expr(Expr::Call(
-                    Box::new(Expr::Id(t_local!("foo", t_global!(LABEL_MAIN)))),
-                    vec![Expr::Constant(Value::I64(1))],
-                ))],
-                types: TypeEnv::new(),
-                params: IndexMap::new(),
-                return_type: ValueType::IntType,
-            },
-            Function {
-                name: t_global!("foo"),
-                body: vec![],
-                types: TypeEnv::new(),
-                params: IndexMap::from_iter([
-                    (t_local!("a", t_global!("foo")), ValueType::IntType)
-                ]),
-                return_type: ValueType::IntType,
-            },
+            functions: vec![
+                Function {
+                    name: t_global!(LABEL_MAIN),
+                    body: vec![Statement::Expr(Expr::Call(
+                        Box::new(Expr::Id(t_local!("foo", t_global!(LABEL_MAIN)))),
+                        vec![Expr::Constant(Value::I64(1))],
+                    ))],
+                    types: TypeEnv::new(),
+                    params: IndexMap::new(),
+                    return_type: ValueType::IntType,
+                },
+                Function {
+                    name: t_global!("foo"),
+                    body: vec![],
+                    types: TypeEnv::new(),
+                    params: IndexMap::from_iter([(
+                        t_local!("a", t_global!("foo")),
+                        ValueType::IntType,
+                    )]),
+                    return_type: ValueType::IntType,
+                },
             ],
             function_types: TypeEnv::new(),
         };
@@ -214,10 +217,11 @@ mod tests {
                     name: t_global!("foo"),
                     body: vec![],
                     types: TypeEnv::new(),
-                    params: IndexMap::from_iter([
-                        (t_local!("a", t_global!("foo")), ValueType::IntType)
-                    ]),
-                    return_type: ValueType::IntType
+                    params: IndexMap::from_iter([(
+                        t_local!("a", t_global!("foo")),
+                        ValueType::IntType,
+                    )]),
+                    return_type: ValueType::IntType,
                 },
             ],
             function_types: TypeEnv::new(),

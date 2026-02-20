@@ -17,7 +17,7 @@ pub enum Operator {
     LessEquals,
     Not,
     Is,
-    Asterisk
+    Asterisk,
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -32,19 +32,19 @@ pub enum Expr<'a> {
     Ternary(Box<Expr<'a>>, Box<Expr<'a>>, Box<Expr<'a>>),
     Tuple(Vec<Expr<'a>>),
     Subscript(Box<Expr<'a>>, i64),
-    Lambda(Vec<&'a str>, Vec<Statement<'a>>)
+    Lambda(Vec<&'a str>, Vec<Statement<'a>>),
 }
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum Statement<'a> {
     Expr(Expr<'a>),
-    Assign(&'a str, Expr<'a>),
+    Assign(&'a str, Expr<'a>, Option<ValueType>),
     SubscriptAssign(&'a str, i64, Expr<'a>),
     If(Expr<'a>, Vec<Statement<'a>>),
     ElseIf(Expr<'a>, Vec<Statement<'a>>),
     Else(Vec<Statement<'a>>),
     While(Expr<'a>, Vec<Statement<'a>>),
-    Return(Option<Expr<'a>>)
+    Return(Option<Expr<'a>>),
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -57,7 +57,7 @@ pub struct Function<'a> {
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct Module<'a> {
-    pub functions: Vec<Function<'a>>
+    pub functions: Vec<Function<'a>>,
 }
 
 parser! {
@@ -90,13 +90,13 @@ parser! {
                     _ => unreachable!()
                 }
             }
-        
+
         rule int_type() -> ValueType = [Token::IntType] { ValueType::IntType }
         rule bool_type() -> ValueType = [Token::BoolType] { ValueType::BoolType }
         rule primitive_type() -> ValueType = int_type() / bool_type()
 
         rule tuple_type() -> ValueType =
-            [Token::TupleType] [Token::Less] types:(_type() ++ [Token::Comma]) [Token::Greater] 
+            [Token::TupleType] [Token::Less] types:(_type() ++ [Token::Comma]) [Token::Greater]
             { ValueType::TupleType(types) }
 
         rule callable_type() -> ValueType =
@@ -113,7 +113,7 @@ parser! {
 
         // Trailing comma is mandatory for one elem but optional for multiple
         rule tuple_elements() -> Vec<Expr<'t>> =
-            elems:((s:(expr() **<2,50> [Token::Comma]) [Token::Comma]? { s }) / (e:expr() [Token::Comma] { vec![e] })) 
+            elems:((s:(expr() **<2,50> [Token::Comma]) [Token::Comma]? { s }) / (e:expr() [Token::Comma] { vec![e] }))
             { elems }
 
         rule tuple() -> Expr<'t> =
@@ -155,8 +155,10 @@ parser! {
             [Token::OpenParen] e:expr() [Token::CloseParen] { Expr::Parens(Box::new(e)) }
         }
 
+        pub rule assign_type_hint() -> Option<ValueType> = ([Token::Colon] t:_type() { t })?
+
         pub rule assign() -> Statement<'t> =
-            [Token::Identifier(id)] [Token::Equals] e:expr() { Statement::Assign(id, e) }
+            [Token::Identifier(id)] typ:assign_type_hint() [Token::Equals] e:expr() { Statement::Assign(id, e, typ) }
 
         pub rule subscript_assign() -> Statement<'t> =
             [Token::Identifier(id)] [Token::OpenBracket] [Token::Int(idx)] [Token::CloseBracket] [Token::Equals] e:expr()
@@ -195,7 +197,7 @@ parser! {
 
         pub rule while_statement() -> Statement<'t> =
             [ Token::While ] cond:expr() body:statement_body() { Statement::While(cond, body) }
-        
+
         pub rule return_statement() -> Statement<'t> =
             [ Token::Return ] val:expr()? { Statement::Return(val) }
 
@@ -214,7 +216,7 @@ parser! {
         pub rule return_type() -> ValueType =
             [Token::RightArrow] t:_type() { t }
 
-        pub rule function() -> Function<'t> = 
+        pub rule function() -> Function<'t> =
             [Token::Fn] [Token::Identifier(name)] params:param_list() ret:(return_type()?) body:statement_body()
                 { Function { name, params, return_type: ret.unwrap_or(ValueType::NoneType), statements: body } }
 

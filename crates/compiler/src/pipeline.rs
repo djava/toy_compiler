@@ -1,4 +1,4 @@
-use crate::{syntax_trees::*, passes::*};
+use crate::{passes::*, syntax_trees::*};
 
 pub struct Pipeline {
     pub ast_passes: Vec<ASTtoAST>,
@@ -57,6 +57,8 @@ impl Pipeline {
             ast_passes: vec![
                 ASTtoAST::from(GlobalizeIdentifiers),
                 ASTtoAST::from(TypeCheck),
+                ASTtoAST::from(ClosurizeLambdas),
+                ASTtoAST::from(TypeCheck),
                 ASTtoAST::from(ShortCircuiting),
                 ASTtoAST::from(PartialEval),
                 ASTtoAST::from(TupleizeExcessArgs),
@@ -80,6 +82,8 @@ impl Pipeline {
         Self {
             ast_passes: vec![
                 ASTtoAST::from(GlobalizeIdentifiers),
+                ASTtoAST::from(TypeCheck),
+                ASTtoAST::from(ClosurizeLambdas),
                 ASTtoAST::from(TypeCheck),
                 ASTtoAST::from(ShortCircuiting),
                 ASTtoAST::from(TupleizeExcessArgs),

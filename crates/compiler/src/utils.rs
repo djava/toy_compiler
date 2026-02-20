@@ -52,7 +52,9 @@ pub(crate) use local;
 #[cfg(test)]
 macro_rules! t_global {
     ($name:expr) => {
-        test_support::compiler::syntax_trees::shared::Identifier::Global(std::sync::Arc::from($name))
+        test_support::compiler::syntax_trees::shared::Identifier::Global(std::sync::Arc::from(
+            $name,
+        ))
     };
 }
 #[cfg(test)]
@@ -61,7 +63,10 @@ pub(crate) use t_global;
 #[cfg(test)]
 macro_rules! t_local {
     ($name:expr, $func:expr) => {
-        test_support::compiler::syntax_trees::shared::Identifier::Local(std::sync::Arc::from($name), Box::new($func))
+        test_support::compiler::syntax_trees::shared::Identifier::Local(
+            std::sync::Arc::from($name),
+            Box::new($func),
+        )
     };
 }
 #[cfg(test)]

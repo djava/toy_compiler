@@ -6,7 +6,7 @@ use std::sync::{Arc, Mutex};
 pub enum Identifier {
     Ephemeral(u64),
     Global(Arc<str>),
-    Local(Arc<str>, Box<Identifier>)
+    Local(Arc<str>, Box<Identifier>),
 }
 
 impl Identifier {
@@ -40,7 +40,7 @@ pub enum ValueType {
     TupleType(Vec<ValueType>),
     PointerType(Box<ValueType>),
     NoneType,
-    Indeterminate
+    Indeterminate,
 }
 
 impl From<&Value> for ValueType {

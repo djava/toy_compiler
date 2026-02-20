@@ -175,11 +175,10 @@ fn translate_subscript(dest: AssignDest, atom: ir::Atom, idx: i64) -> Vec<Instr>
 fn translate_atom(dest: AssignDest, atom: ir::Atom) -> Vec<Instr> {
     let mut ret = vec![];
     if let AssignDest::Subscript(id, _idx) = &dest {
-        ret.push(
-            Instr::movq(
-                x86::Arg::Variable(id.clone()),
-                x86::Arg::Reg(x86::Register::r11),
-            ));
+        ret.push(Instr::movq(
+            x86::Arg::Variable(id.clone()),
+            x86::Arg::Reg(x86::Register::r11),
+        ));
     }
 
     if let ir::Atom::GlobalSymbol(_) = &atom {

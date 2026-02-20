@@ -5,7 +5,7 @@ use indexmap::IndexMap;
 pub enum Atom {
     Constant(Value),
     Variable(Identifier),
-    GlobalSymbol(Identifier)
+    GlobalSymbol(Identifier),
 }
 
 #[derive(Debug, Clone)]
@@ -15,7 +15,7 @@ pub enum Expr {
     BinaryOp(Atom, BinaryOperator, Atom),
     Call(Atom, Vec<Atom>),
     Allocate(usize, ValueType),
-    Subscript(Atom, i64)
+    Subscript(Atom, i64),
 }
 
 #[derive(Debug, Clone)]
@@ -48,5 +48,5 @@ pub struct Function {
 
 #[derive(Debug, Clone)]
 pub struct IRProgram {
-    pub functions: Vec<Function>
+    pub functions: Vec<Function>,
 }

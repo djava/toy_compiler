@@ -27,6 +27,8 @@ mod tupleize_excess_args;
 pub use tupleize_excess_args::TupleizeExcessArgs;
 mod globalize_identifiers;
 pub use globalize_identifiers::GlobalizeIdentifiers;
+mod closurize_lambdas;
+pub use closurize_lambdas::ClosurizeLambdas;
 
 #[enum_dispatch]
 pub trait ASTPass {
@@ -42,6 +44,7 @@ pub enum ASTtoAST {
     InjectAllocations,
     TupleizeExcessArgs,
     GlobalizeIdentifiers,
+    ClosurizeLambdas,
 }
 
 #[enum_dispatch]

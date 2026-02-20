@@ -3,7 +3,10 @@ use std::collections::VecDeque;
 use crate::{ValueEnv, interpreter_utils::id};
 
 use compiler::{
-    constants::{GC_FREE_PTR, GC_FROMSPACE_BEGIN, GC_FROMSPACE_END, GC_ROOTSTACK_BEGIN, GC_ROOTSTACK_END, LABEL_MAIN},
+    constants::{
+        GC_FREE_PTR, GC_FROMSPACE_BEGIN, GC_FROMSPACE_END, GC_ROOTSTACK_BEGIN, GC_ROOTSTACK_END,
+        LABEL_MAIN,
+    },
     syntax_trees::{shared::*, x86::*},
 };
 
@@ -45,7 +48,7 @@ impl X86Env {
             heap: [0; 2048],
             gc_free_ptr: HEAP_OFFSET as i64,
             functions,
-            special_function_offset
+            special_function_offset,
         };
 
         ret.regs[Register::rsp as usize] = 2048;
@@ -70,8 +73,7 @@ impl X86Env {
                 self.regs[*n as usize] = value;
             }
             Arg::Variable(id) => {
-                self.vars
-                    .insert(id.clone(), Value::I64(value));
+                self.vars.insert(id.clone(), Value::I64(value));
             }
             Arg::Deref(reg, offset) => {
                 let base = self.regs[*reg as usize];

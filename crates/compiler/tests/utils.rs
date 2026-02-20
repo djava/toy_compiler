@@ -1,7 +1,7 @@
 pub use std::collections::VecDeque;
 
 use test_support::{
-    compiler::{syntax_trees::parser, pipeline::Pipeline},
+    compiler::{pipeline::Pipeline, syntax_trees::parser},
     x86_interpreter::interpret_x86,
 };
 
