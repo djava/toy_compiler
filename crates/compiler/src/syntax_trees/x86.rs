@@ -173,7 +173,7 @@ impl Display for Arg {
             Arg::ByteReg(reg) => reg.fmt(f),
             Arg::Deref(reg, offset) => write!(f, "{offset}({reg})"),
             Arg::Variable(id) => match id {
-                Identifier::Global(name) => write!(f, "@{name}"),
+                Identifier::Global(name) => write!(f, "{name}"),
                 Identifier::Ephemeral(id) => write!(f, "@EE#{id}"),
                 Identifier::Local(id, func) => match &**func {
                     Identifier::Ephemeral(func_num) => write!(f, "@EE#{func_num}::{id}"),
