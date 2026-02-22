@@ -10,8 +10,6 @@ pub struct InjectAllocations;
 
 impl ASTPass for InjectAllocations {
     fn run_pass(self, mut m: Program) -> Program {
-        m.populate_globals();
-
         for f in m.functions.iter_mut() {
             for s in f.body.iter_mut() {
                 replace_tuples_in_statement(s, &mut f.types);
