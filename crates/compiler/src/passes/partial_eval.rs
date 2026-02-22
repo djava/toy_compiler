@@ -3,6 +3,7 @@ use crate::{
     syntax_trees::{ast::*, shared::*},
 };
 
+#[derive(Debug)]
 pub struct PartialEval;
 
 impl ASTPass for PartialEval {

@@ -3,6 +3,7 @@ use crate::{
     syntax_trees::{ast::*, shared::*},
 };
 
+#[derive(Debug)]
 pub struct ClosurizeLambdas;
 
 impl ASTPass for ClosurizeLambdas {

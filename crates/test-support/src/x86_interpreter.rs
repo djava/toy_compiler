@@ -1,4 +1,4 @@
-use std::collections::VecDeque;
+use std::{collections::VecDeque};
 
 use crate::{ValueEnv, interpreter_utils::id};
 
@@ -27,9 +27,9 @@ const SPECIAL_FUNCTIONS: [&str; 4] = ["read_int", "print_int", "__gc_initialize"
 struct X86Env {
     vars: ValueEnv,
     regs: [i64; 16],
-    stack: [u8; 2048],
+    stack: [u8; 0x1000],
     eflags: Eflags,
-    heap: [u8; 2048],
+    heap: [u8; 0x10000],
     gc_free_ptr: i64,
     functions: Vec<Identifier>,
     special_function_offset: usize,
@@ -40,19 +40,28 @@ impl X86Env {
         let special_function_offset = functions.len();
         functions.extend(SPECIAL_FUNCTIONS.map(|f| id!(f)));
 
+        let mut vars = ValueEnv::new();
+        vars.extend(
+            functions
+                .iter()
+                .enumerate()
+                .map(|(idx, f_id)| (f_id.clone(), Value::I64((idx | FUNCTIONS_OFFSET) as i64))),
+        );
+
         let mut ret = Self {
-            vars: ValueEnv::new(),
+            vars,
             regs: [0; 16],
-            stack: [0; 2048],
+            stack: [0; _],
             eflags: Eflags::default(),
-            heap: [0; 2048],
+            heap: [0; _],
             gc_free_ptr: HEAP_OFFSET as i64,
             functions,
             special_function_offset,
         };
 
-        ret.regs[Register::rsp as usize] = 2048;
-        ret.regs[Register::rbp as usize] = 2048;
+
+        ret.regs[Register::rsp as usize] = ret.stack.len() as i64;
+        ret.regs[Register::rbp as usize] = ret.stack.len() as i64;
 
         ret
     }
@@ -84,14 +93,17 @@ impl X86Env {
                 }
 
                 let memory = if addr & HEAP_OFFSET != 0 {
-                    &mut self.heap
+                    self.heap.as_mut_slice()
                 } else {
-                    &mut self.stack
+                    self.stack.as_mut_slice()
                 };
                 addr &= !HEAP_OFFSET;
 
                 let bytes = value.to_le_bytes();
                 for (idx, byte) in bytes.iter().enumerate() {
+                    if addr + idx >= memory.len() {
+                        __breakpoint_target();
+                    }
                     memory[addr + idx] = *byte;
                 }
             }
@@ -145,9 +157,9 @@ impl X86Env {
 
                 let mut bytes = [0xFF; 8];
                 let memory = if addr & HEAP_OFFSET != 0 {
-                    &self.heap
+                    self.heap.as_slice()
                 } else {
-                    &self.stack
+                    self.stack.as_slice()
                 };
 
                 addr &= !HEAP_OFFSET;
@@ -479,4 +491,9 @@ pub fn interpret_x86(m: &X86Program, inputs: &mut VecDeque<i64>, outputs: &mut V
             }
         }
     }
+}
+
+#[inline(never)]
+fn __breakpoint_target() {
+    println!("BREAKPOINT TARGET");
 }

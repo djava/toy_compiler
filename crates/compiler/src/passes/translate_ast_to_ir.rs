@@ -7,6 +7,7 @@ use crate::{
     },
 };
 
+#[derive(Debug)]
 pub struct TranslateASTtoIR;
 
 impl ASTtoIRPass for TranslateASTtoIR {

@@ -6,6 +6,7 @@ use crate::{
     utils::x86_block_adj_graph,
 };
 
+#[derive(Debug)]
 pub struct RemoveJumps;
 
 impl X86Pass for RemoveJumps {

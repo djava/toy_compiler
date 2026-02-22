@@ -1,5 +1,6 @@
 use crate::{passes::ASTPass, syntax_trees::ast::Program};
 
+#[derive(Debug)]
 pub struct TypeCheck;
 
 impl ASTPass for TypeCheck {

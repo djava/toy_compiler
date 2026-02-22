@@ -1,5 +1,6 @@
 use crate::{passes::X86Pass, syntax_trees::x86::*};
 
+#[derive(Debug)]
 pub struct PatchInstructions;
 
 impl X86Pass for PatchInstructions {

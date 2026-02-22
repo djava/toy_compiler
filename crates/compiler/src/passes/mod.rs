@@ -40,6 +40,7 @@ pub trait ASTPass {
 }
 
 #[enum_dispatch(ASTPass)]
+#[derive(Debug)]
 pub enum ASTtoAST {
     TypeCheck,
     ShortCircuiting,
@@ -59,6 +60,7 @@ pub trait ASTtoIRPass {
 }
 
 #[enum_dispatch(ASTtoIRPass)]
+#[derive(Debug)]
 pub enum ASTtoIR {
     TranslateASTtoIR,
 }
@@ -69,6 +71,7 @@ pub trait IRtoIRPass {
 }
 
 #[enum_dispatch(IRtoIRPass)]
+#[derive(Debug)]
 pub enum IRtoIR {}
 
 #[enum_dispatch]
@@ -77,6 +80,7 @@ pub trait IRtoX86Pass {
 }
 
 #[enum_dispatch(IRtoX86Pass)]
+#[derive(Debug)]
 pub enum IRtoX86 {
     TranslateIRtoX86,
 }
@@ -87,6 +91,7 @@ pub trait X86Pass {
 }
 
 #[enum_dispatch(X86Pass)]
+#[derive(Debug)]
 pub enum X86toX86 {
     RegisterAllocation,
     RemoveJumps,

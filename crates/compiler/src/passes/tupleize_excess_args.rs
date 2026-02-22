@@ -6,6 +6,7 @@ use crate::{
     syntax_trees::{ast::*, shared::*},
 };
 
+#[derive(Debug)]
 pub struct TupleizeExcessArgs;
 
 impl ASTPass for TupleizeExcessArgs {

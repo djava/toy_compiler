@@ -10,24 +10,24 @@ pub struct Pipeline {
 
 impl Pipeline {
     pub fn run(self, program: ast::Program) -> x86::X86Program {
-        let final_ast = self
-            .ast_passes
-            .into_iter()
-            .fold(program, |p, pass| pass.run_pass(p));
+        let final_ast = self.ast_passes.into_iter().fold(program, |p, pass| {
+            println!("Pass: {pass:?}");
+            pass.run_pass(p)
+        });
 
         let initial_ir = self.ast_to_ir_pass.run_pass(final_ast);
 
-        let final_ir = self
-            .ir_passes
-            .into_iter()
-            .fold(initial_ir, |p, pass| pass.run_pass(p));
+        let final_ir = self.ir_passes.into_iter().fold(initial_ir, |p, pass| {
+            println!("Pass: {pass:?}");
+            pass.run_pass(p)
+        });
 
         let initial_x86 = self.ir_to_x86_pass.run_pass(final_ir);
 
-        let final_x86 = self
-            .x86_passes
-            .into_iter()
-            .fold(initial_x86, |p, pass| pass.run_pass(p));
+        let final_x86 = self.x86_passes.into_iter().fold(initial_x86, |p, pass| {
+            println!("Pass: {pass:?}");
+            pass.run_pass(p)
+        });
 
         final_x86
     }

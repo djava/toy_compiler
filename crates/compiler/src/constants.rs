@@ -35,6 +35,19 @@ pub static EXTERNED_FUNCTIONS: LazyLock<Vec<Identifier>> = LazyLock::new(|| {
     .collect()
 });
 
+pub static EXTERNED_VARIABLES: LazyLock<Vec<Identifier>> = LazyLock::new(|| {
+    [
+        GC_FREE_PTR,
+        GC_FROMSPACE_BEGIN,
+        GC_FROMSPACE_END,
+        GC_ROOTSTACK_BEGIN,
+        GC_ROOTSTACK_END,
+    ]
+    .into_iter()
+    .map(|f| global!(f))
+    .collect()
+});
+
 // Size of a machine word in bytes (= size of i64)
 pub const WORD_SIZE: i64 = 8;
 

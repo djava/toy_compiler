@@ -1,5 +1,6 @@
 use crate::{constants::*, passes::X86Pass, syntax_trees::x86::*, utils::global};
 
+#[derive(Debug)]
 pub struct PreludeConclusion;
 
 impl X86Pass for PreludeConclusion {

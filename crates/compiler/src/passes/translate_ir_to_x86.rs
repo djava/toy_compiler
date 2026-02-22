@@ -11,6 +11,7 @@ use crate::{
     utils::global,
 };
 
+#[derive(Debug)]
 pub struct TranslateIRtoX86;
 
 impl IRtoX86Pass for TranslateIRtoX86 {

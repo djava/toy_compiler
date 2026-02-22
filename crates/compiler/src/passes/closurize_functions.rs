@@ -2,6 +2,7 @@ use crate::{
     constants::EXTERNED_FUNCTIONS, passes::ASTPass, syntax_trees::{ast::*, shared::*}
 };
 
+#[derive(Debug)]
 pub struct ClosurizeFunctions;
 
 impl ASTPass for ClosurizeFunctions {

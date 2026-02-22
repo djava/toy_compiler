@@ -12,6 +12,7 @@ use dataflow_analysis::DataflowAnalysis;
 use graph_coloring::color_location_graph;
 use x86::*;
 
+#[derive(Debug)]
 pub struct RegisterAllocation;
 
 impl X86Pass for RegisterAllocation {
