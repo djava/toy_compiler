@@ -109,7 +109,7 @@ mod tests {
     #[test]
     fn test_globalize_call_func() {
         // Call(Id("foo"), [Const(1)]) should become Call(GlobalSymbol("foo"), [Const(1)])
-        // when "foo" is in function_types
+        // when "foo" is in global_types
         let program = Program {
             functions: vec![
                 Function {
@@ -133,7 +133,7 @@ mod tests {
                     return_type: ValueType::IntType,
                 },
             ],
-            function_types: TypeEnv::new(),
+            global_types: TypeEnv::new(),
         };
 
         let result = GlobalizeIdentifiers.run_pass(program);
@@ -182,7 +182,7 @@ mod tests {
                     return_type: ValueType::NoneType,
                 },
             ],
-            function_types: TypeEnv::new(),
+            global_types: TypeEnv::new(),
         };
 
         let result = GlobalizeIdentifiers.run_pass(program);
@@ -223,7 +223,7 @@ mod tests {
                     return_type: ValueType::IntType,
                 },
             ],
-            function_types: TypeEnv::new(),
+            global_types: TypeEnv::new(),
         };
 
         let result = GlobalizeIdentifiers.run_pass(program);

@@ -418,7 +418,7 @@ mod tests {
                 params: IndexMap::new(),
                 return_type: ValueType::IntType,
             }],
-            function_types: TypeEnv::new(),
+            global_types: TypeEnv::new(),
         };
 
         program = TypeCheck.run_pass(program);
@@ -439,11 +439,19 @@ mod tests {
             Statement::Expr(Expr::Subscript(Box::new(Expr::Id(captures_id)), 1))
         );
 
-        // function_types reflects the new signature with the captures-tuple param
+        // global_types reflects the new signature with the captures-tuple param;
+        // element 0 is the function's own type (with a placeholder empty captures),
+        // followed by the types of the captured variables.
         assert_eq!(
-            program.function_types[&t_global!("__1")],
+            program.global_types[&t_global!("__1")],
             ValueType::FunctionType(
-                vec![ValueType::TupleType(vec![ValueType::IntType])],
+                vec![ValueType::TupleType(vec![
+                    ValueType::FunctionType(
+                        vec![ValueType::TupleType(vec![])],
+                        Box::new(ValueType::NoneType),
+                    ),
+                    ValueType::IntType,
+                ])],
                 Box::new(ValueType::NoneType),
             )
         );
@@ -474,7 +482,7 @@ mod tests {
                 params: IndexMap::new(),
                 return_type: ValueType::IntType,
             }],
-            function_types: TypeEnv::new(),
+            global_types: TypeEnv::new(),
         };
 
         program = TypeCheck.run_pass(program);
@@ -493,11 +501,15 @@ mod tests {
             lam.body[0],
             Statement::Return(Expr::Constant(Value::I64(42)))
         );
-        // Signature in function_types has the (empty) captures-tuple param
+        // Signature in global_types: captures-tuple has the function's own type
+        // at element 0 (placeholder empty captures), no captured vars after.
         assert_eq!(
-            program.function_types[&t_global!("__no_cap")],
+            program.global_types[&t_global!("__no_cap")],
             ValueType::FunctionType(
-                vec![ValueType::TupleType(vec![])],
+                vec![ValueType::TupleType(vec![ValueType::FunctionType(
+                    vec![ValueType::TupleType(vec![])],
+                    Box::new(ValueType::IntType),
+                )])],
                 Box::new(ValueType::IntType),
             )
         );
@@ -551,7 +563,7 @@ mod tests {
                 params: IndexMap::new(),
                 return_type: ValueType::IntType,
             }],
-            function_types: TypeEnv::new(),
+            global_types: TypeEnv::new(),
         };
 
         program = TypeCheck.run_pass(program);
@@ -565,7 +577,7 @@ mod tests {
             .unwrap();
         assert_eq!(lam.params.len(), 1);
 
-        // foo → captures_id[0], bar → captures_id[1]
+        // func_type → captures_id[0], foo → captures_id[1], bar → captures_id[2]
         let captures_id = lam.params.get_index(0).unwrap().0.clone();
         assert_eq!(
             lam.body[0],
@@ -577,11 +589,15 @@ mod tests {
         );
 
         assert_eq!(
-            program.function_types[&t_global!("__multi_cap")],
+            program.global_types[&t_global!("__multi_cap")],
             ValueType::FunctionType(
                 vec![ValueType::TupleType(vec![
+                    ValueType::FunctionType(
+                        vec![ValueType::TupleType(vec![])],
+                        Box::new(ValueType::NoneType),
+                    ),
                     ValueType::IntType,
-                    ValueType::BoolType
+                    ValueType::BoolType,
                 ])],
                 Box::new(ValueType::NoneType),
             )
@@ -624,7 +640,7 @@ mod tests {
                 params: IndexMap::new(),
                 return_type: ValueType::IntType,
             }],
-            function_types: TypeEnv::new(),
+            global_types: TypeEnv::new(),
         };
 
         program = TypeCheck.run_pass(program);
@@ -650,9 +666,15 @@ mod tests {
         );
 
         assert_eq!(
-            program.function_types[&t_global!("__arith_cap")],
+            program.global_types[&t_global!("__arith_cap")],
             ValueType::FunctionType(
-                vec![ValueType::TupleType(vec![ValueType::IntType])],
+                vec![ValueType::TupleType(vec![
+                    ValueType::FunctionType(
+                        vec![ValueType::TupleType(vec![])],
+                        Box::new(ValueType::IntType),
+                    ),
+                    ValueType::IntType,
+                ])],
                 Box::new(ValueType::IntType),
             )
         );
@@ -693,7 +715,7 @@ mod tests {
                 params: IndexMap::new(),
                 return_type: ValueType::IntType,
             }],
-            function_types: TypeEnv::new(),
+            global_types: TypeEnv::new(),
         };
 
         program = TypeCheck.run_pass(program);
@@ -776,7 +798,7 @@ mod tests {
                 params: IndexMap::new(),
                 return_type: ValueType::IntType,
             }],
-            function_types: TypeEnv::new(),
+            global_types: TypeEnv::new(),
         };
 
         program = TypeCheck.run_pass(program);
@@ -793,9 +815,15 @@ mod tests {
             assert_eq!(lam.params.len(), 1);
             assert_eq!(
                 *lam.params.get_index(0).unwrap().1,
-                ValueType::TupleType(vec![ValueType::IntType]),
+                ValueType::TupleType(vec![
+                    ValueType::FunctionType(
+                        vec![ValueType::TupleType(vec![])],
+                        Box::new(ValueType::NoneType),
+                    ),
+                    ValueType::IntType,
+                ]),
             );
-            // Each lambda's body should reference n via captures_id[0]
+            // Each lambda's body should reference n via captures_id[1]
             let captures_id = lam.params.get_index(0).unwrap().0.clone();
             assert_eq!(
                 lam.body[0],
@@ -859,7 +887,7 @@ mod tests {
                 params: IndexMap::new(),
                 return_type: ValueType::IntType,
             }],
-            function_types: TypeEnv::new(),
+            global_types: TypeEnv::new(),
         };
 
         program = TypeCheck.run_pass(program);
@@ -874,7 +902,13 @@ mod tests {
         assert_eq!(lam.params.len(), 1);
         assert_eq!(
             *lam.params.get_index(0).unwrap().1,
-            ValueType::TupleType(vec![ValueType::IntType]),
+            ValueType::TupleType(vec![
+                ValueType::FunctionType(
+                    vec![ValueType::TupleType(vec![])],
+                    Box::new(ValueType::NoneType),
+                ),
+                ValueType::IntType,
+            ]),
         );
     }
 
@@ -915,7 +949,7 @@ mod tests {
                 params: IndexMap::new(),
                 return_type: ValueType::IntType,
             }],
-            function_types: TypeEnv::new(),
+            global_types: TypeEnv::new(),
         };
 
         program = TypeCheck.run_pass(program);
@@ -930,7 +964,13 @@ mod tests {
         assert_eq!(lam.params.len(), 1);
         assert_eq!(
             *lam.params.get_index(0).unwrap().1,
-            ValueType::TupleType(vec![ValueType::BoolType]),
+            ValueType::TupleType(vec![
+                ValueType::FunctionType(
+                    vec![ValueType::TupleType(vec![])],
+                    Box::new(ValueType::NoneType),
+                ),
+                ValueType::BoolType,
+            ]),
         );
     }
 }

@@ -43,9 +43,9 @@ impl ASTPass for TupleizeExcessArgs {
 
                 f.params = new_params;
 
-                // Update function_types map for the new type
+                // Update global_types map for the new type
                 if let ValueType::FunctionType(old_args_types, ret_type) =
-                    &m.function_types[&f.name]
+                    &m.global_types[&f.name]
                 {
                     let mut new_args_types: Vec<_> = old_args_types
                         .iter()
@@ -60,7 +60,7 @@ impl ASTPass for TupleizeExcessArgs {
                         .collect();
                     new_args_types.push(ValueType::TupleType(excess_args_types));
 
-                    m.function_types.insert(
+                    m.global_types.insert(
                         f.name.clone(),
                         ValueType::FunctionType(new_args_types, ret_type.clone()),
                     );
@@ -405,7 +405,7 @@ mod tests {
                     types: TypeEnv::new(),
                     return_type: ValueType::NoneType,
                 }],
-                function_types: TypeEnv::from_iter([(
+                global_types: TypeEnv::from_iter([(
                     t_global!("a"),
                     ValueType::FunctionType(
                         vec![ValueType::IntType; 4],
@@ -443,7 +443,7 @@ mod tests {
                     types: TypeEnv::new(),
                     return_type: ValueType::NoneType,
                 }],
-                function_types: TypeEnv::from_iter([(
+                global_types: TypeEnv::from_iter([(
                     t_global!("a"),
                     ValueType::FunctionType(
                         vec![ValueType::IntType; 7],
@@ -501,7 +501,7 @@ mod tests {
                     types: TypeEnv::new(),
                     return_type: ValueType::NoneType,
                 }],
-                function_types: TypeEnv::from_iter([(
+                global_types: TypeEnv::from_iter([(
                     t_global!("a"),
                     ValueType::FunctionType(
                         vec![ValueType::IntType; 17],
@@ -545,7 +545,7 @@ mod tests {
                         return_type: ValueType::NoneType,
                     },
                 ],
-                function_types: TypeEnv::from_iter([(
+                global_types: TypeEnv::from_iter([(
                     t_global!("a"),
                     ValueType::FunctionType(
                         vec![ValueType::IntType; 4],
@@ -615,7 +615,7 @@ mod tests {
                         return_type: ValueType::NoneType,
                     },
                 ],
-                function_types: TypeEnv::from_iter([(
+                global_types: TypeEnv::from_iter([(
                     t_global!("a"),
                     ValueType::FunctionType(
                         vec![ValueType::IntType; 17],

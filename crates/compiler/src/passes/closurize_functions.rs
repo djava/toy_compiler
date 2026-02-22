@@ -142,7 +142,7 @@ mod tests {
                     return_type: ValueType::IntType,
                 },
             ],
-            function_types: TypeEnv::new(),
+            global_types: TypeEnv::new(),
         };
 
         let result = ClosurizeFunctions.run_pass(program);
@@ -168,7 +168,7 @@ mod tests {
                 params: IndexMap::from_iter([(x_param.clone(), ValueType::IntType)]),
                 return_type: ValueType::IntType,
             }],
-            function_types: TypeEnv::new(),
+            global_types: TypeEnv::new(),
         };
 
         let result = ClosurizeFunctions.run_pass(program);
@@ -184,11 +184,11 @@ mod tests {
 
     #[test]
     fn test_function_id_becomes_closure() {
-        // An Expr::Id whose identifier is in function_types (i.e. a named function
+        // An Expr::Id whose identifier is in global_types (i.e. a named function
         // used as a first-class value) is replaced with Expr::Closure(id, [], 0).
         let foo_name = t_global!("foo");
-        let mut function_types = TypeEnv::new();
-        function_types.insert(foo_name.clone(), make_func_type(vec![], ValueType::IntType));
+        let mut global_types = TypeEnv::new();
+        global_types.insert(foo_name.clone(), make_func_type(vec![], ValueType::IntType));
 
         let program = Program {
             functions: vec![
@@ -207,7 +207,7 @@ mod tests {
                     return_type: ValueType::IntType,
                 },
             ],
-            function_types,
+            global_types,
         };
 
         let result = ClosurizeFunctions.run_pass(program);
@@ -220,7 +220,7 @@ mod tests {
 
     #[test]
     fn test_non_function_id_unchanged() {
-        // An Expr::Id for a local variable (not in function_types) is left alone.
+        // An Expr::Id for a local variable (not in global_types) is left alone.
         let program = Program {
             functions: vec![Function {
                 name: t_global!(LABEL_MAIN),
@@ -229,7 +229,7 @@ mod tests {
                 params: IndexMap::new(),
                 return_type: ValueType::IntType,
             }],
-            function_types: TypeEnv::new(),
+            global_types: TypeEnv::new(),
         };
 
         let result = ClosurizeFunctions.run_pass(program);
@@ -241,10 +241,10 @@ mod tests {
 
     #[test]
     fn test_global_symbol_converted() {
-        // Expr::GlobalSymbol whose identifier is in function_types is also converted to Closure.
+        // Expr::GlobalSymbol whose identifier is in global_types is also converted to Closure.
         let foo_name = t_global!("foo");
-        let mut function_types = TypeEnv::new();
-        function_types.insert(foo_name.clone(), make_func_type(vec![], ValueType::IntType));
+        let mut global_types = TypeEnv::new();
+        global_types.insert(foo_name.clone(), make_func_type(vec![], ValueType::IntType));
 
         let program = Program {
             functions: vec![Function {
@@ -254,7 +254,7 @@ mod tests {
                 params: IndexMap::new(),
                 return_type: ValueType::IntType,
             }],
-            function_types,
+            global_types,
         };
 
         let result = ClosurizeFunctions.run_pass(program);
@@ -269,8 +269,8 @@ mod tests {
         // A function name passed as a call argument is converted to Closure.
         // The callee itself (GlobalSymbol) is not converted.
         let foo_name = t_global!("foo");
-        let mut function_types = TypeEnv::new();
-        function_types.insert(foo_name.clone(), make_func_type(vec![], ValueType::IntType));
+        let mut global_types = TypeEnv::new();
+        global_types.insert(foo_name.clone(), make_func_type(vec![], ValueType::IntType));
 
         let program = Program {
             functions: vec![Function {
@@ -283,7 +283,7 @@ mod tests {
                 params: IndexMap::new(),
                 return_type: ValueType::IntType,
             }],
-            function_types,
+            global_types,
         };
 
         let result = ClosurizeFunctions.run_pass(program);
@@ -302,8 +302,8 @@ mod tests {
     fn test_function_reference_in_conditional() {
         // A function name inside a conditional branch body is converted.
         let foo_name = t_global!("foo");
-        let mut function_types = TypeEnv::new();
-        function_types.insert(foo_name.clone(), make_func_type(vec![], ValueType::IntType));
+        let mut global_types = TypeEnv::new();
+        global_types.insert(foo_name.clone(), make_func_type(vec![], ValueType::IntType));
 
         let program = Program {
             functions: vec![Function {
@@ -317,7 +317,7 @@ mod tests {
                 params: IndexMap::new(),
                 return_type: ValueType::IntType,
             }],
-            function_types,
+            global_types,
         };
 
         let result = ClosurizeFunctions.run_pass(program);
@@ -336,8 +336,8 @@ mod tests {
     fn test_function_reference_in_while_loop() {
         // A function name inside a while loop body is converted.
         let foo_name = t_global!("foo");
-        let mut function_types = TypeEnv::new();
-        function_types.insert(foo_name.clone(), make_func_type(vec![], ValueType::IntType));
+        let mut global_types = TypeEnv::new();
+        global_types.insert(foo_name.clone(), make_func_type(vec![], ValueType::IntType));
 
         let program = Program {
             functions: vec![Function {
@@ -350,7 +350,7 @@ mod tests {
                 params: IndexMap::new(),
                 return_type: ValueType::IntType,
             }],
-            function_types,
+            global_types,
         };
 
         let result = ClosurizeFunctions.run_pass(program);

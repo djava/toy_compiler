@@ -93,7 +93,7 @@ mod tests {
                     params: IndexMap::new(),
                     return_type: ValueType::IntType,
                 }],
-                function_types: HashMap::new(),
+                global_types: HashMap::new(),
             },
         };
 
@@ -132,7 +132,7 @@ mod tests {
                     params: IndexMap::new(),
                     return_type: ValueType::IntType,
                 }],
-                function_types: HashMap::new(),
+                global_types: HashMap::new(),
             },
         };
 
@@ -181,7 +181,7 @@ mod tests {
                     params: IndexMap::new(),
                     return_type: ValueType::IntType,
                 }],
-                function_types: HashMap::new(),
+                global_types: HashMap::new(),
             },
         };
 
@@ -242,7 +242,7 @@ mod tests {
                     params: IndexMap::new(),
                     return_type: ValueType::IntType,
                 }],
-                function_types: HashMap::new(),
+                global_types: HashMap::new(),
             },
         };
 
@@ -290,7 +290,7 @@ mod tests {
                     params: IndexMap::new(),
                     return_type: ValueType::IntType,
                 }],
-                function_types: HashMap::new(),
+                global_types: HashMap::new(),
             },
         };
 
@@ -349,7 +349,7 @@ mod tests {
                     params: IndexMap::new(),
                     return_type: ValueType::IntType,
                 }],
-                function_types: HashMap::new(),
+                global_types: HashMap::new(),
             },
         };
         tc.run();
@@ -396,7 +396,7 @@ mod tests {
                     params: IndexMap::new(),
                     return_type: ValueType::IntType,
                 }],
-                function_types: HashMap::new(),
+                global_types: HashMap::new(),
             },
         };
         tc.run();
@@ -442,7 +442,7 @@ mod tests {
                     params: IndexMap::new(),
                     return_type: ValueType::IntType,
                 }],
-                function_types: HashMap::new(),
+                global_types: HashMap::new(),
             },
         };
         tc.run();
@@ -528,7 +528,7 @@ mod tests {
                     params: IndexMap::new(),
                     return_type: ValueType::IntType,
                 }],
-                function_types: HashMap::new(),
+                global_types: HashMap::new(),
             },
         };
         tc.run();
@@ -595,7 +595,7 @@ mod tests {
                     params: IndexMap::new(),
                     return_type: ValueType::IntType,
                 }],
-                function_types: HashMap::new(),
+                global_types: HashMap::new(),
             },
         };
         tc.run();
@@ -649,7 +649,7 @@ mod tests {
                     params: IndexMap::new(),
                     return_type: ValueType::IntType,
                 }],
-                function_types: HashMap::new(),
+                global_types: HashMap::new(),
             },
         };
 
@@ -740,7 +740,7 @@ whatevn = x
                     params: IndexMap::new(),
                     return_type: ValueType::IntType,
                 }],
-                function_types: HashMap::new(),
+                global_types: HashMap::new(),
             },
         };
 
@@ -796,7 +796,7 @@ whatevn = x
                     params: IndexMap::new(),
                     return_type: ValueType::IntType,
                 }],
-                function_types: HashMap::new(),
+                global_types: HashMap::new(),
             },
         };
         tc.run();
@@ -844,7 +844,7 @@ whatevn = x
                     params: IndexMap::new(),
                     return_type: ValueType::IntType,
                 }],
-                function_types: HashMap::new(),
+                global_types: HashMap::new(),
             },
         };
         tc.run();
@@ -954,7 +954,7 @@ whatevn = x
                     params: IndexMap::new(),
                     return_type: ValueType::IntType,
                 }],
-                function_types: HashMap::new(),
+                global_types: HashMap::new(),
             },
         };
         tc.run();
@@ -1004,7 +1004,7 @@ whatevn = x
                     params: IndexMap::new(),
                     return_type: ValueType::IntType,
                 }],
-                function_types: HashMap::new(),
+                global_types: HashMap::new(),
             },
         };
         tc.run();
@@ -1067,7 +1067,7 @@ whatevn = x
                     params: IndexMap::new(),
                     return_type: ValueType::IntType,
                 }],
-                function_types: HashMap::new(),
+                global_types: HashMap::new(),
             },
         };
         tc.run();
@@ -1128,7 +1128,7 @@ whatevn = x
                     params: IndexMap::new(),
                     return_type: ValueType::IntType,
                 }],
-                function_types: HashMap::new(),
+                global_types: HashMap::new(),
             },
         };
         tc.run();
@@ -1177,7 +1177,7 @@ whatevn = x
                     params: IndexMap::new(),
                     return_type: ValueType::IntType,
                 }],
-                function_types: HashMap::new(),
+                global_types: HashMap::new(),
             },
         };
         tc.run();
@@ -1239,7 +1239,7 @@ else { 2 }
                     params: IndexMap::new(),
                     return_type: ValueType::IntType,
                 }],
-                function_types: HashMap::new(),
+                global_types: HashMap::new(),
             },
         };
         tc.run();
@@ -1317,7 +1317,7 @@ else { 3 }
                     params: IndexMap::new(),
                     return_type: ValueType::IntType,
                 }],
-                function_types: HashMap::new(),
+                global_types: HashMap::new(),
             },
         };
         tc.run();
@@ -1385,7 +1385,7 @@ else { 3 }
                     params: IndexMap::new(),
                     return_type: ValueType::IntType,
                 }],
-                function_types: HashMap::new(),
+                global_types: HashMap::new(),
             },
         };
         tc.run();
@@ -1466,7 +1466,7 @@ if true { x = 1
                     params: IndexMap::new(),
                     return_type: ValueType::IntType,
                 }],
-                function_types: HashMap::new(),
+                global_types: HashMap::new(),
             },
         };
         tc.run();
@@ -1511,7 +1511,7 @@ if true { x = 1
                     params: IndexMap::new(),
                     return_type: ValueType::IntType,
                 }],
-                function_types: HashMap::new(),
+                global_types: HashMap::new(),
             },
         };
         tc.run();
@@ -1661,7 +1661,7 @@ else { 5 }
                     params: IndexMap::new(),
                     return_type: ValueType::IntType,
                 }],
-                function_types: HashMap::new(),
+                global_types: HashMap::new(),
             },
         };
         tc.run();
@@ -1718,7 +1718,7 @@ else { 5 }
                     params: IndexMap::new(),
                     return_type: ValueType::IntType,
                 }],
-                function_types: HashMap::new(),
+                global_types: HashMap::new(),
             },
         };
         tc.run();
@@ -1788,7 +1788,7 @@ else { 5 }
                     params: IndexMap::new(),
                     return_type: ValueType::IntType,
                 }],
-                function_types: HashMap::new(),
+                global_types: HashMap::new(),
             },
         };
         tc.run();
@@ -1836,7 +1836,7 @@ else { 5 }
                     params: IndexMap::new(),
                     return_type: ValueType::IntType,
                 }],
-                function_types: HashMap::new(),
+                global_types: HashMap::new(),
             },
         };
         tc.run();
@@ -1881,7 +1881,7 @@ else { 5 }
                     params: IndexMap::new(),
                     return_type: ValueType::IntType,
                 }],
-                function_types: HashMap::new(),
+                global_types: HashMap::new(),
             },
         };
         tc.run();
@@ -1958,7 +1958,7 @@ else { 5 }
                     params: IndexMap::new(),
                     return_type: ValueType::IntType,
                 }],
-                function_types: HashMap::new(),
+                global_types: HashMap::new(),
             },
         };
         tc.run();
@@ -2020,7 +2020,7 @@ else { 5 }
                     params: IndexMap::new(),
                     return_type: ValueType::IntType,
                 }],
-                function_types: HashMap::new(),
+                global_types: HashMap::new(),
             },
         };
         tc.run();
@@ -2069,7 +2069,7 @@ else { 5 }
                     params: IndexMap::new(),
                     return_type: ValueType::IntType,
                 }],
-                function_types: HashMap::new(),
+                global_types: HashMap::new(),
             },
         };
         tc.run();
@@ -2124,7 +2124,7 @@ else { 5 }
                     params: IndexMap::new(),
                     return_type: ValueType::IntType,
                 }],
-                function_types: HashMap::new(),
+                global_types: HashMap::new(),
             },
         };
         tc.run();
@@ -2173,7 +2173,7 @@ else { 5 }
                     params: IndexMap::new(),
                     return_type: ValueType::IntType,
                 }],
-                function_types: HashMap::new(),
+                global_types: HashMap::new(),
             },
         };
         tc.run();
@@ -2220,7 +2220,7 @@ else { 5 }
                     params: IndexMap::new(),
                     return_type: ValueType::IntType,
                 }],
-                function_types: HashMap::new(),
+                global_types: HashMap::new(),
             },
         };
         tc.run();
@@ -2267,7 +2267,7 @@ else { 5 }
                     params: IndexMap::new(),
                     return_type: ValueType::IntType,
                 }],
-                function_types: HashMap::new(),
+                global_types: HashMap::new(),
             },
         };
         tc.run();
@@ -2321,7 +2321,7 @@ else { 5 }
                     params: IndexMap::new(),
                     return_type: ValueType::IntType,
                 }],
-                function_types: HashMap::new(),
+                global_types: HashMap::new(),
             },
         };
         tc.run();
@@ -2374,7 +2374,7 @@ else { 5 }
                     params: IndexMap::new(),
                     return_type: ValueType::IntType,
                 }],
-                function_types: HashMap::new(),
+                global_types: HashMap::new(),
             },
         };
         tc.run();
@@ -2429,7 +2429,7 @@ else { 5 }
                     params: IndexMap::new(),
                     return_type: ValueType::IntType,
                 }],
-                function_types: HashMap::new(),
+                global_types: HashMap::new(),
             },
         };
         tc.run();
@@ -2489,7 +2489,7 @@ else { 5 }
                     params: IndexMap::new(),
                     return_type: ValueType::IntType,
                 }],
-                function_types: HashMap::new(),
+                global_types: HashMap::new(),
             },
         };
         tc.run();
@@ -2546,7 +2546,7 @@ else { 5 }
                     params: IndexMap::new(),
                     return_type: ValueType::IntType,
                 }],
-                function_types: HashMap::new(),
+                global_types: HashMap::new(),
             },
         };
         tc.run();
@@ -2595,7 +2595,7 @@ else { 5 }
                     params: IndexMap::new(),
                     return_type: ValueType::IntType,
                 }],
-                function_types: HashMap::new(),
+                global_types: HashMap::new(),
             },
         };
         tc.run();
@@ -2642,7 +2642,7 @@ else { 5 }
                     params: IndexMap::new(),
                     return_type: ValueType::IntType,
                 }],
-                function_types: HashMap::new(),
+                global_types: HashMap::new(),
             },
         };
         tc.run();
@@ -2704,7 +2704,7 @@ else { 5 }
                     params: IndexMap::new(),
                     return_type: ValueType::IntType,
                 }],
-                function_types: HashMap::new(),
+                global_types: HashMap::new(),
             },
         };
         tc.run();
@@ -2763,7 +2763,7 @@ else { 5 }
                     params: IndexMap::new(),
                     return_type: ValueType::IntType,
                 }],
-                function_types: HashMap::new(),
+                global_types: HashMap::new(),
             },
         };
         tc.run();
@@ -2810,7 +2810,7 @@ else { 5 }
                     params: IndexMap::new(),
                     return_type: ValueType::IntType,
                 }],
-                function_types: HashMap::new(),
+                global_types: HashMap::new(),
             },
         };
         tc.run();
@@ -2868,7 +2868,7 @@ else { 5 }
                     params: IndexMap::new(),
                     return_type: ValueType::IntType,
                 }],
-                function_types: HashMap::new(),
+                global_types: HashMap::new(),
             },
         };
         tc.run();
@@ -2923,7 +2923,7 @@ else { 5 }
                     params: IndexMap::new(),
                     return_type: ValueType::IntType,
                 }],
-                function_types: HashMap::new(),
+                global_types: HashMap::new(),
             },
         };
         tc.run();
@@ -3001,7 +3001,7 @@ x[0] = 42
                     params: IndexMap::new(),
                     return_type: ValueType::IntType,
                 }],
-                function_types: HashMap::new(),
+                global_types: HashMap::new(),
             },
         };
         tc.run();
@@ -3063,7 +3063,7 @@ x[0] = 42
                     ]),
                     return_type: ValueType::IntType,
                 }],
-                function_types: HashMap::new(),
+                global_types: HashMap::new(),
             },
         };
         tc.run();
@@ -3110,7 +3110,7 @@ x[0] = 42
                     params: IndexMap::new(),
                     return_type: ValueType::NoneType,
                 }],
-                function_types: HashMap::new(),
+                global_types: HashMap::new(),
             },
         };
         tc.run();
@@ -3162,7 +3162,7 @@ x[0] = 42
                     params: IndexMap::from([(t_local!("x", neg_id.clone()), ValueType::IntType)]),
                     return_type: ValueType::IntType,
                 }],
-                function_types: HashMap::new(),
+                global_types: HashMap::new(),
             },
         };
         tc.run();
@@ -3207,7 +3207,7 @@ x[0] = 42
                     )]),
                     return_type: ValueType::IntType,
                 }],
-                function_types: HashMap::new(),
+                global_types: HashMap::new(),
             },
         };
         tc.run();
@@ -3253,7 +3253,7 @@ x[0] = 42
                     params: IndexMap::from([(t_local!("x", id_id.clone()), ValueType::IntType)]),
                     return_type: ValueType::IntType,
                 }],
-                function_types: HashMap::new(),
+                global_types: HashMap::new(),
             },
         };
         tc.run();
@@ -3290,7 +3290,7 @@ x[0] = 42
                     params: IndexMap::new(),
                     return_type: ValueType::NoneType,
                 }],
-                function_types: HashMap::new(),
+                global_types: HashMap::new(),
             },
         };
         tc.run();
@@ -3388,7 +3388,7 @@ x[0] = 42
                         return_type: ValueType::IntType,
                     },
                 ],
-                function_types: HashMap::new(),
+                global_types: HashMap::new(),
             },
         };
         tc.run();
@@ -3440,7 +3440,7 @@ x[0] = 42
                     params: IndexMap::from([(t_local!("x", iz_id.clone()), ValueType::IntType)]),
                     return_type: ValueType::BoolType,
                 }],
-                function_types: HashMap::new(),
+                global_types: HashMap::new(),
             },
         };
         tc.run();
@@ -3506,7 +3506,7 @@ x[0] = 42
                     params: IndexMap::new(),
                     return_type: ValueType::IntType,
                 }],
-                function_types: HashMap::new(),
+                global_types: HashMap::new(),
             },
         };
         tc.run();
@@ -3559,7 +3559,7 @@ x[0] = 42
                     params: IndexMap::from([(t_local!("n", sq_id.clone()), ValueType::IntType)]),
                     return_type: ValueType::IntType,
                 }],
-                function_types: HashMap::new(),
+                global_types: HashMap::new(),
             },
         };
         tc.run();
@@ -3621,7 +3621,7 @@ x[0] = 42
                     )]),
                     return_type: ValueType::IntType,
                 }],
-                function_types: HashMap::new(),
+                global_types: HashMap::new(),
             },
         };
         tc.run();
@@ -3685,7 +3685,7 @@ x[0] = 42
                     ]),
                     return_type: ValueType::TupleType(vec![ValueType::IntType, ValueType::IntType]),
                 }],
-                function_types: HashMap::new(),
+                global_types: HashMap::new(),
             },
         };
         tc.run();
@@ -3748,7 +3748,7 @@ x[0] = 42
                     ]),
                     return_type: ValueType::BoolType,
                 }],
-                function_types: HashMap::new(),
+                global_types: HashMap::new(),
             },
         };
         tc.run();
@@ -3827,7 +3827,7 @@ x[0] = 42
                     )]),
                     return_type: ValueType::IntType,
                 }],
-                function_types: HashMap::new(),
+                global_types: HashMap::new(),
             },
         };
         tc.run();
@@ -3899,7 +3899,7 @@ x[0] = 42
                     params: IndexMap::new(),
                     return_type: ValueType::IntType,
                 }],
-                function_types: HashMap::new(),
+                global_types: HashMap::new(),
             },
         };
         tc.run();
@@ -3953,7 +3953,7 @@ x[0] = 42
                     params: IndexMap::new(),
                     return_type: ValueType::IntType,
                 }],
-                function_types: HashMap::new(),
+                global_types: HashMap::new(),
             },
         };
         tc.run();
@@ -4027,7 +4027,7 @@ x[0] = 42
                         ValueType::BoolType,
                     ]),
                 }],
-                function_types: HashMap::new(),
+                global_types: HashMap::new(),
             },
         };
         tc.run();
