@@ -202,19 +202,21 @@ fn replace_excess_calls_for_statement(s: &mut Statement) {
 
 fn replace_excess_calls_for_expr(e: &mut Expr) {
     match e {
-        Expr::Call(_, args) => {
+        Expr::Call(func, args) => {
             for a in args.iter_mut() {
                 replace_excess_calls_for_expr(a);
             }
 
-            if args.len() > MAX_REGISTER_ARGS {
-                let mut new_args: Vec<_> =
-                    args.iter().take(MAX_REGISTER_ARGS - 1).cloned().collect();
+            // Closure calls consume one register slot for the implicit captures
+            // tuple, so there's one fewer slot available for explicit args.
+            let is_closure = matches!(**func, Expr::Closure(..));
+            let available_slots = MAX_REGISTER_ARGS - if is_closure { 1 } else { 0 };
 
-                let excess_args = args.iter().skip(MAX_REGISTER_ARGS - 1).cloned();
-                let excess_tup = Expr::Tuple(excess_args.collect());
+            if args.len() > available_slots {
+                let keep = available_slots - 1;
+                let mut new_args: Vec<_> = args.iter().take(keep).cloned().collect();
+                let excess_tup = Expr::Tuple(args.iter().skip(keep).cloned().collect());
                 new_args.push(excess_tup);
-
                 *args = new_args;
             }
         }
