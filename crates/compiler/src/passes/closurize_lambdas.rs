@@ -728,7 +728,7 @@ mod tests {
             Statement::Assign(_, Expr::Closure(name, captured_ids), _) => {
                 assert_eq!(*name, t_global!("__closure_repl"));
                 assert_eq!(captured_ids.len(), 1);
-                assert_eq!(captured_ids[0], main_local!("val"));
+                assert_eq!(captured_ids.get(0), Some(&main_local!("val")));
             }
             other => panic!("Expected Closure expression, got: {other:?}"),
         }
@@ -842,7 +842,7 @@ mod tests {
                 Statement::Assign(_, Expr::Closure(name, captured_ids), _) => {
                     assert_eq!(*name, expected_name);
                     assert_eq!(captured_ids.len(), 1);
-                    assert_eq!(captured_ids[0], main_local!("n"));
+                    assert_eq!(captured_ids.get(0), Some(&main_local!("n")));
                 }
                 other => panic!("Expected Closure, got: {other:?}"),
             }

@@ -292,7 +292,7 @@ mod tests {
                 // The callee (GlobalSymbol) is unchanged
                 assert_eq!(**callee, Expr::GlobalSymbol(t_global!("apply")));
                 // The argument (Id referencing a function) is converted
-                assert_eq!(args[0], Expr::Closure(foo_name, vec![]));
+                assert_eq!(args.get(0), Some(&Expr::Closure(foo_name, vec![])));
             }
             other => panic!("Expected Call, got: {other:?}"),
         }
@@ -324,8 +324,8 @@ mod tests {
         match &result.functions[0].body[0] {
             Statement::Conditional(_, pos_body, _) => {
                 assert_eq!(
-                    pos_body[0],
-                    Statement::Expr(Expr::Closure(foo_name, vec![]))
+                    pos_body.get(0),
+                    Some(&Statement::Expr(Expr::Closure(foo_name, vec![])))
                 );
             }
             other => panic!("Expected Conditional, got: {other:?}"),
@@ -357,8 +357,8 @@ mod tests {
         match &result.functions[0].body[0] {
             Statement::WhileLoop(_, loop_body) => {
                 assert_eq!(
-                    loop_body[0],
-                    Statement::Expr(Expr::Closure(foo_name, vec![]))
+                    loop_body.get(0),
+                    Some(&Statement::Expr(Expr::Closure(foo_name, vec![])))
                 );
             }
             other => panic!("Expected WhileLoop, got: {other:?}"),
