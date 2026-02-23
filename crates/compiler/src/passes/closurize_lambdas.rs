@@ -254,7 +254,8 @@ fn is_id_in_parent(id: &Identifier, this_env: &TypeEnv) -> Option<Identifier> {
                     return Some(env_id.clone());
                 }
             }
-            panic!("Can't find id with name: {name}")
+            // Leave it alone, it's a local of the lambda probably
+            None
         }
     } else {
         // Global or ephemeral - no adjustment needed
