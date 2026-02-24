@@ -33,6 +33,8 @@ mod closurize_functions;
 pub use closurize_functions::ClosurizeFunctions;
 mod declosurize_calls;
 pub use declosurize_calls::DeclosurizeCalls;
+mod optimize_fallthrough;
+pub use optimize_fallthrough::OptimizeFallthrough;
 
 #[enum_dispatch]
 pub trait ASTPass {
@@ -97,4 +99,5 @@ pub enum X86toX86 {
     RemoveJumps,
     PatchInstructions,
     PreludeConclusion,
+    OptimizeFallthrough,
 }

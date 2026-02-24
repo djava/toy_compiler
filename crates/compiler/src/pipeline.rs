@@ -76,6 +76,7 @@ impl Pipeline {
                 X86toX86::from(PatchInstructions),
                 X86toX86::from(PreludeConclusion),
                 X86toX86::from(RemoveJumps),
+                X86toX86::from(OptimizeFallthrough),
             ],
         }
     }
