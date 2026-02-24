@@ -1,4 +1,4 @@
-use std::{collections::VecDeque};
+use std::collections::VecDeque;
 
 use crate::{ValueEnv, interpreter_utils::id};
 
@@ -58,7 +58,6 @@ impl X86Env {
             functions,
             special_function_offset,
         };
-
 
         ret.regs[Register::rsp as usize] = ret.stack.len() as i64;
         ret.regs[Register::rbp as usize] = ret.stack.len() as i64;
@@ -423,63 +422,65 @@ pub fn interpret_x86(m: &X86Program, inputs: &mut VecDeque<i64>, outputs: &mut V
         .find(|f| f.name == id!(LABEL_MAIN))
         .unwrap();
 
-    let mut curr_instr_iter = curr_func
+    let mut curr_block_idx = curr_func
         .blocks
         .iter()
-        .find(|b| b.label == Directive::Label(curr_func.entry_block.clone()))
-        .unwrap()
-        .instrs
-        .iter();
+        .position(|b| b.label == Directive::Label(curr_func.entry_block.clone()))
+        .unwrap();
+    let mut curr_instr_iter = curr_func.blocks[curr_block_idx].instrs.iter();
     let mut call_stack = VecDeque::new();
     loop {
-        let curr_instr = curr_instr_iter
-            .next()
-            .unwrap_or_else(|| panic!("Ran out of instrs without a non-Next continuation"));
+        let curr_instr = curr_instr_iter.next().unwrap_or_else(|| {
+            // Fallthrough for a block
+            curr_block_idx += 1;
+            curr_instr_iter = curr_func.blocks[curr_block_idx].instrs.iter();
+            curr_instr_iter.next().unwrap()
+        });
 
         match run_instr(curr_instr, inputs, outputs, &mut env) {
             Continuation::Next => {}
             Continuation::Jump(label) => {
-                if let Some(new_block) = curr_func
+                if let Some(new_block_idx) = curr_func
                     .blocks
                     .iter()
-                    .find(|b| b.label == Directive::Label(label.clone()))
+                    .position(|b| b.label == Directive::Label(label.clone()))
                 {
                     // Look for blocks within this function to jump to
-                    curr_instr_iter = new_block.instrs.iter();
+                    curr_block_idx = new_block_idx;
+                    curr_instr_iter = curr_func.blocks[curr_block_idx].instrs.iter();
                 } else if let Some(new_func) = m.functions.iter().find(|f| f.name == label) {
                     // Otherwise, look for functions with this name to
                     // jump to
                     curr_func = new_func;
-                    curr_instr_iter = curr_func
+                    curr_block_idx = curr_func
                         .blocks
                         .iter()
-                        .find(|b| b.label == Directive::Label(curr_func.entry_block.clone()))
-                        .unwrap()
-                        .instrs
-                        .iter();
+                        .position(|b| b.label == Directive::Label(curr_func.entry_block.clone()))
+                        .unwrap();
+                    curr_instr_iter = curr_func.blocks[curr_block_idx].instrs.iter();
                 } else {
-                    panic!("")
+                    panic!("Couldn't jump to label: {label:?}")
                 }
             }
             Continuation::Call(dest_idx) => {
-                call_stack.push_back((curr_func, curr_instr_iter));
+                call_stack.push_back((curr_func, curr_block_idx, curr_instr_iter));
                 if let Some(new_func) = m.functions.get(dest_idx) {
                     curr_func = new_func;
-                    curr_instr_iter = curr_func
+                    curr_block_idx = curr_func
                         .blocks
                         .iter()
-                        .find(|b| b.label == Directive::Label(curr_func.entry_block.clone()))
-                        .unwrap()
-                        .instrs
-                        .iter();
+                        .position(|b| b.label == Directive::Label(curr_func.entry_block.clone()))
+                        .unwrap();
+                    curr_instr_iter = curr_func.blocks[curr_block_idx].instrs.iter();
                     println!("Calling to {:?}", curr_func.name);
                 } else {
                     panic!("Couldn't find function with dest-idx: {dest_idx}");
                 }
             }
             Continuation::Return => {
-                if let Some((func, iter)) = call_stack.pop_back() {
+                if let Some((func, block_idx, iter)) = call_stack.pop_back() {
                     curr_func = func;
+                    curr_block_idx = block_idx;
                     curr_instr_iter = iter;
                     println!("Returning to {:?}", curr_func.name);
                 } else {
