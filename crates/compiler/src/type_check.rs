@@ -265,7 +265,17 @@ impl ast::Statement {
                     }
                     AssignDest::Subscript(tup_id, idx) => {
                         if let Some(ValueType::TupleType(elems)) = env.get(tup_id) {
+                            assert!(
+                                *idx >= 0 && *idx < elems.len() as i64,
+                                "Indexed tuple out of bounds"
+                            );
                             assert_eq!(elems[*idx as usize], t);
+                        } else if let Some(ValueType::ArrayType(elem_type, len)) = env.get(tup_id) {
+                            assert!(
+                                *idx >= 0 && *idx < *len as i64,
+                                "Indexed array out of bounds"
+                            );
+                            assert_eq!(**elem_type, t);
                         } else {
                             panic!("Couldn't find tuple to assign into: `{tup_id:?}`")
                         }
