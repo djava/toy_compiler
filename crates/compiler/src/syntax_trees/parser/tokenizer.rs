@@ -110,7 +110,7 @@ parser! {
             = t:(bool() / and_word() / or_word() / not_word() /_if() /
                  _else() / _while() / is() / int() / _fn() / int_type() /
                  bool_type() / tuple_type() / _return() / callable_type() /
-                 lambda() / none_type() / identifier() / array_type()) &__ {t}
+                 lambda() / none_type() / array_type() / identifier()) &__ {t}
 
         /// A punctuation token does not require trailing whitespace
         rule punctuation_token() -> Token<'input>

@@ -1766,6 +1766,77 @@ fn main() {
     });
 }
 
+// ── Functions with arrays ────────────────────────────────────────
+
+#[test]
+fn test_function_takes_array_param() {
+    execute_test_case(TestCase {
+        input: "fn sum_arr(a: array<int, 3>) -> int {
+    return a[0] + a[1] + a[2]
+}
+
+fn main() {
+    arr = [10, 20, 30]
+    print_int(sum_arr(arr))
+}",
+        inputs: VecDeque::new(),
+        expected_outputs: VecDeque::from(vec![60]),
+    });
+}
+
+#[test]
+fn test_function_modifies_array_param() {
+    execute_test_case(TestCase {
+        input: "fn set_first(a: array<int, 2>, val: int) {
+    a[0] = val
+}
+
+fn main() {
+    arr = [1, 2]
+    set_first(arr, 99)
+    print_int(arr[0])
+    print_int(arr[1])
+}",
+        inputs: VecDeque::new(),
+        // Arrays are passed by reference (same as tuples)
+        expected_outputs: VecDeque::from(vec![99, 2]),
+    });
+}
+
+#[test]
+fn test_function_returns_array() {
+    execute_test_case(TestCase {
+        input: "fn make_arr(x: int, y: int) -> array<int, 2> {
+    return [x, y]
+}
+
+fn main() {
+    a = make_arr(3, 7)
+    print_int(a[0])
+    print_int(a[1])
+}",
+        inputs: VecDeque::new(),
+        expected_outputs: VecDeque::from(vec![3, 7]),
+    });
+}
+
+#[test]
+fn test_function_array_and_int_params() {
+    execute_test_case(TestCase {
+        input: "fn scale(a: array<int, 3>, factor: int) -> int {
+    return (a[0] + a[1] + a[2]) * factor
+}
+
+fn main() {
+    arr = [1, 2, 3]
+    print_int(scale(arr, 2))
+}",
+        inputs: VecDeque::new(),
+        // (1+2+3)*2 = 12
+        expected_outputs: VecDeque::from(vec![12]),
+    });
+}
+
 #[test]
 fn test_ternary_as_function_in_loop() {
     // Use ternary-as-function inside a loop with changing condition
