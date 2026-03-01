@@ -152,6 +152,14 @@ fn find_and_disambiguate_captures_for_statement(
                         captures.push(new_id);
                     }
                 }
+                AssignDest::ComplexSubscript(complex) => {
+                    find_and_disambiguate_captures_for_expr(
+                        &mut complex.container,
+                        this_env,
+                        captures,
+                    );
+                    find_and_disambiguate_captures_for_expr(&mut complex.index, this_env, captures);
+                }
             }
             find_and_disambiguate_captures_for_expr(expr, this_env, captures);
         }
@@ -289,6 +297,18 @@ fn replace_captures_with_tup_reference_for_statement(
                 }
                 AssignDest::Subscript(_, _) => {
                     unimplemented!("Turns out indexing into captured variables is annoying, sorry");
+                }
+                AssignDest::ComplexSubscript(complex) => {
+                    replace_captures_with_tup_reference_for_expr(
+                        &mut complex.container,
+                        captures_id,
+                        captures,
+                    );
+                    replace_captures_with_tup_reference_for_expr(
+                        &mut complex.index,
+                        captures_id,
+                        captures,
+                    );
                 }
             }
             replace_captures_with_tup_reference_for_expr(expr, captures_id, captures);
@@ -437,7 +457,10 @@ mod tests {
         let captures_id = extracted_closure.params.get_index(0).unwrap().0.clone();
         assert_eq!(
             extracted_closure.body[0],
-            Statement::Expr(Expr::Subscript(Box::new(Expr::Id(captures_id)), Box::new(Expr::Constant(Value::I64(1)))))
+            Statement::Expr(Expr::Subscript(
+                Box::new(Expr::Id(captures_id)),
+                Box::new(Expr::Constant(Value::I64(1)))
+            ))
         );
 
         // global_types reflects the new signature with the captures-tuple param;
@@ -582,11 +605,17 @@ mod tests {
         let captures_id = lam.params.get_index(0).unwrap().0.clone();
         assert_eq!(
             lam.body[0],
-            Statement::Expr(Expr::Subscript(Box::new(Expr::Id(captures_id.clone())), Box::new(Expr::Constant(Value::I64(1)))))
+            Statement::Expr(Expr::Subscript(
+                Box::new(Expr::Id(captures_id.clone())),
+                Box::new(Expr::Constant(Value::I64(1)))
+            ))
         );
         assert_eq!(
             lam.body[1],
-            Statement::Expr(Expr::Subscript(Box::new(Expr::Id(captures_id)), Box::new(Expr::Constant(Value::I64(2)))))
+            Statement::Expr(Expr::Subscript(
+                Box::new(Expr::Id(captures_id)),
+                Box::new(Expr::Constant(Value::I64(2)))
+            ))
         );
 
         assert_eq!(
@@ -660,7 +689,10 @@ mod tests {
         assert_eq!(
             lam.body[0],
             Statement::Return(Expr::BinaryOp(
-                Box::new(Expr::Subscript(Box::new(Expr::Id(captures_id)), Box::new(Expr::Constant(Value::I64(1))))),
+                Box::new(Expr::Subscript(
+                    Box::new(Expr::Id(captures_id)),
+                    Box::new(Expr::Constant(Value::I64(1)))
+                )),
                 BinaryOperator::Add,
                 Box::new(Expr::Constant(Value::I64(1))),
             ))
@@ -743,7 +775,10 @@ mod tests {
         let captures_id = lam.params.get_index(0).unwrap().0.clone();
         assert_eq!(
             lam.body[0],
-            Statement::Expr(Expr::Subscript(Box::new(Expr::Id(captures_id)), Box::new(Expr::Constant(Value::I64(1)))))
+            Statement::Expr(Expr::Subscript(
+                Box::new(Expr::Id(captures_id)),
+                Box::new(Expr::Constant(Value::I64(1)))
+            ))
         );
     }
 
@@ -828,7 +863,10 @@ mod tests {
             let captures_id = lam.params.get_index(0).unwrap().0.clone();
             assert_eq!(
                 lam.body[0],
-                Statement::Expr(Expr::Subscript(Box::new(Expr::Id(captures_id)), Box::new(Expr::Constant(Value::I64(1)))))
+                Statement::Expr(Expr::Subscript(
+                    Box::new(Expr::Id(captures_id)),
+                    Box::new(Expr::Constant(Value::I64(1)))
+                ))
             );
         }
 

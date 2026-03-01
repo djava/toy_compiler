@@ -40,7 +40,7 @@ pub enum Expr<'a> {
 pub enum Statement<'a> {
     Expr(Expr<'a>),
     Assign(&'a str, Expr<'a>, Option<ValueType>),
-    SubscriptAssign(&'a str, i64, Expr<'a>),
+    SubscriptAssign(Expr<'a>, Expr<'a>, Expr<'a>),
     If(Expr<'a>, Vec<Statement<'a>>),
     ElseIf(Expr<'a>, Vec<Statement<'a>>),
     Else(Vec<Statement<'a>>),
@@ -175,8 +175,8 @@ parser! {
             [Token::Identifier(id)] typ:assign_type_hint() [Token::Equals] e:expr() { Statement::Assign(id, e, typ) }
 
         pub rule subscript_assign() -> Statement<'t> =
-            [Token::Identifier(id)] [Token::OpenBracket] [Token::Int(idx)] [Token::CloseBracket] [Token::Equals] e:expr()
-            { Statement::SubscriptAssign(id, idx, e) }
+            [Token::Identifier(container)] [Token::OpenBracket] idx:expr() [Token::CloseBracket] [Token::Equals] e:expr()
+            { Statement::SubscriptAssign(Expr::Id(container), idx, e) }
 
         pub rule statement_body() -> Vec<Statement<'t>> =
             [Token::OpenCurly] [Token::Newline]*

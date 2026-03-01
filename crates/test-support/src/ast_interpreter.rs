@@ -146,6 +146,9 @@ fn interpret_statement_chain<'a>(
                         panic!("Assigned to invalid subscript assigndest: `{dest:?}`")
                     }
                 }
+                AssignDest::ComplexSubscript(_) => {
+                    unimplemented!("Um I'm not sure if there's a way to support this here")
+                }
             }
 
             return interpret_statement_chain(statements, inputs, outputs, val_env, func_env);

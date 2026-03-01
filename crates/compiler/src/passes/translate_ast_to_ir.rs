@@ -208,14 +208,14 @@ fn generate_for_effect(
 
 fn generate_for_assign(
     e: &ast::Expr,
-    dest: AssignDest,
+    dest: AssignDest<ast::Expr>,
     cont: Vec<ir::Statement>,
     blocks: &mut BlockMap,
 ) -> Vec<ir::Statement> {
     match e {
         ast::Expr::Constant(value) => {
             let mut ret = vec![ir::Statement::Assign(
-                dest,
+                ast_to_ir_assigndest(dest),
                 ir::Expr::Atom(ir::Atom::Constant(value.clone())),
             )];
             ret.extend(cont);
@@ -226,7 +226,7 @@ fn generate_for_assign(
             let r_atom = expr_to_atom(&*right);
 
             let mut ret = vec![ir::Statement::Assign(
-                dest,
+                ast_to_ir_assigndest(dest),
                 ir::Expr::BinaryOp(l_atom, *op, r_atom),
             )];
             ret.extend(cont);
@@ -235,7 +235,7 @@ fn generate_for_assign(
         ast::Expr::UnaryOp(op, expr) => {
             let atom = expr_to_atom(&*expr);
 
-            let mut ret = vec![ir::Statement::Assign(dest, ir::Expr::UnaryOp(*op, atom))];
+            let mut ret = vec![ir::Statement::Assign(ast_to_ir_assigndest(dest), ir::Expr::UnaryOp(*op, atom))];
             ret.extend(cont);
             ret
         }
@@ -243,7 +243,7 @@ fn generate_for_assign(
             let args = exprs.iter().map(expr_to_atom).collect();
 
             let mut ret = vec![ir::Statement::Assign(
-                dest,
+                ast_to_ir_assigndest(dest),
                 ir::Expr::Call(expr_to_atom(&**func), args),
             )];
             ret.extend(cont);
@@ -251,7 +251,7 @@ fn generate_for_assign(
         }
         ast::Expr::Id(src_id) => {
             let mut ret = vec![ir::Statement::Assign(
-                dest,
+                ast_to_ir_assigndest(dest),
                 ir::Expr::Atom(ir::Atom::Variable(src_id.clone())),
             )];
             ret.extend(cont);
@@ -290,7 +290,7 @@ fn generate_for_assign(
             };
 
             let mut ret = vec![ir::Statement::Assign(
-                dest,
+                ast_to_ir_assigndest(dest),
                 ir::Expr::TupleSubscript(expr_to_atom(tup), idx_i64),
             )];
             ret.extend(cont);
@@ -299,7 +299,7 @@ fn generate_for_assign(
         }
         ast::Expr::Allocate(bytes, value_type) => {
             let mut ret = vec![ir::Statement::Assign(
-                dest,
+                ast_to_ir_assigndest(dest),
                 ir::Expr::Allocate(*bytes, value_type.clone()),
             )];
             ret.extend(cont);
@@ -307,7 +307,7 @@ fn generate_for_assign(
         }
         ast::Expr::GlobalSymbol(name) => {
             let mut ret = vec![ir::Statement::Assign(
-                dest,
+                ast_to_ir_assigndest(dest),
                 ir::Expr::Atom(ir::Atom::GlobalSymbol(name.clone())),
             )];
             ret.extend(cont);
@@ -435,6 +435,16 @@ fn new_block(statements: Vec<ir::Statement>, blocks: &mut BlockMap) -> Identifie
     let label = Identifier::new_ephemeral();
     blocks.insert(label.clone(), ir::Block { statements });
     label
+}
+
+fn ast_to_ir_assigndest(dest: AssignDest<ast::Expr>) -> AssignDest<ir::Atom> {
+    match dest {
+        AssignDest::Id(id) => AssignDest::Id(id),
+        AssignDest::Subscript(id, idx) => AssignDest::Subscript(id, idx),
+        AssignDest::ComplexSubscript(_) => panic!(
+            "Complex subscripts should've been removed by DisambiguateSubscripts"
+        ),
+    }
 }
 
 #[cfg(test)]

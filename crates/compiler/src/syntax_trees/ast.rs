@@ -22,7 +22,7 @@ pub enum Expr {
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum Statement {
-    Assign(AssignDest, Expr, Option<ValueType>),
+    Assign(AssignDest<Expr>, Expr, Option<ValueType>),
     Expr(Expr),
     Conditional(Expr, Vec<Statement>, Vec<Statement>),
     WhileLoop(Expr, Vec<Statement>),

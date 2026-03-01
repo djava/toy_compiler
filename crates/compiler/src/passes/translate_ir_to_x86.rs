@@ -126,7 +126,7 @@ fn translate_statement(s: ir::Statement, exit_block: &Identifier) -> Vec<Instr> 
     }
 }
 
-fn translate_assign(dest: AssignDest, expr: ir::Expr) -> Vec<Instr> {
+fn translate_assign(dest: AssignDest<ir::Atom>, expr: ir::Expr) -> Vec<Instr> {
     let mut ret = vec![];
 
     ret.extend(match expr {
@@ -146,7 +146,7 @@ fn translate_assign(dest: AssignDest, expr: ir::Expr) -> Vec<Instr> {
     ret
 }
 
-fn translate_subscript(dest: AssignDest, atom: ir::Atom, idx: i64) -> Vec<Instr> {
+fn translate_subscript(dest: AssignDest<ir::Atom>, atom: ir::Atom, idx: i64) -> Vec<Instr> {
     let mut ret = vec![];
     if let AssignDest::Subscript(id, _idx) = &dest {
         ret.push(Instr::movq(
@@ -166,7 +166,7 @@ fn translate_subscript(dest: AssignDest, atom: ir::Atom, idx: i64) -> Vec<Instr>
     ret
 }
 
-fn translate_atom(dest: AssignDest, atom: ir::Atom) -> Vec<Instr> {
+fn translate_atom(dest: AssignDest<ir::Atom>, atom: ir::Atom) -> Vec<Instr> {
     let mut ret = vec![];
     if let AssignDest::Subscript(id, _idx) = &dest {
         ret.push(Instr::movq(
@@ -185,7 +185,11 @@ fn translate_atom(dest: AssignDest, atom: ir::Atom) -> Vec<Instr> {
     ret
 }
 
-fn translate_allocation(dest: AssignDest, bytes: usize, value_type: ValueType) -> Vec<Instr> {
+fn translate_allocation(
+    dest: AssignDest<ir::Atom>,
+    bytes: usize,
+    value_type: ValueType,
+) -> Vec<Instr> {
     let tag = i64::from_ne_bytes(make_allocation_tag(value_type).to_ne_bytes());
 
     // Bump allocator pointer, write tag. pointer is in r11
@@ -319,7 +323,7 @@ fn translate_conditional(
 }
 
 fn translate_comparison(
-    dest: AssignDest,
+    dest: AssignDest<ir::Atom>,
     cmp_op: BinaryOperator,
     l: ir::Atom,
     r: ir::Atom,
@@ -348,7 +352,7 @@ fn translate_comparison(
     ret
 }
 
-fn translate_add(dest: AssignDest, left: ir::Atom, right: ir::Atom) -> Vec<Instr> {
+fn translate_add(dest: AssignDest<ir::Atom>, left: ir::Atom, right: ir::Atom) -> Vec<Instr> {
     let mut ret = vec![];
     if let AssignDest::Subscript(id, _idx) = &dest {
         ret.push(Instr::movq(
@@ -383,7 +387,7 @@ fn translate_add(dest: AssignDest, left: ir::Atom, right: ir::Atom) -> Vec<Instr
     ret
 }
 
-fn translate_subtract(dest: AssignDest, left: ir::Atom, right: ir::Atom) -> Vec<Instr> {
+fn translate_subtract(dest: AssignDest<ir::Atom>, left: ir::Atom, right: ir::Atom) -> Vec<Instr> {
     let mut ret = vec![];
     if let AssignDest::Subscript(id, _idx) = &dest {
         ret.push(Instr::movq(
@@ -411,7 +415,7 @@ fn translate_subtract(dest: AssignDest, left: ir::Atom, right: ir::Atom) -> Vec<
     ret
 }
 
-fn translate_multiply(dest: AssignDest, left: ir::Atom, right: ir::Atom) -> Vec<Instr> {
+fn translate_multiply(dest: AssignDest<ir::Atom>, left: ir::Atom, right: ir::Atom) -> Vec<Instr> {
     let mut ret = vec![];
     if let AssignDest::Subscript(id, _idx) = &dest {
         ret.push(Instr::movq(
@@ -446,7 +450,7 @@ fn translate_multiply(dest: AssignDest, left: ir::Atom, right: ir::Atom) -> Vec<
     ret
 }
 
-fn translate_not(dest: AssignDest, atom: ir::Atom) -> Vec<Instr> {
+fn translate_not(dest: AssignDest<ir::Atom>, atom: ir::Atom) -> Vec<Instr> {
     let mut ret = vec![];
     if let AssignDest::Subscript(id, _idx) = &dest {
         ret.push(Instr::movq(
@@ -472,7 +476,7 @@ fn translate_not(dest: AssignDest, atom: ir::Atom) -> Vec<Instr> {
     ret
 }
 
-fn translate_unary_minus(dest: AssignDest, atom: ir::Atom) -> Vec<Instr> {
+fn translate_unary_minus(dest: AssignDest<ir::Atom>, atom: ir::Atom) -> Vec<Instr> {
     let mut ret = vec![];
     if let AssignDest::Subscript(id, _idx) = &dest {
         ret.push(Instr::movq(
@@ -498,7 +502,7 @@ fn translate_unary_minus(dest: AssignDest, atom: ir::Atom) -> Vec<Instr> {
     ret
 }
 
-fn translate_unary_plus(dest: AssignDest, atom: ir::Atom) -> Vec<Instr> {
+fn translate_unary_plus(dest: AssignDest<ir::Atom>, atom: ir::Atom) -> Vec<Instr> {
     if let ir::Atom::Variable(val_id) = &atom
         && let AssignDest::Id(dest_id) = &dest
         && val_id == dest_id
@@ -523,19 +527,21 @@ fn translate_unary_plus(dest: AssignDest, atom: ir::Atom) -> Vec<Instr> {
 const SPECIAL_FUNCTIONS: [(
     &'static str,
     usize,
-    fn(Vec<ir::Atom>, Option<AssignDest>) -> Vec<Instr>,
-); 1] = [
-    (FN_GC_COLLECT, 1, |mut args, _dest| {
-        assert!(_dest.is_none());
-        vec![
-            Instr::movq(x86::Arg::Reg(Register::r15), x86::Arg::Reg(Register::rdi)),
-            Instr::movq(atom_to_arg(args.remove(0)), x86::Arg::Reg(Register::rsi)),
-            Instr::callq(x86::Arg::Global(global!(FN_GC_COLLECT)), 2),
-        ]
-    }),
-];
+    fn(Vec<ir::Atom>, Option<AssignDest<ir::Atom>>) -> Vec<Instr>,
+); 1] = [(FN_GC_COLLECT, 1, |mut args, _dest| {
+    assert!(_dest.is_none());
+    vec![
+        Instr::movq(x86::Arg::Reg(Register::r15), x86::Arg::Reg(Register::rdi)),
+        Instr::movq(atom_to_arg(args.remove(0)), x86::Arg::Reg(Register::rsi)),
+        Instr::callq(x86::Arg::Global(global!(FN_GC_COLLECT)), 2),
+    ]
+})];
 
-fn translate_call(dest_opt: Option<AssignDest>, func: ir::Atom, args: Vec<ir::Atom>) -> Vec<Instr> {
+fn translate_call(
+    dest_opt: Option<AssignDest<ir::Atom>>,
+    func: ir::Atom,
+    args: Vec<ir::Atom>,
+) -> Vec<Instr> {
     if args.len() > MAX_REGISTER_ARGS {
         unimplemented!("Only register arg passing is implemented, max of {MAX_REGISTER_ARGS} args");
     }
@@ -637,7 +643,7 @@ fn try_binop_to_cc(op: BinaryOperator) -> Option<x86::Comparison> {
     }
 }
 
-fn assigndest_to_arg(dest: AssignDest) -> x86::Arg {
+fn assigndest_to_arg(dest: AssignDest<ir::Atom>) -> x86::Arg {
     match dest {
         AssignDest::Id(id) => x86::Arg::Variable(id),
         AssignDest::Subscript(_, offset) => {
@@ -648,5 +654,8 @@ fn assigndest_to_arg(dest: AssignDest) -> x86::Arg {
                 (WORD_SIZE + (offset * WORD_SIZE)).try_into().unwrap(),
             )
         }
+        AssignDest::ComplexSubscript(_) => {
+            panic!("Should've been removed by DisambiguateSubscript")
+        },
     }
 }

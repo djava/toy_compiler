@@ -1,7 +1,5 @@
 use crate::{
-    constants::{
-        FN_ASSIGN_TO_ARRAY_ELEM, FN_SUBSCRIPT_ARRAY,
-    },
+    constants::{FN_ASSIGN_TO_ARRAY_ELEM, FN_SUBSCRIPT_ARRAY},
     passes::ASTPass,
     syntax_trees::{ast::*, shared::*},
     utils::global,
@@ -27,7 +25,22 @@ fn disambiguate_for_statement(s: &mut Statement, type_env: &mut TypeEnv) {
         Statement::Assign(dest, expr, type_hint) => {
             disambiguate_for_expr(expr, type_hint.as_ref(), type_env);
 
-            if let AssignDest::Subscript(dest_id, idx) = dest {
+            if let AssignDest::ComplexSubscript(complex) = dest {
+                let container = &mut complex.container;
+                let container_type = container.type_check(type_env, &None);
+                if let ValueType::TupleType(elem_types) = &container_type {
+                    simplify_subscript_assign_for_tuple(s, elem_types);
+                } else if let ValueType::ArrayType(_, _) = &container_type {
+                    *s = Statement::Expr(Expr::Call(
+                        Box::new(Expr::GlobalSymbol(global!(FN_ASSIGN_TO_ARRAY_ELEM))),
+                        vec![
+                            complex.container.clone(),
+                            complex.index.clone(),
+                            expr.clone(),
+                        ],
+                    ));
+                }
+            } else if let AssignDest::Subscript(dest_id, idx) = dest {
                 let dest_id_type = type_env
                     .get(dest_id)
                     .expect("Couldn't find dest type for subscript assign");
@@ -135,5 +148,47 @@ fn disambiguate_for_expr(e: &mut Expr, type_hint: Option<&ValueType>, type_env: 
         | Expr::Closure(..) => {}
 
         Expr::Lambda(_) => panic!("Lambda's shouldnt still exist"),
+    }
+}
+
+fn simplify_subscript_assign_for_tuple(s: &mut Statement, elem_types: &Vec<ValueType>) {
+    match s {
+        Statement::Assign(AssignDest::ComplexSubscript(complex), val, _) => {
+            let idx_const = if let Expr::Constant(Value::I64(val)) = complex.index {
+                val
+            } else {
+                panic!("Non-const-int index to tuple");
+            };
+
+            if let Expr::Id(id) = &complex.container {
+                // Simple case
+                *s = Statement::Assign(
+                    AssignDest::Subscript(id.clone(), idx_const),
+                    val.clone(),
+                    Some(elem_types[idx_const as usize].clone()),
+                );
+            } else {
+                // Complex case - use intermediary variable
+                let intermediary_id = Identifier::new_ephemeral();
+                let elem_type_hint = elem_types.get(idx_const as usize).cloned();
+
+                *s = Statement::Expr(Expr::StatementBlock(
+                    vec![
+                        Statement::Assign(
+                            AssignDest::Id(intermediary_id.clone()),
+                            complex.container.clone(),
+                            Some(ValueType::TupleType(elem_types.clone())),
+                        ),
+                        Statement::Assign(
+                            AssignDest::Subscript(intermediary_id, idx_const),
+                            val.clone(),
+                            elem_type_hint,
+                        ),
+                    ],
+                    Box::new(Expr::Constant(Value::None)),
+                ));
+            };
+        }
+        _ => panic!("wrong args to simplify_subscript_assign_for_tuple"),
     }
 }

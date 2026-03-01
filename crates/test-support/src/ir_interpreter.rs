@@ -147,6 +147,9 @@ fn interpret_statement(
                         panic!();
                     }
                 }
+                AssignDest::ComplexSubscript(_) => {
+                    unimplemented!("Um I'm not sure if there's a way to support this here");
+                }
             }
             Continuation::Next
         }

@@ -21,7 +21,7 @@ pub enum Expr {
 #[derive(Debug, Clone)]
 pub enum Statement {
     Expr(Expr),
-    Assign(AssignDest, Expr),
+    Assign(AssignDest<Atom>, Expr),
     Return(Atom),
     Goto(Identifier),
     If(Expr, Identifier, Identifier),

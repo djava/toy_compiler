@@ -2302,7 +2302,10 @@ else { 5 }
                     return_type: ValueType::IntType,
 
                     statements: vec![pt::Statement::Expr(pt::Expr::Subscript(
-                        Box::new(pt::Expr::Subscript(Box::new(pt::Expr::Id("x")), Box::new(pt::Expr::Int(0)))),
+                        Box::new(pt::Expr::Subscript(
+                            Box::new(pt::Expr::Id("x")),
+                            Box::new(pt::Expr::Int(0)),
+                        )),
                         Box::new(pt::Expr::Int(1)),
                     ))],
                 }],
@@ -2408,7 +2411,10 @@ else { 5 }
                     return_type: ValueType::IntType,
 
                     statements: vec![pt::Statement::Expr(pt::Expr::Binary(
-                        Box::new(pt::Expr::Subscript(Box::new(pt::Expr::Id("x")), Box::new(pt::Expr::Int(0)))),
+                        Box::new(pt::Expr::Subscript(
+                            Box::new(pt::Expr::Id("x")),
+                            Box::new(pt::Expr::Int(0)),
+                        )),
                         pt::Operator::Plus,
                         Box::new(pt::Expr::Int(1)),
                     ))],
@@ -2525,7 +2531,10 @@ else { 5 }
                     return_type: ValueType::IntType,
 
                     statements: vec![pt::Statement::Expr(pt::Expr::Ternary(
-                        Box::new(pt::Expr::Subscript(Box::new(pt::Expr::Id("x")), Box::new(pt::Expr::Int(0)))),
+                        Box::new(pt::Expr::Subscript(
+                            Box::new(pt::Expr::Id("x")),
+                            Box::new(pt::Expr::Int(0)),
+                        )),
                         Box::new(pt::Expr::Int(1)),
                         Box::new(pt::Expr::Int(2)),
                     ))],
@@ -2580,14 +2589,21 @@ else { 5 }
                     params: vec![],
                     return_type: ValueType::IntType,
 
-                    statements: vec![pt::Statement::SubscriptAssign("x", 0, pt::Expr::Int(1))],
+                    statements: vec![pt::Statement::SubscriptAssign(
+                        pt::Expr::Id("x"),
+                        pt::Expr::Int(0),
+                        pt::Expr::Int(1),
+                    )],
                 }],
             },
             expected_ast: ast::Program {
                 functions: vec![ast::Function {
                     name: t_global!(LABEL_MAIN),
                     body: vec![ast::Statement::Assign(
-                        AssignDest::Subscript(main_local!("x"), 0),
+                        AssignDest::ComplexSubscript(ComplexSubscript {
+                            container: ast::Expr::Id(main_local!("x")),
+                            index: ast::Expr::Constant(Value::I64(0)),
+                        }),
                         ast::Expr::Constant(Value::I64(1)),
                         None,
                     )],
@@ -2627,14 +2643,21 @@ else { 5 }
                     params: vec![],
                     return_type: ValueType::IntType,
 
-                    statements: vec![pt::Statement::SubscriptAssign("tup", 3, pt::Expr::Int(42))],
+                    statements: vec![pt::Statement::SubscriptAssign(
+                        pt::Expr::Id("tup"),
+                        pt::Expr::Int(3),
+                        pt::Expr::Int(42),
+                    )],
                 }],
             },
             expected_ast: ast::Program {
                 functions: vec![ast::Function {
                     name: t_global!(LABEL_MAIN),
                     body: vec![ast::Statement::Assign(
-                        AssignDest::Subscript(main_local!("tup"), 3),
+                        AssignDest::ComplexSubscript(ComplexSubscript {
+                            container: ast::Expr::Id(main_local!("tup")),
+                            index: ast::Expr::Constant(Value::I64(3)),
+                        }),
                         ast::Expr::Constant(Value::I64(42)),
                         None,
                     )],
@@ -2678,8 +2701,8 @@ else { 5 }
                     return_type: ValueType::IntType,
 
                     statements: vec![pt::Statement::SubscriptAssign(
-                        "x",
-                        1,
+                        pt::Expr::Id("x"),
+                        pt::Expr::Int(1),
                         pt::Expr::Binary(
                             Box::new(pt::Expr::Id("y")),
                             pt::Operator::Plus,
@@ -2692,7 +2715,10 @@ else { 5 }
                 functions: vec![ast::Function {
                     name: t_global!(LABEL_MAIN),
                     body: vec![ast::Statement::Assign(
-                        AssignDest::Subscript(main_local!("x"), 1),
+                        AssignDest::ComplexSubscript(ComplexSubscript {
+                            container: ast::Expr::Id(main_local!("x")),
+                            index: ast::Expr::Constant(Value::I64(1)),
+                        }),
                         ast::Expr::BinaryOp(
                             Box::new(ast::Expr::Id(main_local!("y"))),
                             BinaryOperator::Add,
@@ -2742,8 +2768,8 @@ else { 5 }
                     return_type: ValueType::IntType,
 
                     statements: vec![pt::Statement::SubscriptAssign(
-                        "x",
-                        0,
+                        pt::Expr::Id("x"),
+                        pt::Expr::Int(0),
                         pt::Expr::Tuple(vec![pt::Expr::Int(1), pt::Expr::Int(2)]),
                     )],
                 }],
@@ -2752,7 +2778,10 @@ else { 5 }
                 functions: vec![ast::Function {
                     name: t_global!(LABEL_MAIN),
                     body: vec![ast::Statement::Assign(
-                        AssignDest::Subscript(main_local!("x"), 0),
+                        AssignDest::ComplexSubscript(ComplexSubscript {
+                            container: ast::Expr::Id(main_local!("x")),
+                            index: ast::Expr::Constant(Value::I64(0)),
+                        }),
                         ast::Expr::Tuple(vec![
                             ast::Expr::Constant(Value::I64(1)),
                             ast::Expr::Constant(Value::I64(2)),
@@ -2795,14 +2824,21 @@ else { 5 }
                     params: vec![],
                     return_type: ValueType::IntType,
 
-                    statements: vec![pt::Statement::SubscriptAssign("x", -1, pt::Expr::Int(99))],
+                    statements: vec![pt::Statement::SubscriptAssign(
+                        pt::Expr::Id("x"),
+                        pt::Expr::Int(-1),
+                        pt::Expr::Int(99),
+                    )],
                 }],
             },
             expected_ast: ast::Program {
                 functions: vec![ast::Function {
                     name: t_global!(LABEL_MAIN),
                     body: vec![ast::Statement::Assign(
-                        AssignDest::Subscript(main_local!("x"), -1),
+                        AssignDest::ComplexSubscript(ComplexSubscript {
+                            container: ast::Expr::Id(main_local!("x")),
+                            index: ast::Expr::Constant(Value::I64(-1)),
+                        }),
                         ast::Expr::Constant(Value::I64(99)),
                         None,
                     )],
@@ -2848,7 +2884,11 @@ else { 5 }
 
                     statements: vec![pt::Statement::If(
                         pt::Expr::Bool(true),
-                        vec![pt::Statement::SubscriptAssign("x", 0, pt::Expr::Int(1))],
+                        vec![pt::Statement::SubscriptAssign(
+                            pt::Expr::Id("x"),
+                            pt::Expr::Int(0),
+                            pt::Expr::Int(1),
+                        )],
                     )],
                 }],
             },
@@ -2858,7 +2898,10 @@ else { 5 }
                     body: vec![ast::Statement::Conditional(
                         ast::Expr::Constant(Value::Bool(true)),
                         vec![ast::Statement::Assign(
-                            AssignDest::Subscript(main_local!("x"), 0),
+                            AssignDest::ComplexSubscript(ComplexSubscript {
+                                container: ast::Expr::Id(main_local!("x")),
+                                index: ast::Expr::Constant(Value::I64(0)),
+                            }),
                             ast::Expr::Constant(Value::I64(1)),
                             None,
                         )],
@@ -2905,9 +2948,12 @@ else { 5 }
                     return_type: ValueType::IntType,
 
                     statements: vec![pt::Statement::SubscriptAssign(
-                        "x",
-                        0,
-                        pt::Expr::Subscript(Box::new(pt::Expr::Id("y")), Box::new(pt::Expr::Int(1))),
+                        pt::Expr::Id("x"),
+                        pt::Expr::Int(0),
+                        pt::Expr::Subscript(
+                            Box::new(pt::Expr::Id("y")),
+                            Box::new(pt::Expr::Int(1)),
+                        ),
                     )],
                 }],
             },
@@ -2915,8 +2961,14 @@ else { 5 }
                 functions: vec![ast::Function {
                     name: t_global!(LABEL_MAIN),
                     body: vec![ast::Statement::Assign(
-                        AssignDest::Subscript(main_local!("x"), 0),
-                        ast::Expr::Subscript(Box::new(ast::Expr::Id(main_local!("y"))), Box::new(ast::Expr::Constant(Value::I64(1)))),
+                        AssignDest::ComplexSubscript(ComplexSubscript {
+                            container: ast::Expr::Id(main_local!("x")),
+                            index: ast::Expr::Constant(Value::I64(0)),
+                        }),
+                        ast::Expr::Subscript(
+                            Box::new(ast::Expr::Id(main_local!("y"))),
+                            Box::new(ast::Expr::Constant(Value::I64(1))),
+                        ),
                         None,
                     )],
                     types: HashMap::new(),
@@ -2975,7 +3027,11 @@ x[0] = 42
                             pt::Expr::Tuple(vec![pt::Expr::Int(1), pt::Expr::Int(2)]),
                             None,
                         ),
-                        pt::Statement::SubscriptAssign("x", 0, pt::Expr::Int(42)),
+                        pt::Statement::SubscriptAssign(
+                            pt::Expr::Id("x"),
+                            pt::Expr::Int(0),
+                            pt::Expr::Int(42),
+                        ),
                     ],
                 }],
             },
@@ -2992,7 +3048,10 @@ x[0] = 42
                             None,
                         ),
                         ast::Statement::Assign(
-                            AssignDest::Subscript(main_local!("x"), 0),
+                            AssignDest::ComplexSubscript(ComplexSubscript {
+                                container: ast::Expr::Id(main_local!("x")),
+                                index: ast::Expr::Constant(Value::I64(0)),
+                            }),
                             ast::Expr::Constant(Value::I64(42)),
                             None,
                         ),
@@ -3802,7 +3861,10 @@ x[0] = 42
                     return_type: ValueType::IntType,
 
                     statements: vec![pt::Statement::Expr(pt::Expr::Subscript(
-                        Box::new(pt::Expr::Subscript(Box::new(pt::Expr::Id("t")), Box::new(pt::Expr::Int(0)))),
+                        Box::new(pt::Expr::Subscript(
+                            Box::new(pt::Expr::Id("t")),
+                            Box::new(pt::Expr::Int(0)),
+                        )),
                         Box::new(pt::Expr::Int(0)),
                     ))],
                 }],
@@ -3934,7 +3996,10 @@ x[0] = 42
                     return_type: ValueType::IntType,
 
                     statements: vec![pt::Statement::Expr(pt::Expr::Call(
-                        Box::new(pt::Expr::Subscript(Box::new(pt::Expr::Id("t")), Box::new(pt::Expr::Int(0)))),
+                        Box::new(pt::Expr::Subscript(
+                            Box::new(pt::Expr::Id("t")),
+                            Box::new(pt::Expr::Int(0)),
+                        )),
                         vec![pt::Expr::Int(10)],
                     ))],
                 }],
@@ -4486,8 +4551,8 @@ x[0] = 42
                     }
                     other => panic!("expected Lambda as first arg, got {:?}", other),
                 }
-                assert_eq!(args[1], pt::Expr::Int(1));
-                assert_eq!(args[2], pt::Expr::Int(2));
+                assert_eq!(args.get(1), Some(&pt::Expr::Int(1)));
+                assert_eq!(args.get(2), Some(&pt::Expr::Int(2)));
             }
             other => panic!("expected Call expression, got {:?}", other),
         }

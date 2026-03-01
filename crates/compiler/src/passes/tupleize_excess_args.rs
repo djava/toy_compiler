@@ -102,6 +102,9 @@ fn replace_excess_use_for_statement(
                             "Need to replace AssignDest::Subscript first arg with Box<AssignDest> to allow x[0][0] = .."
                         );
                     }
+                },
+                AssignDest::ComplexSubscript(_) => {
+                    panic!("Complex subscripts should've been removed by DisambiguateSubscript")
                 }
             }
 

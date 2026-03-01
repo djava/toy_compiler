@@ -322,6 +322,21 @@ impl ast::Statement {
                             panic!("Couldn't find tuple to assign into: `{tup_id:?}`")
                         }
                     }
+                    AssignDest::ComplexSubscript(complex) => {
+                        let idx_type = complex.index.type_check(env, &Some(ValueType::IntType));
+                        assert_eq!(idx_type, ValueType::IntType);
+
+                        let cont_type = complex.container.type_check(env, &None);
+                        if let ValueType::ArrayType(elem_type, _) = cont_type {
+                            assert_eq!(*elem_type, t);
+                        } else if let ValueType::TupleType(elem_types) = cont_type
+                            && let ast::Expr::Constant(Value::I64(idx_const)) = complex.index
+                        {
+                            assert_eq!(elem_types[idx_const as usize], t);
+                        } else {
+                            panic!("Complex subscript of non-array")
+                        }
+                    }
                 }
             }
             Expr(e) => {

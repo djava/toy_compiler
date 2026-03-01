@@ -103,8 +103,11 @@ pub fn to_ast_statement<'a>(
             to_ast_expr(pte, func_name),
             type_hint,
         )),
-        Some(pt::Statement::SubscriptAssign(name, idx, pte)) => Some(ast::Statement::Assign(
-            AssignDest::Subscript(local!(name, func_name.clone()), idx),
+        Some(pt::Statement::SubscriptAssign(container, idx, pte)) => Some(ast::Statement::Assign(
+            AssignDest::ComplexSubscript(ComplexSubscript {
+                container: to_ast_expr(container, func_name),
+                index: to_ast_expr(idx, func_name),
+            }),
             to_ast_expr(pte, func_name),
             None,
         )),

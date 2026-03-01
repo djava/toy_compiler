@@ -253,9 +253,16 @@ impl UnaryOperator {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub enum AssignDest {
+pub struct ComplexSubscript<E> {
+    pub container: E,
+    pub index: E,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub enum AssignDest<E> {
     Id(Identifier),
     Subscript(Identifier, i64),
+    ComplexSubscript(ComplexSubscript<E>)
 }
 
 #[bitfield(u64, order = Lsb)]
