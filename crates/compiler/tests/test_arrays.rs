@@ -635,3 +635,139 @@ print_int(a[0] + a[1] + a[2] + a[3] + a[4])
         expected_outputs: VecDeque::from(vec![15]),
     });
 }
+
+// ── Variable and expression indices ──────────────────────────────
+
+#[test]
+fn test_variable_index_read() {
+    execute_test_case(TestCase {
+        input: "fn main() -> int { a = [10, 20, 30]
+i = 1
+print_int(a[i])
+}",
+        inputs: VecDeque::new(),
+        expected_outputs: VecDeque::from(vec![20]),
+    });
+}
+
+#[test]
+fn test_variable_index_write() {
+    execute_test_case(TestCase {
+        input: "fn main() -> int { a = [10, 20, 30]
+i = 1
+a[i] = 99
+print_int(a[0])
+print_int(a[1])
+print_int(a[2])
+}",
+        inputs: VecDeque::new(),
+        expected_outputs: VecDeque::from(vec![10, 99, 30]),
+    });
+}
+
+#[test]
+fn test_expr_index_read() {
+    execute_test_case(TestCase {
+        input: "fn main() -> int { a = [10, 20, 30]
+i = 1
+print_int(a[i + 1])
+}",
+        inputs: VecDeque::new(),
+        expected_outputs: VecDeque::from(vec![30]),
+    });
+}
+
+#[test]
+fn test_expr_index_write() {
+    execute_test_case(TestCase {
+        input: "fn main() -> int { a = [10, 20, 30]
+i = 1
+a[i + 1] = 99
+print_int(a[0])
+print_int(a[1])
+print_int(a[2])
+}",
+        inputs: VecDeque::new(),
+        expected_outputs: VecDeque::from(vec![10, 20, 99]),
+    });
+}
+
+#[test]
+fn test_index_from_input() {
+    execute_test_case(TestCase {
+        input: "fn main() -> int { a = [10, 20, 30]
+i = read_int()
+print_int(a[i])
+}",
+        inputs: VecDeque::from(vec![2]),
+        expected_outputs: VecDeque::from(vec![30]),
+    });
+}
+
+#[test]
+fn test_index_write_from_input() {
+    execute_test_case(TestCase {
+        input: "fn main() -> int { a = [0, 0, 0]
+i = read_int()
+a[i] = 42
+print_int(a[0])
+print_int(a[1])
+print_int(a[2])
+}",
+        inputs: VecDeque::from(vec![1]),
+        expected_outputs: VecDeque::from(vec![0, 42, 0]),
+    });
+}
+
+#[test]
+fn test_loop_scan_array() {
+    // Sum all elements using a variable index
+    execute_test_case(TestCase {
+        input: "fn main() -> int { a = [1, 2, 3, 4, 5]
+sum = 0
+i = 0
+while i < 5 {
+    sum = sum + a[i]
+    i = i + 1
+}
+print_int(sum)
+}",
+        inputs: VecDeque::new(),
+        // 1+2+3+4+5 = 15
+        expected_outputs: VecDeque::from(vec![15]),
+    });
+}
+
+#[test]
+fn test_loop_fill_array() {
+    // Write to every element with a variable index
+    execute_test_case(TestCase {
+        input: "fn main() -> int { a = [0, 0, 0]
+i = 0
+while i < 3 {
+    a[i] = i + 1
+    i = i + 1
+}
+print_int(a[0])
+print_int(a[1])
+print_int(a[2])
+}",
+        inputs: VecDeque::new(),
+        expected_outputs: VecDeque::from(vec![1, 2, 3]),
+    });
+}
+
+#[test]
+fn test_variable_index_both_read_and_write() {
+    // Copy a[i] to a[i+1] using the same index variable
+    execute_test_case(TestCase {
+        input: "fn main() -> int { a = [10, 0, 0]
+i = 0
+a[i + 1] = a[i]
+print_int(a[0])
+print_int(a[1])
+}",
+        inputs: VecDeque::new(),
+        expected_outputs: VecDeque::from(vec![10, 10]),
+    });
+}
