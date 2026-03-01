@@ -1,12 +1,9 @@
 use std::collections::VecDeque;
 
-use crate::{ValueEnv, interpreter_utils::id};
+use crate::{ValueEnv, interpreter_utils::global};
 
 use compiler::{
-    constants::{
-        GC_FREE_PTR, GC_FROMSPACE_BEGIN, GC_FROMSPACE_END, GC_ROOTSTACK_BEGIN, GC_ROOTSTACK_END,
-        LABEL_MAIN,
-    },
+    constants::*,
     syntax_trees::{shared::*, x86::*},
 };
 
@@ -21,7 +18,14 @@ struct Eflags {
 const HEAP_OFFSET: usize = 0x10000;
 const FUNCTIONS_OFFSET: usize = 0x20000;
 
-const SPECIAL_FUNCTIONS: [&str; 4] = ["read_int", "print_int", "__gc_initialize", "__gc_collect"];
+const SPECIAL_FUNCTIONS: [&str; 6] = [
+    FN_READ_INT,
+    FN_PRINT_INT,
+    FN_GC_INITIALIZE,
+    FN_GC_COLLECT,
+    FN_SUBSCRIPT_ARRAY,
+    FN_ASSIGN_TO_ARRAY_ELEM,
+];
 
 #[derive(Debug)]
 struct X86Env {
@@ -38,7 +42,7 @@ struct X86Env {
 impl X86Env {
     fn new(mut functions: Vec<Identifier>) -> Self {
         let special_function_offset = functions.len();
-        functions.extend(SPECIAL_FUNCTIONS.map(|f| id!(f)));
+        functions.extend(SPECIAL_FUNCTIONS.map(|f| global!(f)));
 
         let mut vars = ValueEnv::new();
         vars.extend(
@@ -134,7 +138,7 @@ impl X86Env {
             },
             Arg::Immediate(_) => panic!("Can't write to an intermediate"),
             Arg::Global(name) => {
-                if name == &id!(GC_FREE_PTR) {
+                if name == &global!(GC_FREE_PTR) {
                     self.gc_free_ptr = value;
                 }
                 // No other globals should matter in sim?
@@ -200,15 +204,13 @@ impl X86Env {
                 // I think its ok for these all to just be 0 - it'll
                 // trigger __gc_collect() every time but whatever
                 let zeroable_gc_vars = [
-                    id!(GC_FROMSPACE_BEGIN),
-                    id!(GC_FROMSPACE_END),
-                    id!(GC_FROMSPACE_BEGIN),
-                    id!(GC_FROMSPACE_END),
-                    id!(GC_ROOTSTACK_BEGIN),
-                    id!(GC_ROOTSTACK_END),
+                    global!(GC_FROMSPACE_BEGIN),
+                    global!(GC_FROMSPACE_END),
+                    global!(GC_ROOTSTACK_BEGIN),
+                    global!(GC_ROOTSTACK_END),
                 ];
 
-                if name == &id!("__gc_free_ptr") {
+                if name == &global!(GC_FREE_PTR) {
                     self.gc_free_ptr
                 } else if zeroable_gc_vars.contains(name) {
                     0
@@ -260,19 +262,43 @@ fn execute_special_functions(
     let arr_idx = idx - env.special_function_offset;
     let label = SPECIAL_FUNCTIONS[arr_idx];
 
-    if label == "print_int" {
+    if label == FN_PRINT_INT {
         let int = env.read_arg(&Arg::Reg(Register::rdi));
         outputs.push_back(int);
         return true;
-    } else if label == "read_int" {
+    } else if label == FN_READ_INT {
         let int = inputs.pop_front().expect("Overflowed input values");
         env.write_arg(&Arg::Reg(Register::rax), int);
         return true;
-    } else if label == "__gc_initialize" {
+    } else if label == FN_GC_INITIALIZE {
         // Don't need to do anything in sim
         return true;
-    } else if label == "__gc_collect" {
+    } else if label == FN_GC_COLLECT {
         // Don't need to do anything in sim
+        return true;
+    } else if label == FN_SUBSCRIPT_ARRAY {
+        let idx = env.read_arg(&Arg::Reg(Register::rsi));
+
+        let tag = ArrayTag::from(env.read_arg(&Arg::Deref(Register::rdi, 0)));
+        if idx >= tag.length() as _ {
+            panic!("Tried to index past end of array");
+        }
+
+        let val = env.read_arg(&Arg::Deref(Register::rdi, (WORD_SIZE * (1 + idx)) as i32));
+        env.write_arg(&Arg::Reg(Register::rax), val);
+
+        return true;
+    } else if label == FN_ASSIGN_TO_ARRAY_ELEM {
+        let idx = env.read_arg(&Arg::Reg(Register::rsi));
+
+        let tag = ArrayTag::from(env.read_arg(&Arg::Deref(Register::rdi, 0)));
+        if idx >= tag.length() as _ {
+            panic!("Tried to index past end of array");
+        }
+
+        let val = env.read_arg(&Arg::Reg(Register::rdx));
+        env.write_arg(&Arg::Deref(Register::rdi, (WORD_SIZE * (1 + idx)) as i32), val);
+
         return true;
     } else {
         // No match found, must be another call
@@ -419,7 +445,7 @@ pub fn interpret_x86(m: &X86Program, inputs: &mut VecDeque<i64>, outputs: &mut V
     let mut curr_func = m
         .functions
         .iter()
-        .find(|f| f.name == id!(LABEL_MAIN))
+        .find(|f| f.name == global!(LABEL_MAIN))
         .unwrap();
 
     let mut curr_block_idx = curr_func
@@ -440,10 +466,7 @@ pub fn interpret_x86(m: &X86Program, inputs: &mut VecDeque<i64>, outputs: &mut V
         match run_instr(curr_instr, inputs, outputs, &mut env) {
             Continuation::Next => {}
             Continuation::Jump(label) => {
-                if let Some(new_block_idx) = curr_func
-                    .blocks
-                    .iter()
-                    .position(|b| b.label == label)
+                if let Some(new_block_idx) = curr_func.blocks.iter().position(|b| b.label == label)
                 {
                     // Look for blocks within this function to jump to
                     curr_block_idx = new_block_idx;

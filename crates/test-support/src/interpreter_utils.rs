@@ -150,12 +150,12 @@ impl UnaryOperatorExt for UnaryOperator {
     }
 }
 
-macro_rules! id {
+macro_rules! global {
     ($name:expr) => {
         compiler::syntax_trees::shared::Identifier::Global(std::sync::Arc::from($name))
     };
 }
-pub(crate) use id;
+pub(crate) use global;
 
 // macro_rules! label {
 //     ($name:expr) => {

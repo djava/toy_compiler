@@ -63,7 +63,7 @@ fn interpret_expr(
             op.try_eval(&l_val, &r_val).unwrap()
         }
         Expr::Call(func_name, args) => {
-            if func_name == &Atom::GlobalSymbol(id!("print_int")) {
+            if func_name == &Atom::GlobalSymbol(global!("print_int")) {
                 if args.len() != 1 {
                     panic!("Wrong number of arguments to print_int()");
                 }
@@ -75,7 +75,7 @@ fn interpret_expr(
                 }
 
                 Value::None
-            } else if func_name == &Atom::GlobalSymbol(id!("read_int")) {
+            } else if func_name == &Atom::GlobalSymbol(global!("read_int")) {
                 if args.len() != 0 {
                     panic!("Wrong number of args to read_int()");
                 }
@@ -255,7 +255,7 @@ pub fn interpret_irprogram(p: &IRProgram, inputs: &mut VecDeque<i64>, outputs: &
     let main_func = p
         .functions
         .iter()
-        .find(|f| f.name == id!(LABEL_MAIN))
+        .find(|f| f.name == global!(LABEL_MAIN))
         .unwrap();
 
     interpret_func(main_func, vec![], inputs, outputs, &p.functions);

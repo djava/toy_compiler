@@ -47,6 +47,6 @@ void print_space();
 void print_ellipsis();
 void print_any(int64_t any);
 
-
-
-
+int64_t len(int64_t* ptr);
+int64_t __subscript_array(int64_t *ptr, int64_t idx);
+void __assign_to_array_elem(int64_t *ptr, int64_t idx, int64_t value);

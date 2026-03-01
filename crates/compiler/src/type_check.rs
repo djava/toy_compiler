@@ -50,18 +50,8 @@ impl ast::Expr {
                         "Wrong number of args passed to `{func:?}`"
                     );
 
-                    if **func == GlobalSymbol(global!(FN_LEN)) {
-                        // This one is actually special, it can be
-                        // called with any tuple type and there's no way
-                        // to express that in ValueType right now so
-                        // this is what we're doing
-
-                        // Worth noting that this sucks because you
-                        // can't use len indirectly now :(
-                        assert!(matches!(
-                            args[0].type_check(env, &None),
-                            ValueType::TupleType(_) | ValueType::ArrayType(_, _)
-                        ));
+                    if let Some(ret_type) = check_special_functions(func, args, env) {
+                        ret_type
                     } else {
                         for (a, typ) in args.iter_mut().zip(arg_types) {
                             assert_eq!(
@@ -70,9 +60,8 @@ impl ast::Expr {
                                 "Passed wrong arg type `{a:?}` to function `{func:?}`"
                             )
                         }
+                        *ret_type
                     }
-
-                    *ret_type
                 } else if let ValueType::TupleType(closure_elems) = callee_type {
                     if let Some(ValueType::FunctionType(arg_types, ret_type)) = closure_elems.get(0)
                     {
@@ -232,6 +221,52 @@ impl ast::Expr {
     }
 }
 
+fn check_special_functions(
+    func: &ast::Expr,
+    args: &mut Vec<ast::Expr>,
+    env: &mut TypeEnv,
+) -> Option<ValueType> {
+    use ast::Expr::*;
+
+    if *func == GlobalSymbol(global!(FN_LEN)) {
+        // Can be called with any tuple or array type
+        assert_eq!(args.len(), 1);
+        assert!(matches!(
+            args[0].type_check(env, &None),
+            ValueType::TupleType(_) | ValueType::ArrayType(_, _)
+        ));
+        Some(ValueType::IntType)
+    } else if *func == GlobalSymbol(global!(FN_SUBSCRIPT_ARRAY)) {
+        // Can be called with any array type and an index
+        let arr_type = args[0].type_check(env, &None);
+        assert_eq!(args.len(), 2);
+        assert!(matches!(arr_type, ValueType::ArrayType(_, _)));
+        assert!(matches!(args[1].type_check(env, &None), ValueType::IntType));
+        if let ValueType::ArrayType(elem_type, _) = arr_type {
+            Some(*elem_type)
+        } else {
+            unreachable!()
+        }
+    } else if *func == GlobalSymbol(global!(FN_ASSIGN_TO_ARRAY_ELEM)) {
+        // Can be called with any array type, an index and a value
+        let arr_type = args[0].type_check(env, &None);
+        assert_eq!(args.len(), 3);
+        assert!(matches!(arr_type, ValueType::ArrayType(_, _)));
+        assert!(matches!(args[1].type_check(env, &None), ValueType::IntType));
+
+        let elem_type = if let ValueType::ArrayType(elem_type, _) = arr_type {
+            *elem_type
+        } else {
+            unreachable!();
+        };
+        assert_eq!(args[2].type_check(env, &None), elem_type);
+
+        Some(ValueType::NoneType)
+    } else {
+        None
+    }
+}
+
 impl ast::Statement {
     pub fn type_check(&mut self, env: &mut TypeEnv) {
         use ast::Statement::*;
@@ -356,6 +391,27 @@ impl ast::Program {
             (
                 global!(FN_GC_COLLECT),
                 ValueType::FunctionType(vec![ValueType::IntType], Box::new(ValueType::NoneType)),
+            ),
+            (
+                global!(FN_SUBSCRIPT_ARRAY),
+                ValueType::FunctionType(
+                    vec![
+                        ValueType::ArrayType(Box::new(ValueType::Indeterminate), 0),
+                        ValueType::IntType,
+                    ],
+                    Box::new(ValueType::Indeterminate),
+                ),
+            ),
+            (
+                global!(FN_ASSIGN_TO_ARRAY_ELEM),
+                ValueType::FunctionType(
+                    vec![
+                        ValueType::ArrayType(Box::new(ValueType::Indeterminate), 0),
+                        ValueType::IntType,
+                        ValueType::Indeterminate,
+                    ],
+                    Box::new(ValueType::Indeterminate),
+                ),
             ),
         ];
 

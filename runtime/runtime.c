@@ -862,3 +862,23 @@ int64_t len(int64_t* ptr) {
     return (*ptr >> TUPLE_LENGTH_TAG_SHIFT) & TUPLE_LENGTH_TAG_MASK;
   }
 }
+
+int64_t __subscript_array(int64_t *ptr, int64_t idx) {
+  const int64_t length = len(ptr);
+  if (idx >= length) {
+    printf("Tried to read idx %lld of array with len %lld\n", idx, length);
+    exit(1);
+  } else {
+    return ptr[1 + idx];
+  }
+}
+
+void __assign_to_array_elem(int64_t *ptr, int64_t idx, int64_t value) {
+  const int64_t length = len(ptr);
+  if (idx >= length) {
+    printf("Tried to assign to idx %lld of array with len %lld\n", idx, length);
+    exit(1);
+  } else {
+    ptr[1 + idx] = value;
+  }
+}

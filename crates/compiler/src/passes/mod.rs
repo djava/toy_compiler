@@ -35,6 +35,8 @@ mod declosurize_calls;
 pub use declosurize_calls::DeclosurizeCalls;
 mod optimize_fallthrough;
 pub use optimize_fallthrough::OptimizeFallthrough;
+mod disambiguate_subscript;
+pub use disambiguate_subscript::DisambiguateSubscript;
 
 #[enum_dispatch]
 pub trait ASTPass {
@@ -54,6 +56,7 @@ pub enum ASTtoAST {
     ClosurizeLambdas,
     ClosurizeFunctions,
     DeclosurizeCalls,
+    DisambiguateSubscript,
 }
 
 #[enum_dispatch]

@@ -1,6 +1,6 @@
 use crate::{ValueEnv, interpreter_utils::*};
 use compiler::{
-    constants::LABEL_MAIN,
+    constants::{FN_PRINT_INT, FN_READ_INT, LABEL_MAIN},
     syntax_trees::{ast::*, shared::*},
 };
 use std::collections::VecDeque;
@@ -33,9 +33,9 @@ fn interpret_expr(
         }
         Constant(v) => Some(v.clone()),
         Call(func, args) => {
-            if **func == GlobalSymbol(id!("read_int")) && args.is_empty() {
+            if **func == GlobalSymbol(global!(FN_READ_INT)) && args.is_empty() {
                 Some(Value::I64(inputs.pop_front().expect("Ran out of inputs")))
-            } else if **func == GlobalSymbol(id!("print_int")) && args.len() == 1 {
+            } else if **func == GlobalSymbol(global!(FN_PRINT_INT)) && args.len() == 1 {
                 let val = interpret_expr(&args[0], inputs, outputs, val_env, func_env).expect_int();
                 outputs.push_back(val);
 
@@ -190,7 +190,7 @@ pub fn interpret(m: &Program, inputs: &mut VecDeque<i64>, outputs: &mut VecDeque
     let main_function = m
         .functions
         .iter()
-        .find(|f| f.name == id!(LABEL_MAIN))
+        .find(|f| f.name == global!(LABEL_MAIN))
         .expect("Couldn't find main function");
 
     if !main_function.body.is_empty() {

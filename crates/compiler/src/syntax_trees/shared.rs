@@ -284,3 +284,10 @@ pub struct ArrayTag {
     #[bits(1)]
     __: u8,
 }
+
+impl From<i64> for ArrayTag {
+    fn from(value: i64) -> Self {
+        let bits: u64 = u64::from_le_bytes(value.to_le_bytes());
+        Self::from_bits(bits)
+    }
+}

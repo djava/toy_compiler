@@ -21,6 +21,8 @@ pub const FN_READ_INT: &str = "read_int";
 pub const FN_LEN: &str = "len";
 pub const FN_GC_COLLECT: &str = "__gc_collect";
 pub const FN_GC_INITIALIZE: &str = "__gc_initialize";
+pub const FN_SUBSCRIPT_ARRAY: &str = "__subscript_array";
+pub const FN_ASSIGN_TO_ARRAY_ELEM: &str = "__assign_to_array_elem";
 
 pub static EXTERNED_FUNCTIONS: LazyLock<Vec<Identifier>> = LazyLock::new(|| {
     [
@@ -29,6 +31,8 @@ pub static EXTERNED_FUNCTIONS: LazyLock<Vec<Identifier>> = LazyLock::new(|| {
         FN_LEN,
         FN_GC_COLLECT,
         FN_GC_INITIALIZE,
+        FN_SUBSCRIPT_ARRAY,
+        FN_ASSIGN_TO_ARRAY_ELEM,
     ]
     .into_iter()
     .map(|f| global!(f))
@@ -56,7 +60,6 @@ pub const WORD_SIZE: i64 = 8;
 // NOTE: syntax_trees/shared.rs TupleTag bitfield and parser/parse_tree.rs PEG grammar
 // use this value as a literal because their macro systems require it.
 pub const MAX_TUPLE_ELEMENTS: usize = 50;
-
 
 // Maximum number of function arguments passed in registers (System V AMD64 ABI)
 pub const MAX_REGISTER_ARGS: usize = 6;
