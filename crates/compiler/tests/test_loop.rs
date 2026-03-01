@@ -189,3 +189,121 @@ print_int(x)
         expected_outputs: VecDeque::from(vec![-2]),
     });
 }
+
+// ── Control flow: for loop ────────────────────────────────────────
+
+#[test]
+fn test_for_countdown() {
+    execute_test_case(TestCase {
+        input: "fn main() -> int { for (x = 3; x > 0; x = x - 1) {
+    print_int(x)
+}
+}",
+        inputs: VecDeque::new(),
+        expected_outputs: VecDeque::from(vec![3, 2, 1]),
+    });
+}
+
+#[test]
+fn test_for_never_enters() {
+    execute_test_case(TestCase {
+        input: "fn main() -> int { for (i = 5; i < 5; i = i + 1) {
+    print_int(i)
+}
+print_int(99)
+}",
+        inputs: VecDeque::new(),
+        expected_outputs: VecDeque::from(vec![99]),
+    });
+}
+
+#[test]
+fn test_for_accumulate_sum() {
+    // sum = 1 + 2 + ... + 10 = 55
+    execute_test_case(TestCase {
+        input: "fn main() -> int { sum = 0
+for (i = 1; i <= 10; i = i + 1) {
+    sum = sum + i
+}
+print_int(sum)
+}",
+        inputs: VecDeque::new(),
+        expected_outputs: VecDeque::from(vec![55]),
+    });
+}
+
+#[test]
+fn test_for_single_iteration() {
+    execute_test_case(TestCase {
+        input: "fn main() -> int { for (i = 0; i < 1; i = i + 1) {
+    print_int(42)
+}
+}",
+        inputs: VecDeque::new(),
+        expected_outputs: VecDeque::from(vec![42]),
+    });
+}
+
+#[test]
+fn test_for_variable_survives_after_loop() {
+    execute_test_case(TestCase {
+        input: "fn main() -> int { for (i = 0; i < 3; i = i + 1) {
+    print_int(i)
+}
+print_int(i)
+}",
+        inputs: VecDeque::new(),
+        // i is 3 after the loop exits
+        expected_outputs: VecDeque::from(vec![0, 1, 2, 3]),
+    });
+}
+
+#[test]
+fn test_for_with_read() {
+    execute_test_case(TestCase {
+        input: "fn main() -> int { n = read_int()
+sum = 0
+for (i = 1; i <= n; i = i + 1) {
+    sum = sum + i
+}
+print_int(sum)
+}",
+        inputs: VecDeque::from(vec![5]),
+        // 1+2+3+4+5 = 15
+        expected_outputs: VecDeque::from(vec![15]),
+    });
+}
+
+#[test]
+fn test_nested_for() {
+    // 3 * 4 = 12 iterations
+    execute_test_case(TestCase {
+        input: "fn main() -> int { result = 0
+for (i = 0; i < 3; i = i + 1) {
+    for (j = 0; j < 4; j = j + 1) {
+        result = result + 1
+    }
+}
+print_int(result)
+}",
+        inputs: VecDeque::new(),
+        expected_outputs: VecDeque::from(vec![12]),
+    });
+}
+
+#[test]
+fn test_for_and_while_mixed() {
+    execute_test_case(TestCase {
+        input: "fn main() -> int { for (i = 0; i < 3; i = i + 1) {
+    j = i
+    while j > 0 {
+        print_int(j)
+        j = j - 1
+    }
+}
+}",
+        inputs: VecDeque::new(),
+        // i=0: nothing; i=1: 1; i=2: 2, 1
+        expected_outputs: VecDeque::from(vec![1, 2, 1]),
+    });
+}

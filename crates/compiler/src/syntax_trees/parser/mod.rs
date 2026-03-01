@@ -4557,4 +4557,239 @@ x[0] = 42
             other => panic!("expected Call expression, got {:?}", other),
         }
     }
+
+    // ── For loop ─────────────────────────────────────────────────────────────
+
+    #[test]
+    fn test_for_simple_desugar() {
+        // for (i = 0; i < 5; i = i + 1) { print_int(i) }
+        // desugars to: i = 0; while i < 5 { print_int(i); i = i + 1 }
+        let tc = ParserTestCase {
+            input_str: r"fn main() -> int { for (i = 0; i < 5; i = i + 1) { print_int(i) } }",
+            expected_tokens: vec![
+                Token::Fn,
+                Token::Identifier("main"),
+                Token::OpenParen,
+                Token::CloseParen,
+                Token::RightArrow,
+                Token::IntType,
+                Token::OpenCurly,
+                Token::For,
+                Token::OpenParen,
+                Token::Identifier("i"),
+                Token::Equals,
+                Token::Int(0),
+                Token::Semicolon,
+                Token::Identifier("i"),
+                Token::Less,
+                Token::Int(5),
+                Token::Semicolon,
+                Token::Identifier("i"),
+                Token::Equals,
+                Token::Identifier("i"),
+                Token::Plus,
+                Token::Int(1),
+                Token::CloseParen,
+                Token::OpenCurly,
+                Token::Identifier("print_int"),
+                Token::OpenParen,
+                Token::Identifier("i"),
+                Token::CloseParen,
+                Token::CloseCurly,
+                Token::CloseCurly,
+            ],
+            expected_parse_tree: pt::Module {
+                functions: vec![pt::Function {
+                    name: "main",
+                    params: vec![],
+                    return_type: ValueType::IntType,
+                    statements: vec![pt::Statement::For(
+                        Box::new(pt::Statement::Assign("i", pt::Expr::Int(0), None)),
+                        pt::Expr::Binary(
+                            Box::new(pt::Expr::Id("i")),
+                            pt::Operator::Less,
+                            Box::new(pt::Expr::Int(5)),
+                        ),
+                        Box::new(pt::Statement::Assign(
+                            "i",
+                            pt::Expr::Binary(
+                                Box::new(pt::Expr::Id("i")),
+                                pt::Operator::Plus,
+                                Box::new(pt::Expr::Int(1)),
+                            ),
+                            None,
+                        )),
+                        vec![pt::Statement::Expr(pt::Expr::Call(
+                            Box::new(pt::Expr::Id("print_int")),
+                            vec![pt::Expr::Id("i")],
+                        ))],
+                    )],
+                }],
+            },
+            expected_ast: ast::Program {
+                functions: vec![ast::Function {
+                    name: t_global!(LABEL_MAIN),
+                    body: vec![
+                        ast::Statement::Assign(
+                            AssignDest::Id(main_local!("i")),
+                            ast::Expr::Constant(Value::I64(0)),
+                            None,
+                        ),
+                        ast::Statement::WhileLoop(
+                            ast::Expr::BinaryOp(
+                                Box::new(ast::Expr::Id(main_local!("i"))),
+                                BinaryOperator::Less,
+                                Box::new(ast::Expr::Constant(Value::I64(5))),
+                            ),
+                            vec![
+                                ast::Statement::Expr(ast::Expr::Call(
+                                    Box::new(ast::Expr::Id(main_local!("print_int"))),
+                                    vec![ast::Expr::Id(main_local!("i"))],
+                                )),
+                                ast::Statement::Assign(
+                                    AssignDest::Id(main_local!("i")),
+                                    ast::Expr::BinaryOp(
+                                        Box::new(ast::Expr::Id(main_local!("i"))),
+                                        BinaryOperator::Add,
+                                        Box::new(ast::Expr::Constant(Value::I64(1))),
+                                    ),
+                                    None,
+                                ),
+                            ],
+                        ),
+                    ],
+                    types: HashMap::new(),
+                    params: IndexMap::new(),
+                    return_type: ValueType::IntType,
+                }],
+                global_types: HashMap::new(),
+            },
+        };
+        tc.run();
+    }
+
+    #[test]
+    fn test_for_decrement() {
+        // for (x = 3; x > 0; x = x - 1) { print_int(x) }
+        let tc = ParserTestCase {
+            input_str: r"fn main() -> int { for (x = 3; x > 0; x = x - 1) { print_int(x) } }",
+            expected_tokens: vec![
+                Token::Fn,
+                Token::Identifier("main"),
+                Token::OpenParen,
+                Token::CloseParen,
+                Token::RightArrow,
+                Token::IntType,
+                Token::OpenCurly,
+                Token::For,
+                Token::OpenParen,
+                Token::Identifier("x"),
+                Token::Equals,
+                Token::Int(3),
+                Token::Semicolon,
+                Token::Identifier("x"),
+                Token::Greater,
+                Token::Int(0),
+                Token::Semicolon,
+                Token::Identifier("x"),
+                Token::Equals,
+                Token::Identifier("x"),
+                Token::Minus,
+                Token::Int(1),
+                Token::CloseParen,
+                Token::OpenCurly,
+                Token::Identifier("print_int"),
+                Token::OpenParen,
+                Token::Identifier("x"),
+                Token::CloseParen,
+                Token::CloseCurly,
+                Token::CloseCurly,
+            ],
+            expected_parse_tree: pt::Module {
+                functions: vec![pt::Function {
+                    name: "main",
+                    params: vec![],
+                    return_type: ValueType::IntType,
+                    statements: vec![pt::Statement::For(
+                        Box::new(pt::Statement::Assign("x", pt::Expr::Int(3), None)),
+                        pt::Expr::Binary(
+                            Box::new(pt::Expr::Id("x")),
+                            pt::Operator::Greater,
+                            Box::new(pt::Expr::Int(0)),
+                        ),
+                        Box::new(pt::Statement::Assign(
+                            "x",
+                            pt::Expr::Binary(
+                                Box::new(pt::Expr::Id("x")),
+                                pt::Operator::Minus,
+                                Box::new(pt::Expr::Int(1)),
+                            ),
+                            None,
+                        )),
+                        vec![pt::Statement::Expr(pt::Expr::Call(
+                            Box::new(pt::Expr::Id("print_int")),
+                            vec![pt::Expr::Id("x")],
+                        ))],
+                    )],
+                }],
+            },
+            expected_ast: ast::Program {
+                functions: vec![ast::Function {
+                    name: t_global!(LABEL_MAIN),
+                    body: vec![
+                        ast::Statement::Assign(
+                            AssignDest::Id(main_local!("x")),
+                            ast::Expr::Constant(Value::I64(3)),
+                            None,
+                        ),
+                        ast::Statement::WhileLoop(
+                            ast::Expr::BinaryOp(
+                                Box::new(ast::Expr::Id(main_local!("x"))),
+                                BinaryOperator::Greater,
+                                Box::new(ast::Expr::Constant(Value::I64(0))),
+                            ),
+                            vec![
+                                ast::Statement::Expr(ast::Expr::Call(
+                                    Box::new(ast::Expr::Id(main_local!("print_int"))),
+                                    vec![ast::Expr::Id(main_local!("x"))],
+                                )),
+                                ast::Statement::Assign(
+                                    AssignDest::Id(main_local!("x")),
+                                    ast::Expr::BinaryOp(
+                                        Box::new(ast::Expr::Id(main_local!("x"))),
+                                        BinaryOperator::Subtract,
+                                        Box::new(ast::Expr::Constant(Value::I64(1))),
+                                    ),
+                                    None,
+                                ),
+                            ],
+                        ),
+                    ],
+                    types: HashMap::new(),
+                    params: IndexMap::new(),
+                    return_type: ValueType::IntType,
+                }],
+                global_types: HashMap::new(),
+            },
+        };
+        tc.run();
+    }
+
+    #[test]
+    fn test_for_nested() {
+        // for (i = 0; i < 2; i = i + 1) { for (j = 0; j < 2; j = j + 1) { print_int(j) } }
+        // Just verify the parse tree structure — two nested For nodes
+        let input_str =
+            r"fn main() -> int { for (i = 0; i < 2; i = i + 1) { for (j = 0; j < 2; j = j + 1) { print_int(j) } } }";
+        let tokens = tokenize(input_str).unwrap();
+        let parse_tree = parse_tree::parse_tokens(&tokens).unwrap();
+        match &parse_tree.functions[0].statements[0] {
+            pt::Statement::For(init, _cond, _incr, body) => {
+                assert_eq!(**init, pt::Statement::Assign("i", pt::Expr::Int(0), None));
+                assert_eq!(body.len(), 1);
+                assert!(matches!(&body[0], pt::Statement::For(..)));
+            }
+            other => panic!("expected outer For, got {:?}", other),
+        }
+    }
 }
