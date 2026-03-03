@@ -59,7 +59,7 @@ pub enum TokenValue<'a> {
 #[derive(Debug)]
 pub struct Token<'a> {
     pub token: TokenValue<'a>,
-    pub position: LocatedSpan<&'a str>,
+    pub span: LocatedSpan<&'a str>,
 }
 
 const ID_START_CHARS: &str = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ_";
@@ -82,7 +82,7 @@ fn newline<'a>(rem: LocatedSpan<&'a str>) -> IResult<LocatedSpan<&'a str>, Token
         rem,
         Token {
             token: TokenValue::Newline,
-            position: span,
+            span,
         },
     ))
 }
@@ -120,13 +120,7 @@ fn keyword_parser<'a>(rem: LocatedSpan<&'a str>) -> IResult<LocatedSpan<&'a str>
     )
     .parse(rem)?;
 
-    Ok((
-        rem,
-        Token {
-            token,
-            position: span,
-        },
-    ))
+    Ok((rem, Token { token, span }))
 }
 
 fn punctuation_parser<'a>(rem: LocatedSpan<&'a str>) -> IResult<LocatedSpan<&'a str>, Token<'a>> {
@@ -165,13 +159,7 @@ fn punctuation_parser<'a>(rem: LocatedSpan<&'a str>) -> IResult<LocatedSpan<&'a 
     ))
     .parse(rem)?;
 
-    Ok((
-        rem,
-        Token {
-            token,
-            position: span,
-        },
-    ))
+    Ok((rem, Token { token, span }))
 }
 
 fn int_parser(rem: LocatedSpan<&'_ str>) -> IResult<LocatedSpan<&'_ str>, Token<'_>> {
@@ -189,7 +177,7 @@ fn int_parser(rem: LocatedSpan<&'_ str>) -> IResult<LocatedSpan<&'_ str>, Token<
         rem,
         Token {
             token,
-            position: token_span,
+            span: token_span,
         },
     ))
 }
@@ -205,7 +193,7 @@ fn id_parser(rem: LocatedSpan<&'_ str>) -> IResult<LocatedSpan<&'_ str>, Token<'
         rem,
         Token {
             token: TokenValue::Identifier(id_span.clone().into_fragment()),
-            position: id_span,
+            span: id_span,
         },
     ))
 }
