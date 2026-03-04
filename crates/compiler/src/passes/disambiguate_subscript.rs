@@ -1,26 +1,3 @@
-//! `DisambiguateSubscript` Pass
-//!
-//! Resolves subscript operations to their type-appropriate form using
-//! type information from the type environment:
-//! - Tuple subscripts: converted to `AssignDest::Subscript` with a
-//!   constant index
-//! - Array subscripts (reads): converted to calls to
-//!   `FN_SUBSCRIPT_ARRAY`
-//! - Array subscripts (writes): converted to calls to
-//!   `FN_ASSIGN_TO_ARRAY_ELEM`
-//!
-//! Array accesses must be function calls so that they can be
-//! bounds-checked
-//!
-//! It is mandatory to run this pass
-//!
-//! Pre-conditions:
-//! - `TypeCheck` (type information must be populated in `TypeEnv`s)
-//!
-//! Post-conditions:
-//! - No `AssignDest::ComplexSubscript` remains
-//! - All array subscript reads/writes are runtime function calls
-
 use crate::{
     constants::{FN_ASSIGN_TO_ARRAY_ELEM, FN_SUBSCRIPT_ARRAY},
     passes::ASTPass,
@@ -28,6 +5,28 @@ use crate::{
     utils::global,
 };
 
+/// `DisambiguateSubscript` Pass
+///
+/// Resolves subscript operations to their type-appropriate form using
+/// type information from the type environment:
+/// - Tuple subscripts: converted to `AssignDest::Subscript` with a
+///   constant index
+/// - Array subscripts (reads): converted to calls to
+///   `FN_SUBSCRIPT_ARRAY`
+/// - Array subscripts (writes): converted to calls to
+///   `FN_ASSIGN_TO_ARRAY_ELEM`
+///
+/// Array accesses must be function calls so that they can be
+/// bounds-checked
+///
+/// It is mandatory to run this pass
+///
+/// Pre-conditions:
+/// - `TypeCheck` (type information must be populated in `TypeEnv`s)
+///
+/// Post-conditions:
+/// - No `AssignDest::ComplexSubscript` remains
+/// - All array subscript reads/writes are runtime function calls
 #[derive(Debug)]
 pub struct DisambiguateSubscript;
 

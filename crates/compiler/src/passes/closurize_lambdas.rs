@@ -1,32 +1,32 @@
-//! `ClosurizeLambdas` Pass
-//!
-//! Extracts all `Expr::Lambda` nodes into top-level Functions. For each
-//! lambda, determines which outer-scope identifiers it captures, adds a
-//! captures-tuple as its first parameter (containing the function's own
-//! type followed by captured variable types), rewrites captured
-//! variable accesses as subscripts into the captures-tuple, and
-//! replaces the `Expr::Lambda` at the use-site with `Expr::Closure`.
-//!
-//! MUST run after `ClosurizeFunctions` to avoid double-adding captures
-//! params.
-//!
-//! It is mandatory to run this pass
-//!
-//! Pre-conditions:
-//! - `TypeCheck`
-//! - `ClosurizeFunctions`
-//!
-//! Post-conditions:
-//! - No `Expr::Lambda` remains
-//! - All lambdas are extracted as top-level `Functions`
-//! - All lambda use-sites become `Expr::Closure` with the list of
-//!   captured identifiers
 
 use crate::{
     passes::ASTPass,
     syntax_trees::{ast::*, shared::*},
 };
 
+/// `ClosurizeLambdas` Pass
+///
+/// Extracts all `Expr::Lambda` nodes into top-level Functions. For each
+/// lambda, determines which outer-scope identifiers it captures, adds a
+/// captures-tuple as its first parameter (containing the function's own
+/// type followed by captured variable types), rewrites captured
+/// variable accesses as subscripts into the captures-tuple, and
+/// replaces the `Expr::Lambda` at the use-site with `Expr::Closure`.
+///
+/// MUST run after `ClosurizeFunctions` to avoid double-adding captures
+/// params.
+///
+/// It is mandatory to run this pass
+///
+/// Pre-conditions:
+/// - `TypeCheck`
+/// - `ClosurizeFunctions`
+///
+/// Post-conditions:
+/// - No `Expr::Lambda` remains
+/// - All lambdas are extracted as top-level `Functions`
+/// - All lambda use-sites become `Expr::Closure` with the list of
+///   captured identifiers
 #[derive(Debug)]
 pub struct ClosurizeLambdas;
 

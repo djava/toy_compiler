@@ -1,23 +1,22 @@
-//! `RemoveComplexOperands` Pass
-//!
-//! Ensures all operands of operations are "atomic" (`Expr::Id` or
-//! `Expr::Constant`) by lifting complex sub-expressions into fresh
-//! ephemeral assignments placed immediately before the containing
-//! statement.
-//!
-//! It is mandatory to run this pass
-//!
-//! Pre-conditions: None
-//!
-//! Post-conditions:
-//! - All operands of complex exprs are atomic (`Expr::Id` or
-//!   `Expr::Constant`)
-
 use crate::{
     passes::ASTPass,
     syntax_trees::{ast::*, shared::*},
 };
 
+/// `RemoveComplexOperands` Pass
+///
+/// Ensures all operands of operations are "atomic" (`Expr::Id` or
+/// `Expr::Constant`) by lifting complex sub-expressions into fresh
+/// ephemeral assignments placed immediately before the containing
+/// statement.
+///
+/// It is mandatory to run this pass
+///
+/// Pre-conditions: None
+///
+/// Post-conditions:
+/// - All operands of complex exprs are atomic (`Expr::Id` or
+///   `Expr::Constant`)
 #[derive(Debug)]
 pub struct RemoveComplexOperands;
 

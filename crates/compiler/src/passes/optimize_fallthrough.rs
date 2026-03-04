@@ -1,21 +1,3 @@
-//! `OptimizeFallthrough` Pass
-//!
-//! Reorders basic blocks to maximize fallthrough (sequential execution
-//! without jumps) by following unconditional-jump chains from the entry
-//! block. After reordering, removes any trailing unconditional jmp
-//! whose target is the immediately following block such that
-//! fallthrough will occur instead, optimizing the output.
-//!
-//! Optional optimization pass, does not affect functionality
-//!
-//! Pre-conditions:
-//! - `RemoveJumps` (Soft pre-condition, or else optimization
-//!                  opportunities will be lost)
-//!
-//! Post-conditions:
-//! - Blocks are reordered for maximum fallthrough
-//! - Any unconditional jmp to the physically next block is removed
-
 use std::collections::VecDeque;
 
 use petgraph::{Direction, Graph, graph::NodeIndex, visit::EdgeRef};
@@ -26,6 +8,23 @@ use crate::{
     utils::{JumpType, x86_block_adj_graph},
 };
 
+/// `OptimizeFallthrough` Pass
+///
+/// Reorders basic blocks to maximize fallthrough (sequential execution
+/// without jumps) by following unconditional-jump chains from the entry
+/// block. After reordering, removes any trailing unconditional jmp
+/// whose target is the immediately following block such that
+/// fallthrough will occur instead, optimizing the output.
+///
+/// Optional optimization pass, does not affect functionality
+///
+/// Pre-conditions:
+/// - `RemoveJumps` (Soft pre-condition, or else optimization
+///                  opportunities will be lost)
+///
+/// Post-conditions:
+/// - Blocks are reordered for maximum fallthrough
+/// - Any unconditional jmp to the physically next block is removed
 #[derive(Debug)]
 pub struct OptimizeFallthrough;
 

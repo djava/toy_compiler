@@ -1,26 +1,3 @@
-//! `ClosurizeFunctions` Pass
-//!
-//! Prepares all named top-level functions for the uniform closure
-//! calling convention by (1) inserting an empty captures-tuple as the
-//! first parameter of every function, and (2) replacing any `Expr::Id`
-//! or `Expr::GlobalSymbol` that refers to a named function with
-//! `Expr::Closure`. Adjusts types of the corresponding identifiers as
-//! well.
-//!
-//! MUST run before `ClosurizeLambdas` to avoid double-adding captures
-//! params.
-//!
-//! Note: All operations exclude extern'ed functions
-//!
-//! It is mandatory to run this pass
-//! 
-//! Pre-conditions:
-//! - `TypeCheck` (`global_types` must be populated),
-//!
-//! Post-conditions:
-//! - All functions have a captures-tuple as their first parameter
-//! - All first-class function references are Expr::Closure
-//! - `TypeCheck` pass must be run again
 
 use crate::{
     constants::EXTERNED_FUNCTIONS,
@@ -29,6 +6,29 @@ use crate::{
     utils::closurize_type,
 };
 
+/// `ClosurizeFunctions` Pass
+///
+/// Prepares all named top-level functions for the uniform closure
+/// calling convention by (1) inserting an empty captures-tuple as the
+/// first parameter of every function, and (2) replacing any `Expr::Id`
+/// or `Expr::GlobalSymbol` that refers to a named function with
+/// `Expr::Closure`. Adjusts types of the corresponding identifiers as
+/// well.
+///
+/// MUST run before `ClosurizeLambdas` to avoid double-adding captures
+/// params.
+///
+/// Note: All operations exclude extern'ed functions
+///
+/// It is mandatory to run this pass
+/// 
+/// Pre-conditions:
+/// - `TypeCheck` (`global_types` must be populated),
+///
+/// Post-conditions:
+/// - All functions have a captures-tuple as their first parameter
+/// - All first-class function references are Expr::Closure
+/// - `TypeCheck` pass must be run again
 #[derive(Debug)]
 pub struct ClosurizeFunctions;
 

@@ -1,23 +1,3 @@
-//! `TupleizeExcessArgs` Pass
-//!
-//! Packs function parameters and call arguments beyond
-//! `MAX_REGISTER_ARGS` into a single tuple to avoid stack-based
-//! argument passing. On the definition side, excess params are replaced
-//! by one tuple parameter and all uses of those params are rewritten as
-//! tuple subscripts. On the call side, excess arguments are wrapped
-//! into an `Expr::Tuple`.
-//!
-//! It is mandatory to run this pass
-//!
-//! Pre-conditions:
-//! - `ClosurizeFunctions` (`global_types` must reflect the closurized
-//!                         function signatures)
-//! - `TypeCheck` (must have happened after the `ClosurizeFunctions`)
-//!
-//! Post-conditions:
-//! - All functions have at most `MAX_REGISTER_ARGS` parameters
-//! - All call sites pass at most `MAX_REGISTER_ARGS` arguments
-
 use indexmap::IndexMap;
 
 use crate::{
@@ -26,6 +6,25 @@ use crate::{
     syntax_trees::{ast::*, shared::*},
 };
 
+/// `TupleizeExcessArgs` Pass
+///
+/// Packs function parameters and call arguments beyond
+/// `MAX_REGISTER_ARGS` into a single tuple to avoid stack-based
+/// argument passing. On the definition side, excess params are replaced
+/// by one tuple parameter and all uses of those params are rewritten as
+/// tuple subscripts. On the call side, excess arguments are wrapped
+/// into an `Expr::Tuple`.
+///
+/// It is mandatory to run this pass
+///
+/// Pre-conditions:
+/// - `ClosurizeFunctions` (`global_types` must reflect the closurized
+///                         function signatures)
+/// - `TypeCheck` (must have happened after the `ClosurizeFunctions`)
+///
+/// Post-conditions:
+/// - All functions have at most `MAX_REGISTER_ARGS` parameters
+/// - All call sites pass at most `MAX_REGISTER_ARGS` arguments
 #[derive(Debug)]
 pub struct TupleizeExcessArgs;
 

@@ -1,26 +1,25 @@
-//! `PartialEval` Pass
-//!
-//! Performs compile-time constant folding and dead-code elimination:
-//! - Folds `BinaryOp`/`UnaryOp` whose operands are all constants
-//! - Applies algebraic identities (`x + 0`, `x * 0`, `x * 1`, `x &&
-//!   true`, etc.)
-//! - Inlines constant-condition `Ternary` and `Conditional` branches
-//! - Eliminates `WhileLoop` with always-false condition; warns on
-//!   always-true
-//!
-//! Optional optimization pass, does not affect functionality
-//!
-//! Pre-conditions: None
-//!
-//! Post-conditions:
-//! - No `BinaryOp` or `UnaryOp` with all-constant operands
-//! - No `Ternary`/`Conditional`/`WhileLoop` with constant conditions
-
 use crate::{
     passes::ASTPass,
     syntax_trees::{ast::*, shared::*},
 };
 
+/// `PartialEval` Pass
+///
+/// Performs compile-time constant folding and dead-code elimination:
+/// - Folds `BinaryOp`/`UnaryOp` whose operands are all constants
+/// - Applies algebraic identities (`x + 0`, `x * 0`, `x * 1`, `x &&
+///   true`, etc.)
+/// - Inlines constant-condition `Ternary` and `Conditional` branches
+/// - Eliminates `WhileLoop` with always-false condition; warns on
+///   always-true
+///
+/// Optional optimization pass, does not affect functionality
+///
+/// Pre-conditions: None
+///
+/// Post-conditions:
+/// - No `BinaryOp` or `UnaryOp` with all-constant operands
+/// - No `Ternary`/`Conditional`/`WhileLoop` with constant conditions
 #[derive(Debug)]
 pub struct PartialEval;
 

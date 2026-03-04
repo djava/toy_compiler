@@ -1,25 +1,24 @@
-//! `PreludeConclusion` Pass
-//!
-//! Adds the function prelude (stack frame setup, callee-saved register
-//! saves, GC stack/heap initialization for main) and conclusion (stack
-//! teardown, register restores, return) to each function. Also expands
-//! `jmp_tail` instructions into conclusion sequences followed by a
-//! tail-call jump.
-//!
-//! It is mandatory to run this pass
-//!
-//! Pre-conditions:
-//! - `RegisterAllocation` (`callee_saved_used` and `stack_size` must be
-//!   populated)
-//!
-//! Post-conditions:
-//! - Each function has a prelude entry block and a conclusion appended
-//!   to its exit block
-//! - All `jmp_tail` instructions are expanded into proper tail-call
-//!   sequences
-
 use crate::{constants::*, passes::X86Pass, syntax_trees::x86::*, utils::global};
 
+/// `PreludeConclusion` Pass
+///
+/// Adds the function prelude (stack frame setup, callee-saved register
+/// saves, GC stack/heap initialization for main) and conclusion (stack
+/// teardown, register restores, return) to each function. Also expands
+/// `jmp_tail` instructions into conclusion sequences followed by a
+/// tail-call jump.
+///
+/// It is mandatory to run this pass
+///
+/// Pre-conditions:
+/// - `RegisterAllocation` (`callee_saved_used` and `stack_size` must be
+///   populated)
+///
+/// Post-conditions:
+/// - Each function has a prelude entry block and a conclusion appended
+///   to its exit block
+/// - All `jmp_tail` instructions are expanded into proper tail-call
+///   sequences
 #[derive(Debug)]
 pub struct PreludeConclusion;
 

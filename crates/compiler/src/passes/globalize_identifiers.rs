@@ -1,25 +1,25 @@
-//! `GlobalizeIdentifiers` Pass
-//!
-//! Converts local identifiers to global ones when they are present in
-//! the global namespace, and their surrounding `ast::Expr::Id`'s into
-//! `ast::Expr::GlobalSymbol`. Relies on
-//! `ast::Program::populate_globals` from `type_check` to determine
-//! what's in the global namespace.
-//!
-//! It is mandatory to run this pass
-//!
-//! Pre-conditions: None
-//!
-//! Post-conditions:
-//! - Any Identifier used in the program whose name is in the global
-//!   namespace will be replaced with a global identifier and its
-//!   encoding `Expr::Id` with an `Expr::GlobalSymbol`
 
 use crate::{
     passes::ASTPass,
     syntax_trees::{ast::*, shared::*},
 };
 
+/// `GlobalizeIdentifiers` Pass
+///
+/// Converts local identifiers to global ones when they are present in
+/// the global namespace, and their surrounding `ast::Expr::Id`'s into
+/// `ast::Expr::GlobalSymbol`. Relies on
+/// `ast::Program::populate_globals` from `type_check` to determine
+/// what's in the global namespace.
+///
+/// It is mandatory to run this pass
+///
+/// Pre-conditions: None
+///
+/// Post-conditions:
+/// - Any Identifier used in the program whose name is in the global
+///   namespace will be replaced with a global identifier and its
+///   encoding `Expr::Id` with an `Expr::GlobalSymbol`
 #[derive(Debug)]
 pub struct GlobalizeIdentifiers;
 
