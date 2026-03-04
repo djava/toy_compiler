@@ -12,6 +12,34 @@ use dataflow_analysis::DataflowAnalysis;
 use graph_coloring::color_location_graph;
 use x86::*;
 
+/// `RegisterAllocation` Pass
+///
+/// Replaces all the `Arg::Variable` arguments with `Arg::Register` or
+/// `Arg::Deref`. Performs dataflow analysis to determine which variable
+/// and register locations have interfering lifetimes, then uses graph
+/// coloring to assign storages to each variable, and replaces all uses
+/// of the variable in the instructions with that location.
+/// 
+/// The graph coloring algorithm prioritizes assigning locations to
+/// register storage, but overflows to stack storage when needed.
+/// Additionally, location assignments are biased to attempt to keep
+/// move-related variables with non-interfering lifetimes in the same
+/// location, giving trivial moves between them that can be removed
+/// later by `PatchInstructions`.
+///
+/// Tuple pointers are in registers or on the GC-stack (aka root-stack)
+/// so that the GC can find them, even if it runs during a nested
+/// function call.
+///
+/// Pre-Conditions:
+/// - `TranslateIRtoX86` (obviously)
+/// 
+/// Post-Conditions
+/// - No `Arg::Variable`
+/// - All location assignments, to registers or to stack locations, have
+///   non-overlapping lifetimes if locations are shared.
+/// - Tuple pointers are always pushed to the GC-stack across a function
+///   call
 #[derive(Debug)]
 pub struct RegisterAllocation;
 
