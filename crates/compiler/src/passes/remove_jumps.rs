@@ -1,3 +1,19 @@
+//! `RemoveJumps` Pass
+//!
+//! Merges pairs of blocks where one block unconditionally jumps to
+//! another and that target has exactly one incoming edge. Eliminates
+//! the redundant jump by inlining the target's instructions into the
+//! source block.
+//! 
+//! Optional optimization pass, does not affect functionality
+//!
+//! Pre-conditions: None
+//!
+//! Post-conditions:
+//! - No block that has exactly one predecessor (which ends with an
+//!   unconditional jmp to it) exists independently; all such blocks are
+//!   merged into their predecessor
+
 use petgraph::visit::EdgeRef;
 
 use crate::{

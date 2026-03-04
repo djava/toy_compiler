@@ -1,3 +1,22 @@
+//! `TranslateASTtoIR` Pass
+//!
+//! Converts the AST representation into the IR with explicit basic
+//! blocks and control-flow edges. Statements are lowered into IR
+//! statements with atomic operands; conditionals and loops become
+//! branches between labeled blocks using a continuation-passing
+//! approach.
+//!
+//! It is mandatory to run this pass
+//!
+//! Pre-conditions:
+//! - `RemoveComplexOperands` (IR assumes atomic operands),
+//! - `ShortCircuiting` (no And/Or in expressions)
+//! - `InjectAllocations` (no Tuples, Closures, Arrays)
+//!
+//! Post-conditions:
+//! - An IRProgram with explicit BlockMap per function, containing only
+//!   IR statements with atomic operands
+
 use crate::{
     passes::ASTtoIRPass,
     syntax_trees::{

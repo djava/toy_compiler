@@ -1,3 +1,23 @@
+//! `PreludeConclusion` Pass
+//!
+//! Adds the function prelude (stack frame setup, callee-saved register
+//! saves, GC stack/heap initialization for main) and conclusion (stack
+//! teardown, register restores, return) to each function. Also expands
+//! `jmp_tail` instructions into conclusion sequences followed by a
+//! tail-call jump.
+//!
+//! It is mandatory to run this pass
+//!
+//! Pre-conditions:
+//! - `RegisterAllocation` (`callee_saved_used` and `stack_size` must be
+//!   populated)
+//!
+//! Post-conditions:
+//! - Each function has a prelude entry block and a conclusion appended
+//!   to its exit block
+//! - All `jmp_tail` instructions are expanded into proper tail-call
+//!   sequences
+
 use crate::{constants::*, passes::X86Pass, syntax_trees::x86::*, utils::global};
 
 #[derive(Debug)]
@@ -33,11 +53,7 @@ fn add_prelude_conclusion(f: &mut Function) {
     let exit_conclusion_instrs =
         generate_conclusion(&f.stack_size, &f.gc_stack_size, &f.callee_saved_used, None);
 
-    if let Some(exit_block) = f
-        .blocks
-        .iter_mut()
-        .find(|b| b.label == f.exit_block)
-    {
+    if let Some(exit_block) = f.blocks.iter_mut().find(|b| b.label == f.exit_block) {
         exit_block.instrs.extend(exit_conclusion_instrs);
     } else {
         panic!("Couldn't find exit block in function")

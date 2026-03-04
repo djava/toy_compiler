@@ -1,3 +1,24 @@
+//! `DeclosurizeCalls` Pass
+//!
+//! Rewrites calls through closure variables (`Expr::Call` with an
+//! `Expr::Id `callee) into the two-step closure-calling protocol:
+//! extract the function pointer from index 0 of the closure tuple, then
+//! call it with the closure tuple prepended as the first argument.
+//!
+//! It is mandatory to run this pass
+//!
+//! Pre-conditions:
+//! - `GlobalizeIdentifiers`
+//! - `ClosurizeFunctions`
+//! - `ClosurizeLambdas`
+//! - `InjectAllocations` (or else the allocations for closures will
+//!                        never get added)
+//!
+//! Post-conditions:
+//! - All calls through `Expr::Id` closure variables are replaced with
+//!   `StatementBlocks` that extract and call the underlying function
+//!   pointer
+
 use crate::{
     passes::ASTPass,
     syntax_trees::{ast::*, shared::*},

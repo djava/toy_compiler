@@ -1,3 +1,29 @@
+//! `InjectAllocations` Pass
+//!
+//! Replaces tuple, array, and closure construction expressions with
+//! explicit GC-aware heap allocation sequences:
+//! 1. Checks `free_ptr` against `fromspace_end`
+//! 2. Calls `gc_collect` if necessary
+//! 3. Bumps the allocation pointer via `Expr::Allocate`
+//! 4. Initializes each element via subscript assignments.
+//!
+//! Must run BEFORE `DeclosurizeCalls`, or else closures won't have
+//! their allocations injected.
+//!
+//! It is mandatory to run this pass
+//!
+//! Pre-conditions:
+//! - `RemoveComplexOperands` (generated statements must not contain
+//!   complex operands)
+//! - `ClosurizeFunctions`
+//! - `ClosurizeLambdas`
+//! - HAS NOT YET RUN `DeclosurizeCalls`
+//!
+//! Post-conditions:
+//! - No `Expr::Tuple`, `Expr::Array`, or `Expr::Closure` remain, and all are
+//!   replaced with `StatementBlock` allocation sequences using
+//!   `Expr::Allocate`
+
 use crate::{
     constants::*,
     passes::ASTPass,

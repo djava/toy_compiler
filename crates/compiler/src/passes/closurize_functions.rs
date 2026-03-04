@@ -1,8 +1,32 @@
+//! `ClosurizeFunctions` Pass
+//!
+//! Prepares all named top-level functions for the uniform closure
+//! calling convention by (1) inserting an empty captures-tuple as the
+//! first parameter of every function, and (2) replacing any `Expr::Id`
+//! or `Expr::GlobalSymbol` that refers to a named function with
+//! `Expr::Closure`. Adjusts types of the corresponding identifiers as
+//! well.
+//!
+//! MUST run before `ClosurizeLambdas` to avoid double-adding captures
+//! params.
+//!
+//! Note: All operations exclude extern'ed functions
+//!
+//! It is mandatory to run this pass
+//! 
+//! Pre-conditions:
+//! - `TypeCheck` (`global_types` must be populated),
+//!
+//! Post-conditions:
+//! - All functions have a captures-tuple as their first parameter
+//! - All first-class function references are Expr::Closure
+//! - `TypeCheck` pass must be run again
+
 use crate::{
     constants::EXTERNED_FUNCTIONS,
     passes::ASTPass,
     syntax_trees::{ast::*, shared::*},
-    utils::closurize_type
+    utils::closurize_type,
 };
 
 #[derive(Debug)]
@@ -10,8 +34,6 @@ pub struct ClosurizeFunctions;
 
 impl ASTPass for ClosurizeFunctions {
     fn run_pass(self, mut m: Program) -> Program {
-        // IMPORTANT: This pass must run BEFORE ClosurizeLambdas or else
-        // we will double-add capture arguments to the lambda functions
         for f in m.functions.iter_mut() {
             // Insert a captures parameter to the function to unify the
             // calling procedure with capturing lambdas

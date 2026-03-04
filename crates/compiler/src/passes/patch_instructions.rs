@@ -1,3 +1,26 @@
+//! `PatchInstructions` Pass
+//!
+//! Fixes x86 instructions that violate hardware constraints by
+//! inserting intermediate instructions that route through scratch
+//! registers.
+//!
+//! Patches out:
+//! - Trivial `movq` (src == dest),
+//! - Both operands are memory dereferences,
+//! - Large immediates (>32 bits) paired with memory destinations
+//! - `cmpq` with an immediate as the second operand
+//! - `imulq`/`leaq` with a non-register dest.
+//!
+//! It is mandatory to run this pass
+//!
+//! Pre-conditions:
+//! - `RegisterAllocation` (`Arg::Variable` resolved to
+//!   `Arg::Reg`/`Deref`)
+//!
+//! Post-conditions:
+//! - All instructions are valid as per x86 restrictions
+//! - Output contains no trivial moves
+
 use crate::{passes::X86Pass, syntax_trees::x86::*};
 
 #[derive(Debug)]

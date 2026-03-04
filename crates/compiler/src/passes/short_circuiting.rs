@@ -1,3 +1,15 @@
+//! `ShortCircuiting` Pass
+//!
+//! Desugars boolean short-circuit operators into ternary expressions:
+//!   `(A && B)  ->  (A ? B : false)`, `(A || B)  ->  (A ? true : B)`
+//!
+//! It is mandatory to run this pass
+//!
+//! Pre-conditions: None
+//!
+//! Post-conditions:
+//! - No BinaryOp with `And` or `Or` operators remain in the AST
+
 use crate::{
     passes::ASTPass,
     syntax_trees::{ast::*, shared::*},

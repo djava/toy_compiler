@@ -1,3 +1,21 @@
+//! `TranslateIRtoX86` Pass
+//!
+//! Lowers IR instructions to `x86_64` assembly instructions, selecting
+//! instruction sequences for each IR operation (arithmetic,
+//! comparisons, memory allocation, function calls, tail calls,
+//! subscripts). Arguments are passed in registers per the calling
+//! convention; variables remain as `Arg::Variable` pseudo-registers
+//! pending register allocation.
+//!
+//! It is mandatory to run this pass
+//!
+//! Pre-conditions:
+//! - `TranslateASTtoIR`
+//!
+//! Post-conditions:
+//! - An `X86Program` with `Arg::Variable` pseudo-registers that have
+//!   not yet been assigned to physical registers or stack slots
+
 use indexmap::IndexMap;
 
 use crate::{
