@@ -109,7 +109,11 @@ fn patch_block(b: &mut Block) {
             }
 
             Instr::mov(Arg::Reg(s_reg), d) => {
-                new_instrs.push(Instr::mov(Arg::ByteReg(ByteReg::from_64bit_low(*s_reg)), *d))
+                let s_bytereg = ByteReg::from_64bit_low(*s_reg);
+                if s_bytereg != *d {
+                    // If non-trivial (elides trivial mov's)
+                    new_instrs.push(Instr::mov(Arg::ByteReg(s_bytereg), *d))
+                }
             }
 
             Instr::imulq(s, d) if !matches!(d, Arg::Reg(_)) => {

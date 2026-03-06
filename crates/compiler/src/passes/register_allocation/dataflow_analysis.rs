@@ -244,27 +244,62 @@ impl DataflowAnalysis {
         let (mut graph, loc_to_node) = make_empty_loc_graph(all_locations);
 
         for i in instrs {
-            if let Instr::movq(s, d) = i {
-                if let Some(s_loc) = Location::try_from_arg(s)
-                    && !matches!(s_loc, Location::Id(Identifier::Global(_)))
-                    && let Some(d_loc) = Location::try_from_arg(d)
-                    && !matches!(d_loc, Location::Id(Identifier::Global(_)))
-                {
-                    if !loc_to_node.contains_key(&s_loc) {
-                        panic!(
-                            "Couldn't find location node for {s_loc:?} - most likely, it is read but never written to"
-                        );
-                    }
-                    if !loc_to_node.contains_key(&d_loc) {
-                        panic!(
-                            "Couldn't find location node for {d_loc:?} - most likely, it is read but never written to"
-                        );
-                    }
+            match i {
+                Instr::movq(s, d) => {
+                    if let Some(s_loc) = Location::try_from_arg(s)
+                        && !matches!(s_loc, Location::Id(Identifier::Global(_)))
+                        && let Some(d_loc) = Location::try_from_arg(d)
+                        && !matches!(d_loc, Location::Id(Identifier::Global(_)))
+                    {
+                        if !loc_to_node.contains_key(&s_loc) {
+                            panic!(
+                                "Couldn't find location node for {s_loc:?} - most likely, it is read but never written to"
+                            );
+                        }
+                        if !loc_to_node.contains_key(&d_loc) {
+                            panic!(
+                                "Couldn't find location node for {d_loc:?} - most likely, it is read but never written to"
+                            );
+                        }
 
-                    let s_node = loc_to_node.get(&s_loc).unwrap();
-                    let d_node = loc_to_node.get(&d_loc).unwrap();
-                    graph.add_edge(*s_node, *d_node, ());
+                        let s_node = loc_to_node.get(&s_loc).unwrap();
+                        let d_node = loc_to_node.get(&d_loc).unwrap();
+                        graph.add_edge(*s_node, *d_node, ());
+                    }
                 }
+                Instr::mov(s, d) => {
+                    let d_loc = Location::Reg(d.to_encompassing_64bit());
+                    if let Some(s_loc) = Location::try_from_arg(s) 
+                        && !matches!(s_loc, Location::Id(Identifier::Global(_)))
+                    {
+                        if !loc_to_node.contains_key(&s_loc) {
+                            panic!(
+                                "Couldn't find location node for {s_loc:?} - most likely, it is read but never written to"
+                            );
+                        }
+
+                        let s_node = loc_to_node.get(&s_loc).unwrap();
+                        let d_node = loc_to_node.get(&d_loc).unwrap();
+                        graph.add_edge(*s_node, *d_node, ());
+                    }
+                }
+                Instr::movzbq(s, d) => {
+                    let s_loc = Location::Reg(s.to_encompassing_64bit());
+                    if let Some(d_loc) = Location::try_from_arg(d) 
+                        && !matches!(d_loc, Location::Id(Identifier::Global(_)))
+                    {
+                        if !loc_to_node.contains_key(&d_loc) {
+                            panic!(
+                                "Couldn't find location node for {d_loc:?} - most likely, it is read but never written to"
+                            );
+                        }
+
+                        let s_node = loc_to_node.get(&s_loc).unwrap();
+                        let d_node = loc_to_node.get(&d_loc).unwrap();
+                        graph.add_edge(*s_node, *d_node, ());
+                    }
+                }
+                _ => {}
             }
         }
 
@@ -312,7 +347,6 @@ impl DataflowAnalysis {
                 | Instr::jmp_tail(arg, _) => {
                     count_for_arg(arg);
                 }
-
 
                 Instr::set(_, _)
                 | Instr::jmp(_)
@@ -364,7 +398,7 @@ fn locs_read(i: &Instr) -> Vec<Location> {
             }
         }
         Instr::movzbq(r, _) => {
-            if let Some(loc) = Location::try_from_arg(&Arg::Reg(r.to_underlying())) {
+            if let Some(loc) = Location::try_from_arg(&Arg::Reg(r.to_encompassing_64bit())) {
                 locations.push(loc);
             }
         }
@@ -422,7 +456,7 @@ fn locs_written(i: &Instr) -> Vec<Location> {
             }
         }
         Instr::mov(_, r) | Instr::set(_, r) => {
-            if let Some(loc) = Location::try_from_arg(&Arg::Reg(r.to_underlying())) {
+            if let Some(loc) = Location::try_from_arg(&Arg::Reg(r.to_encompassing_64bit())) {
                 locations.push(loc);
             }
         }

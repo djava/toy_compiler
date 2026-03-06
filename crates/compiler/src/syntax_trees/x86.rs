@@ -38,7 +38,7 @@ pub enum ByteReg {
 }
 
 impl ByteReg {
-    pub fn to_underlying(&self) -> Register {
+    pub fn to_encompassing_64bit(&self) -> Register {
         match self {
             ByteReg::ah | ByteReg::al => Register::rax,
             ByteReg::bh | ByteReg::bl => Register::rbx,
