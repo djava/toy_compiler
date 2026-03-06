@@ -18,6 +18,8 @@ pub enum Operator {
     Not,
     Is,
     Asterisk,
+    LeftShift,
+    RightShift
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -71,7 +73,12 @@ parser! {
     grammar parse_tree<'t>() for [TokenValue<'t>] {
         rule eof() = [TokenValue::Newline]* ![_]
 
+        rule shift_operator() -> Operator =
+            ([TokenValue::Less] [TokenValue::Less] { Operator::LeftShift }) /
+            ([TokenValue::Greater] [TokenValue::Greater] { Operator::RightShift })
+
         rule operator() -> Operator =
+            shift_operator() /
             op:[TokenValue::Minus | TokenValue::Plus | TokenValue::And | TokenValue::Or | TokenValue::Not |
                 TokenValue::DoubleEquals | TokenValue::NotEquals | TokenValue::Greater | TokenValue::GreaterEquals
                 | TokenValue::Less | TokenValue::LessEquals | TokenValue::Is | TokenValue::Asterisk] {

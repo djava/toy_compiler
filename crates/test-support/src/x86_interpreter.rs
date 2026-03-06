@@ -387,6 +387,10 @@ fn run_instr(
             env.write_arg(d, env.read_arg(&Arg::ByteReg(*s)));
             Continuation::Next
         }
+        Instr::mov(s, d) => {
+            env.write_arg(&Arg::ByteReg(*d), env.read_arg(s));
+            Continuation::Next
+        }
         Instr::jmp(label) => Continuation::Jump(label.clone()),
         Instr::jmpcc(cc, label) => {
             if env.get_comparison(cc) {

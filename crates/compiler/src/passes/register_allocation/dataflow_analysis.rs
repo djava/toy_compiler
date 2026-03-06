@@ -277,7 +277,9 @@ impl DataflowAnalysis {
     ) -> HashMap<Location, u32> {
         let mut count_map = HashMap::from_iter(all_locations.iter().map(|loc| (loc.clone(), 0u32)));
         let mut count_for_arg = |a: &Arg| {
-            if let Some(loc) = Location::try_from_arg(a) && !matches!(loc, Location::Id(Identifier::Global(_))) {
+            if let Some(loc) = Location::try_from_arg(a)
+                && !matches!(loc, Location::Id(Identifier::Global(_)))
+            {
                 let count = count_map
                     .get_mut(&loc)
                     .expect("Location wasn't in all_locations");
@@ -306,9 +308,11 @@ impl DataflowAnalysis {
                 | Instr::popq(arg)
                 | Instr::callq_ind(arg, _)
                 | Instr::movzbq(_, arg)
+                | Instr::mov(arg, _)
                 | Instr::jmp_tail(arg, _) => {
                     count_for_arg(arg);
                 }
+
 
                 Instr::set(_, _)
                 | Instr::jmp(_)
@@ -350,7 +354,11 @@ fn locs_read(i: &Instr) -> Vec<Location> {
                 .filter_map(Location::try_from_arg)
                 .collect();
         }
-        Instr::negq(r) | Instr::movq(r, _) | Instr::pushq(r) | Instr::leaq(r, _) => {
+        Instr::negq(r)
+        | Instr::movq(r, _)
+        | Instr::pushq(r)
+        | Instr::leaq(r, _)
+        | Instr::mov(r, _) => {
             if let Some(loc) = Location::try_from_arg(r) {
                 locations.push(loc);
             }
@@ -413,7 +421,7 @@ fn locs_written(i: &Instr) -> Vec<Location> {
                 locations.push(loc);
             }
         }
-        Instr::set(_, r) => {
+        Instr::mov(_, r) | Instr::set(_, r) => {
             if let Some(loc) = Location::try_from_arg(&Arg::Reg(r.to_underlying())) {
                 locations.push(loc);
             }

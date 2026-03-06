@@ -148,7 +148,8 @@ fn run_for_block(instrs: &mut Vec<Instr>, id_to_storage: &HashMap<Identifier, St
             | Instr::popq(a)
             | Instr::movzbq(_, a)
             | Instr::callq_ind(a, _)
-            | Instr::jmp_tail(a, _) => {
+            | Instr::jmp_tail(a, _)
+            | Instr::mov(a, _) => {
                 replace_arg_with_allocated(a, id_to_storage);
             }
             Instr::callq(_, _)

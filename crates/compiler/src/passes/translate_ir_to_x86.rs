@@ -154,6 +154,12 @@ fn translate_assign(dest: AssignDest<ir::Atom>, expr: ir::Expr) -> Vec<Instr> {
         ir::Expr::BinaryOp(l, BinaryOperator::Add, r) => translate_add(dest, l, r),
         ir::Expr::BinaryOp(l, BinaryOperator::Subtract, r) => translate_subtract(dest, l, r),
         ir::Expr::BinaryOp(l, BinaryOperator::Multiply, r) => translate_multiply(dest, l, r),
+        ir::Expr::BinaryOp(l, BinaryOperator::LeftShift, r) => {
+            translate_bitshift(BitshiftDirection::Left, dest, l, r)
+        }
+        ir::Expr::BinaryOp(l, BinaryOperator::RightShift, r) => {
+            translate_bitshift(BitshiftDirection::Right, dest, l, r)
+        }
         ir::Expr::BinaryOp(l, cmp_op, r) => translate_comparison(dest, cmp_op, l, r),
         ir::Expr::Call(func_id, args) => translate_call(Some(dest), func_id, args),
         ir::Expr::Allocate(bytes, value_type) => translate_allocation(dest, bytes, value_type),
@@ -541,6 +547,70 @@ fn translate_unary_plus(dest: AssignDest<ir::Atom>, atom: ir::Atom) -> Vec<Instr
     }
 }
 
+#[derive(Debug, Clone, Copy, PartialEq)]
+enum BitshiftDirection {
+    Left,
+    Right,
+}
+
+fn translate_bitshift(
+    dir: BitshiftDirection,
+    dest: AssignDest<ir::Atom>,
+    left: ir::Atom,
+    right: ir::Atom,
+) -> Vec<Instr> {
+    let mut ret = vec![];
+    if let AssignDest::Subscript(id, _idx) = &dest {
+        ret.push(Instr::movq(
+            x86::Arg::Variable(id.clone()),
+            x86::Arg::Reg(x86::Register::r11),
+        ));
+    }
+
+    let shift_arg = {
+        if let ir::Atom::Constant(_) = right {
+            // Shift by immediate, can just do the instruction
+            atom_to_arg(right)
+        } else {
+            // Shift by non-constant, need to move RHS into %cl first,
+            // and need to convert it a into bytereg first
+            ret.push(Instr::mov(atom_to_arg(right), x86::ByteReg::cl));
+            x86::Arg::ByteReg(x86::ByteReg::cl)
+        }
+    };
+
+    if let ir::Atom::Variable(left_id) = &left
+        && let AssignDest::Id(dest_id) = &dest
+        && left_id == dest_id
+    {
+        // Expression can be calculated in 1 instr, dest
+        // is the same as the left arg (x = x << y)
+        let shift_instr = match dir {
+            BitshiftDirection::Left => Instr::salq(shift_arg, atom_to_arg(left)),
+            BitshiftDirection::Right => Instr::sarq(shift_arg, atom_to_arg(left)),
+        };
+        ret.push(shift_instr);
+    } else {
+        // Expression requires two instructions - load
+        // left into dest, then add right into dest
+        let shift_instr = match dir {
+            BitshiftDirection::Left => {
+                Instr::salq(shift_arg, assigndest_to_arg(dest.clone()))
+            }
+            BitshiftDirection::Right => {
+                Instr::sarq(shift_arg, assigndest_to_arg(dest.clone()))
+            }
+        };
+
+        ret.extend([
+            Instr::movq(atom_to_arg(left), assigndest_to_arg(dest.clone())),
+            shift_instr,
+        ]);
+    }
+
+    ret
+}
+
 const SPECIAL_FUNCTIONS: [(
     &'static str,
     usize,
@@ -656,7 +726,9 @@ fn try_binop_to_cc(op: BinaryOperator) -> Option<x86::Comparison> {
         | BinaryOperator::Subtract
         | BinaryOperator::Multiply
         | BinaryOperator::And
-        | BinaryOperator::Or => None,
+        | BinaryOperator::Or
+        | BinaryOperator::LeftShift
+        | BinaryOperator::RightShift => None,
     }
 }
 
@@ -673,6 +745,6 @@ fn assigndest_to_arg(dest: AssignDest<ir::Atom>) -> x86::Arg {
         }
         AssignDest::ComplexSubscript(_) => {
             panic!("Should've been removed by DisambiguateSubscript")
-        },
+        }
     }
 }

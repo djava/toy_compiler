@@ -37,6 +37,8 @@ fn to_ast_expr(pte: pt::Expr, func_id: &Identifier) -> ast::Expr {
                 pt::Operator::LessEquals => BinaryOperator::LessEquals,
                 pt::Operator::Is => BinaryOperator::Is,
                 pt::Operator::Asterisk => BinaryOperator::Multiply,
+                pt::Operator::LeftShift => BinaryOperator::LeftShift,
+                pt::Operator::RightShift => BinaryOperator::RightShift,
                 pt::Operator::Not => {
                     panic!("pt::Operator::Not should never be in a Binary expression")
                 }

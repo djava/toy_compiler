@@ -102,10 +102,14 @@ fn patch_block(b: &mut Block) {
                 new_instrs.push(Instr::cmpq(s.clone(), Arg::Reg(Register::rax)));
             }
 
-            Instr::sarq(s, _) | Instr::salq(s, _) if matches!(s, Arg::Reg(_)) => {
-                // TODO: Need to move `s` into `%cl` to do variable
-                // shifts (or set to 0 or something if s > 64)
-                todo!("Non-constant shifts aren't implemented");
+            Instr::sarq(shift, _) | Instr::salq(shift, _)
+                if !matches!(shift, Arg::Immediate(_) | Arg::ByteReg(ByteReg::cl)) =>
+            {
+                panic!("Invalid shift operand to sarq/salq: `{shift}`")
+            }
+
+            Instr::mov(Arg::Reg(s_reg), d) => {
+                new_instrs.push(Instr::mov(Arg::ByteReg(ByteReg::from_64bit_low(*s_reg)), *d))
             }
 
             Instr::imulq(s, d) if !matches!(d, Arg::Reg(_)) => {

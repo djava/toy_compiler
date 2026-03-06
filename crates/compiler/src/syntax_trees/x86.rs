@@ -46,6 +46,16 @@ impl ByteReg {
             ByteReg::dh | ByteReg::dl => Register::rdx,
         }
     }
+
+    pub fn from_64bit_low(value: Register) -> Self {
+        match value {
+            Register::rax => Self::al,
+            Register::rbx => Self::bl,
+            Register::rcx => Self::cl,
+            Register::rdx => Self::dl,
+            other => panic!("Cannot convert {other} to ByteReg")
+        }
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
@@ -92,6 +102,7 @@ pub enum Instr {
     leaq(Arg, Arg),
     callq_ind(Arg, u16),
     jmp_tail(Arg, u16),
+    mov(Arg, ByteReg)
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
@@ -245,6 +256,7 @@ impl Display for Instr {
             Instr::leaq(arg, arg1) => write!(f, "leaq {arg}, {arg1}"),
             Instr::callq_ind(arg, _) => write!(f, "callq {}", fmt_arg_for_jmp_call(arg)),
             Instr::jmp_tail(arg, _) => write!(f, "jmp {}", fmt_arg_for_jmp_call(arg)),
+            Instr::mov(arg, arg1) => write!(f, "mov {arg}, {arg1}"),
         }
     }
 }
