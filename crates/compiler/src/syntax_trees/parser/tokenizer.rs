@@ -220,7 +220,6 @@ pub fn tokenize(
 
     if let Ok((rem, (tokens, _))) = res {
         assert!(rem.is_empty());
-        dbg!(&tokens);
         Ok(tokens)
     } else if let Err(err) = res {
         Err(err)
