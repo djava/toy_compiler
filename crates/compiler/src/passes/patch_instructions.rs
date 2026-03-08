@@ -46,7 +46,7 @@ fn patch_block(b: &mut Block) {
 
     for i in instrs.iter_mut() {
         match &i {
-            Instr::movq(s, d) if s == d => {
+            Instr::mov(s, d) if s == d => {
                 // Trival mov to itself, don't keep this instruction
                 // Note: Put this one before the both-args-are-derefs
                 //       one to make sure that movq (deref) (deref) is
@@ -55,85 +55,73 @@ fn patch_block(b: &mut Block) {
 
             // If both args to an instr are derefs, we need to add a
             // patch instruction
-            Instr::addq(s, d)
-            | Instr::subq(s, d)
-            | Instr::movq(s, d)
-            | Instr::xorq(s, d)
-            | Instr::cmpq(s, d)
-            | Instr::sarq(s, d)
-            | Instr::salq(s, d)
-            | Instr::andq(s, d)
+            Instr::add(s, d)
+            | Instr::sub(s, d)
+            | Instr::mov(s, d)
+            | Instr::xor(s, d)
+            | Instr::cmp(s, d)
+            | Instr::sar(s, d)
+            | Instr::sal(s, d)
+            | Instr::and(s, d)
                 if matches!(s.value, ArgValue::Deref(_, _)) && matches!(d.value, ArgValue::Deref(_, _)) =>
             {
-                new_instrs.push(Instr::movq(s.clone(), Arg::new_reg(Register::rax)));
+                new_instrs.push(Instr::mov(s.clone(), Arg::new_reg(Register::rax)));
                 new_instrs.push(match &i {
-                    Instr::addq(_, dest) => Instr::addq(Arg::new_reg(Register::rax), dest.clone()),
-                    Instr::subq(_, dest) => Instr::subq(Arg::new_reg(Register::rax), dest.clone()),
-                    Instr::movq(_, dest) => Instr::movq(Arg::new_reg(Register::rax), dest.clone()),
+                    Instr::add(_, dest) => Instr::add(Arg::new_reg(Register::rax), dest.clone()),
+                    Instr::sub(_, dest) => Instr::sub(Arg::new_reg(Register::rax), dest.clone()),
+                    Instr::mov(_, dest) => Instr::mov(Arg::new_reg(Register::rax), dest.clone()),
                     _ => unreachable!(),
                 });
             }
 
             // If the instruction has an immediate > 32 bits and
             // also accesses memory, need a patch instr
-            Instr::addq(s, d)
-            | Instr::subq(s, d)
-            | Instr::movq(s, d)
-            | Instr::xorq(s, d)
-            | Instr::cmpq(s, d)
-            | Instr::sarq(s, d)
-            | Instr::salq(s, d)
-            | Instr::andq(s, d)
+            Instr::add(s, d)
+            | Instr::sub(s, d)
+            | Instr::mov(s, d)
+            | Instr::xor(s, d)
+            | Instr::cmp(s, d)
+            | Instr::sar(s, d)
+            | Instr::sal(s, d)
+            | Instr::and(s, d)
                 if matches!(s.value, ArgValue::Immediate(v) if i32::try_from(v).is_err())
                     && matches!(d.value, ArgValue::Deref(_, _)) =>
             {
-                new_instrs.push(Instr::movq(s.clone(), Arg::new_reg(Register::rax)));
+                new_instrs.push(Instr::mov(s.clone(), Arg::new_reg(Register::rax)));
                 new_instrs.push(match &i {
-                    Instr::addq(_, dest) => Instr::addq(Arg::new_reg(Register::rax), dest.clone()),
-                    Instr::subq(_, dest) => Instr::subq(Arg::new_reg(Register::rax), dest.clone()),
-                    Instr::movq(_, dest) => Instr::movq(Arg::new_reg(Register::rax), dest.clone()),
+                    Instr::add(_, dest) => Instr::add(Arg::new_reg(Register::rax), dest.clone()),
+                    Instr::sub(_, dest) => Instr::sub(Arg::new_reg(Register::rax), dest.clone()),
+                    Instr::mov(_, dest) => Instr::mov(Arg::new_reg(Register::rax), dest.clone()),
                     _ => unreachable!(),
                 });
             }
 
-            Instr::cmpq(s, d) if matches!(d.value, ArgValue::Immediate(_)) => {
+            Instr::cmp(s, d) if matches!(d.value, ArgValue::Immediate(_)) => {
                 // Second arg of cmpq can't be an immediate
-                new_instrs.push(Instr::movq(d.clone(), Arg::new_reg(Register::rax)));
-                new_instrs.push(Instr::cmpq(s.clone(), Arg::new_reg(Register::rax)));
+                new_instrs.push(Instr::mov(d.clone(), Arg::new_reg(Register::rax)));
+                new_instrs.push(Instr::cmp(s.clone(), Arg::new_reg(Register::rax)));
             }
 
-            Instr::sarq(shift, _) | Instr::salq(shift, _)
+            Instr::sar(shift, _) | Instr::sal(shift, _)
                 if !matches!(shift.value, ArgValue::Immediate(_) | ArgValue::Reg(Register::cl)) =>
             {
                 panic!("Invalid shift operand to sarq/salq: `{shift}`")
             }
 
-            Instr::mov(s, d) if matches!(s.value, ArgValue::Reg(_)) => {
-                if let ArgValue::Reg(s_reg) = &s.value {
-                    let s_bytereg = Arg::new_reg(s_reg.to_byte_low());
-                    if s_bytereg != *d {
-                        // If non-trivial (elides trivial mov's)
-                        new_instrs.push(Instr::mov(s_bytereg, d.clone()))
-                    }
-                } else {
-                    unreachable!()
-                }
-            }
-
-            Instr::imulq(s, d) if !matches!(d.value, ArgValue::Reg(_)) => {
+            Instr::imul(s, d) if !matches!(d.value, ArgValue::Reg(_)) => {
                 // Dest of imulq must be a register, add a patch
                 // through rax to make it so
                 new_instrs.extend([
-                    Instr::movq(d.clone(), Arg::new_reg(Register::rax)),
-                    Instr::imulq(s.clone(), Arg::new_reg(Register::rax)),
-                    Instr::movq(Arg::new_reg(Register::rax), d.clone()),
+                    Instr::mov(d.clone(), Arg::new_reg(Register::rax)),
+                    Instr::imul(s.clone(), Arg::new_reg(Register::rax)),
+                    Instr::mov(Arg::new_reg(Register::rax), d.clone()),
                 ]);
             }
 
-            Instr::leaq(s, d) if !matches!(d.value, ArgValue::Reg(_)) => {
+            Instr::lea(s, d) if !matches!(d.value, ArgValue::Reg(_)) => {
                 new_instrs.extend([
-                    Instr::leaq(s.clone(), Arg::new_reg(Register::rax)),
-                    Instr::movq(Arg::new_reg(Register::rax), d.clone()),
+                    Instr::lea(s.clone(), Arg::new_reg(Register::rax)),
+                    Instr::mov(Arg::new_reg(Register::rax), d.clone()),
                 ]);
             }
 
@@ -177,26 +165,26 @@ mod tests {
         {
             use x86::{ArgValue, Instr};
             match i {
-                Instr::addq(s, d)
-                | Instr::subq(s, d)
-                | Instr::movq(s, d)
-                | Instr::xorq(s, d)
-                | Instr::cmpq(s, d)
-                | Instr::sarq(s, d)
-                | Instr::salq(s, d)
-                | Instr::andq(s, d)
+                Instr::add(s, d)
+                | Instr::sub(s, d)
+                | Instr::mov(s, d)
+                | Instr::xor(s, d)
+                | Instr::cmp(s, d)
+                | Instr::sar(s, d)
+                | Instr::sal(s, d)
+                | Instr::and(s, d)
                     if matches!(s.value, ArgValue::Deref(_, _)) && matches!(d.value, ArgValue::Deref(_, _)) =>
                 {
                     panic!("PatchInstructions should remove all double-memory-access instructions");
                 }
-                Instr::addq(s, d)
-                | Instr::subq(s, d)
-                | Instr::movq(s, d)
-                | Instr::xorq(s, d)
-                | Instr::cmpq(s, d)
-                | Instr::sarq(s, d)
-                | Instr::salq(s, d)
-                | Instr::andq(s, d)
+                Instr::add(s, d)
+                | Instr::sub(s, d)
+                | Instr::mov(s, d)
+                | Instr::xor(s, d)
+                | Instr::cmp(s, d)
+                | Instr::sar(s, d)
+                | Instr::sal(s, d)
+                | Instr::and(s, d)
                     if matches!(s.value, ArgValue::Immediate(v) if i32::try_from(v).is_err())
                         && matches!(d.value, ArgValue::Deref(_, _)) =>
                 {
@@ -204,13 +192,13 @@ mod tests {
                         "PatchInstructions should remove all memory-access + 64-bit-imm instructions"
                     );
                 }
-                Instr::movq(s, d) if s == d => {
+                Instr::mov(s, d) if s == d => {
                     panic!("PatchInstructions should remove all trivial memory accesses");
                 }
-                Instr::cmpq(_, d) if matches!(d.value, ArgValue::Immediate(_)) => {
+                Instr::cmp(_, d) if matches!(d.value, ArgValue::Immediate(_)) => {
                     panic!("PatchInstructions should remove all cmpq's with Imm d");
                 }
-                Instr::imulq(_, d) if !matches!(d.value, ArgValue::Reg(_)) => {
+                Instr::imul(_, d) if !matches!(d.value, ArgValue::Reg(_)) => {
                     panic!("PatchInstructions should ensure imulq dest is always a register");
                 }
                 _ => {}

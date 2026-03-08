@@ -193,7 +193,7 @@ impl Register {
         }
     }
 
-    pub fn convert_width(&self, width: Width) -> Self {
+    pub fn convert_width(&self, width: &Width) -> Self {
         match width {
             Width::Quad => self.to_quad(),
             Width::Double => self.to_double(),
@@ -211,12 +211,12 @@ impl Register {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd)]
 pub enum Width {
-    Quad,
-    Double,
-    Word,
     Byte,
+    Word,
+    Double,
+    Quad,
 }
 
 impl Width {
@@ -304,29 +304,29 @@ pub enum Comparison {
 #[allow(non_camel_case_types)]
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum Instr {
-    addq(Arg, Arg),
-    subq(Arg, Arg),
-    negq(Arg),
-    movq(Arg, Arg),
-    pushq(Arg),
-    popq(Arg),
-    callq(Arg, u16),
-    retq,
-    xorq(Arg, Arg),
-    cmpq(Arg, Arg),
+    add(Arg, Arg),
+    sub(Arg, Arg),
+    neg(Arg),
+    mov(Arg, Arg),
+    push(Arg),
+    pop(Arg),
+    call(Arg, u16),
+    ret,
+    xor(Arg, Arg),
+    cmp(Arg, Arg),
     set(Comparison, Arg),
-    movzbq(Arg, Arg),
+    movzx(Arg, Arg),
+    movsx(Arg, Arg),
     jmp(Identifier),
     jmpcc(Comparison, Identifier),
-    sarq(Arg, Arg),
-    salq(Arg, Arg),
-    andq(Arg, Arg),
-    imulq(Arg, Arg),
-    leaq(Arg, Arg),
-    callq_ind(Arg, u16),
+    sar(Arg, Arg),
+    sal(Arg, Arg),
+    and(Arg, Arg),
+    imul(Arg, Arg),
+    lea(Arg, Arg),
+    call_ind(Arg, u16),
     jmp_tail(Arg, u16),
-    mov(Arg, Arg),
-    idivq(Arg),
+    idiv(Arg),
     cqto,
 }
 
@@ -427,29 +427,28 @@ fn fmt_arg_for_jmp_call(arg: &Arg) -> String {
 impl Display for Instr {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Instr::addq(arg, arg1) => write!(f, "addq {arg}, {arg1}"),
-            Instr::subq(arg, arg1) => write!(f, "subq {arg}, {arg1}"),
-            Instr::negq(arg) => write!(f, "negq {arg}"),
-            Instr::movq(arg, arg1) => write!(f, "movq {arg}, {arg1}"),
-            Instr::pushq(arg) => write!(f, "pushq {arg}"),
-            Instr::popq(arg) => write!(f, "popq {arg}"),
-            Instr::callq(arg, _) => write!(f, "callq {}", fmt_arg_for_jmp_call(arg)),
-            Instr::retq => write!(f, "retq"),
-            Instr::xorq(arg, arg1) => write!(f, "xorq {arg}, {arg1}"),
-            Instr::cmpq(arg, arg1) => write!(f, "cmpq {arg}, {arg1}"),
+            Instr::add(arg, arg1) => write!(f, "addq {arg}, {arg1}"),
+            Instr::sub(arg, arg1) => write!(f, "subq {arg}, {arg1}"),
+            Instr::neg(arg) => write!(f, "negq {arg}"),
+            Instr::mov(arg, arg1) => write!(f, "movq {arg}, {arg1}"),
+            Instr::push(arg) => write!(f, "pushq {arg}"),
+            Instr::pop(arg) => write!(f, "popq {arg}"),
+            Instr::call(arg, _) => write!(f, "callq {}", fmt_arg_for_jmp_call(arg)),
+            Instr::ret => write!(f, "retq"),
+            Instr::xor(arg, arg1) => write!(f, "xorq {arg}, {arg1}"),
+            Instr::cmp(arg, arg1) => write!(f, "cmpq {arg}, {arg1}"),
             Instr::set(cmp, arg) => write!(f, "set{cmp} {arg}"),
-            Instr::movzbq(arg, arg1) => write!(f, "movzbq {arg}, {arg1}"),
+            Instr::movzx(arg, arg1) => write!(f, "movzxq {arg}, {arg1}"),
             Instr::jmp(label) => write!(f, "jmp {}", fmt_label(label)),
             Instr::jmpcc(cmp, label) => write!(f, "j{cmp} {}", fmt_label(label)),
-            Instr::sarq(arg, arg1) => write!(f, "sarq {arg}, {arg1}"),
-            Instr::salq(arg, arg1) => write!(f, "salq {arg}, {arg1}"),
-            Instr::andq(arg, arg1) => write!(f, "andq {arg}, {arg1}"),
-            Instr::imulq(arg, arg1) => write!(f, "imulq {arg}, {arg1}"),
-            Instr::leaq(arg, arg1) => write!(f, "leaq {arg}, {arg1}"),
-            Instr::callq_ind(arg, _) => write!(f, "callq {}", fmt_arg_for_jmp_call(arg)),
+            Instr::sar(arg, arg1) => write!(f, "sarq {arg}, {arg1}"),
+            Instr::sal(arg, arg1) => write!(f, "salq {arg}, {arg1}"),
+            Instr::and(arg, arg1) => write!(f, "andq {arg}, {arg1}"),
+            Instr::imul(arg, arg1) => write!(f, "imulq {arg}, {arg1}"),
+            Instr::lea(arg, arg1) => write!(f, "leaq {arg}, {arg1}"),
+            Instr::call_ind(arg, _) => write!(f, "callq {}", fmt_arg_for_jmp_call(arg)),
             Instr::jmp_tail(arg, _) => write!(f, "jmp {}", fmt_arg_for_jmp_call(arg)),
-            Instr::mov(arg, arg1) => write!(f, "mov {arg}, {arg1}"),
-            Instr::idivq(arg) => write!(f, "idivq {arg}"),
+            Instr::idiv(arg) => write!(f, "idivq {arg}"),
             Instr::cqto => write!(f, "cqto"),
         }
     }

@@ -297,27 +297,27 @@ fn run_instr(
     env: &mut X86Env,
 ) -> Continuation {
     match instr {
-        Instr::addq(s, d) => {
+        Instr::add(s, d) => {
             env.write_arg(d, env.read_arg(s) + env.read_arg(d));
             Continuation::Next
         }
-        Instr::subq(s, d) => {
+        Instr::sub(s, d) => {
             env.write_arg(d, env.read_arg(d) - env.read_arg(s));
             Continuation::Next
         }
-        Instr::imulq(s, d) => {
+        Instr::imul(s, d) => {
             env.write_arg(d, env.read_arg(d) * env.read_arg(s));
             Continuation::Next
         }
-        Instr::negq(d) => {
+        Instr::neg(d) => {
             env.write_arg(d, -env.read_arg(d));
             Continuation::Next
         }
-        Instr::movq(s, d) => {
+        Instr::mov(s, d) => {
             env.write_arg(d, env.read_arg(s));
             Continuation::Next
         }
-        Instr::pushq(s) => {
+        Instr::push(s) => {
             env.write_arg(
                 &Arg::new_reg(Register::rsp),
                 env.read_arg(&Arg::new_reg(Register::rsp)) - 8,
@@ -325,7 +325,7 @@ fn run_instr(
             env.write_arg(&Arg::new_deref(Register::rsp, 0), env.read_arg(s));
             Continuation::Next
         }
-        Instr::popq(d) => {
+        Instr::pop(d) => {
             env.write_arg(d, env.read_arg(&Arg::new_deref(Register::rsp, 0)));
             env.write_arg(
                 &Arg::new_reg(Register::rsp),
@@ -333,7 +333,7 @@ fn run_instr(
             );
             Continuation::Next
         }
-        Instr::callq(s, _num_args) => {
+        Instr::call(s, _num_args) => {
             let func = env.read_arg(s);
             let func_idx = (func as usize) & !FUNCTIONS_OFFSET;
             if execute_special_functions(func_idx, inputs, outputs, env) {
@@ -345,12 +345,12 @@ fn run_instr(
                 Continuation::Call(func_idx)
             }
         }
-        Instr::retq => Continuation::Return,
-        Instr::xorq(s, d) => {
+        Instr::ret => Continuation::Return,
+        Instr::xor(s, d) => {
             env.write_arg(d, env.read_arg(s) ^ env.read_arg(d));
             Continuation::Next
         }
-        Instr::cmpq(s, d) => {
+        Instr::cmp(s, d) => {
             env.compare(env.read_arg(s), env.read_arg(d));
             Continuation::Next
         }
@@ -358,12 +358,8 @@ fn run_instr(
             env.write_arg(d, env.get_comparison(cc) as i64);
             Continuation::Next
         }
-        Instr::movzbq(s, d) => {
+        Instr::movzx(s, d) => {
             assert!(matches!(d.value, ArgValue::Reg(_)));
-            env.write_arg(d, env.read_arg(s));
-            Continuation::Next
-        }
-        Instr::mov(s, d) => {
             env.write_arg(d, env.read_arg(s));
             Continuation::Next
         }
@@ -375,23 +371,23 @@ fn run_instr(
                 Continuation::Next
             }
         }
-        Instr::sarq(s, d) => {
+        Instr::sar(s, d) => {
             env.write_arg(d, env.read_arg(d) >> env.read_arg(s));
             Continuation::Next
         }
-        Instr::salq(s, d) => {
+        Instr::sal(s, d) => {
             env.write_arg(d, env.read_arg(d) << env.read_arg(s));
             Continuation::Next
         }
-        Instr::andq(s, d) => {
+        Instr::and(s, d) => {
             env.write_arg(d, env.read_arg(d) & env.read_arg(s));
             Continuation::Next
         }
-        Instr::leaq(s, d) => {
+        Instr::lea(s, d) => {
             env.write_arg(d, env.read_arg(s));
             Continuation::Next
         }
-        Instr::callq_ind(s, _) => {
+        Instr::call_ind(s, _) => {
             let func = env.read_arg(s);
             let func_idx = (func as usize) & !FUNCTIONS_OFFSET;
             if execute_special_functions(func_idx, inputs, outputs, env) {
@@ -415,7 +411,7 @@ fn run_instr(
                 Continuation::Jump(env.functions[func_idx].clone())
             }
         }
-        Instr::idivq(divisor_arg) => {
+        Instr::idiv(divisor_arg) => {
             let dividend = env.read_arg(&Arg::new_reg(Register::rax));
             let divisor = env.read_arg(divisor_arg);
 

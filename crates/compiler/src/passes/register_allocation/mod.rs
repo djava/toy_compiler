@@ -133,33 +133,32 @@ impl Storage {
 fn run_for_block(instrs: &mut Vec<Instr>, id_to_storage: &HashMap<Identifier, Storage>) {
     for i in instrs.iter_mut() {
         match i {
-            Instr::addq(s, d)
-            | Instr::subq(s, d)
-            | Instr::imulq(s, d)
-            | Instr::movq(s, d)
-            | Instr::xorq(s, d)
-            | Instr::cmpq(s, d)
-            | Instr::andq(s, d)
-            | Instr::sarq(s, d)
-            | Instr::salq(s, d)
-            | Instr::leaq(s, d) => {
+            Instr::add(s, d)
+            | Instr::sub(s, d)
+            | Instr::imul(s, d)
+            | Instr::mov(s, d)
+            | Instr::xor(s, d)
+            | Instr::cmp(s, d)
+            | Instr::and(s, d)
+            | Instr::sar(s, d)
+            | Instr::sal(s, d)
+            | Instr::lea(s, d) => {
                 replace_arg_with_allocated(s, id_to_storage);
                 replace_arg_with_allocated(d, id_to_storage);
             }
-            Instr::negq(a)
-            | Instr::pushq(a)
-            | Instr::popq(a)
-            | Instr::movzbq(_, a)
-            | Instr::callq_ind(a, _)
-            | Instr::jmp_tail(a, _)
-            | Instr::mov(a, _) => {
+            Instr::neg(a)
+            | Instr::push(a)
+            | Instr::pop(a)
+            | Instr::movzx(_, a)
+            | Instr::call_ind(a, _)
+            | Instr::jmp_tail(a, _) => {
                 replace_arg_with_allocated(a, id_to_storage);
             }
-            Instr::idivq(divisor) => {
+            Instr::idiv(divisor) => {
                 replace_arg_with_allocated(divisor, id_to_storage);
             }
-            Instr::callq(_, _)
-            | Instr::retq
+            Instr::call(_, _)
+            | Instr::ret
             | Instr::jmpcc(_, _)
             | Instr::jmp(_)
             | Instr::set(_, _)
@@ -306,7 +305,7 @@ mod tests {
         {
             use x86::{ArgValue, Instr};
             match i {
-                Instr::addq(s, d) | Instr::subq(s, d) | Instr::movq(s, d) | Instr::imulq(s, d) => {
+                Instr::add(s, d) | Instr::sub(s, d) | Instr::mov(s, d) | Instr::imul(s, d) => {
                     for arg in [s, d] {
                         assert!(!matches!(
                             arg.value,
@@ -315,7 +314,7 @@ mod tests {
                         ));
                     }
                 }
-                Instr::negq(arg) | Instr::pushq(arg) | Instr::popq(arg) => {
+                Instr::neg(arg) | Instr::push(arg) | Instr::pop(arg) => {
                     assert!(!matches!(
                         arg.value,
                         ArgValue::Variable(Identifier::Local(_, _))

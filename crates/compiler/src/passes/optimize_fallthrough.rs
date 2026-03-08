@@ -145,7 +145,7 @@ mod tests {
                 blocks: vec![
                     Block {
                         label: Identifier::Ephemeral(4),
-                        instrs: vec![Instr::retq],
+                        instrs: vec![Instr::ret],
                     },
                     Block {
                         label: Identifier::Ephemeral(1),
@@ -186,7 +186,7 @@ mod tests {
                 },
                 Block {
                     label: Identifier::Ephemeral(4),
-                    instrs: vec![Instr::retq],
+                    instrs: vec![Instr::ret],
                 },
             ],
         )
@@ -211,7 +211,7 @@ mod tests {
                     },
                     Block {
                         label: Identifier::Ephemeral(4),
-                        instrs: vec![Instr::retq],
+                        instrs: vec![Instr::ret],
                     },
                     Block {
                         label: Identifier::Ephemeral(2),
@@ -251,7 +251,7 @@ mod tests {
                 },
                 Block {
                     label: Identifier::Ephemeral(4),
-                    instrs: vec![Instr::retq],
+                    instrs: vec![Instr::ret],
                 },
             ],
         )
@@ -279,7 +279,7 @@ mod tests {
                     },
                     Block {
                         label: Identifier::Ephemeral(6),
-                        instrs: vec![Instr::retq],
+                        instrs: vec![Instr::ret],
                     },
                     Block {
                         label: Identifier::Ephemeral(3),
@@ -335,7 +335,7 @@ mod tests {
                 },
                 Block {
                     label: Identifier::Ephemeral(6),
-                    instrs: vec![Instr::retq],
+                    instrs: vec![Instr::ret],
                 },
                 Block {
                     label: Identifier::Ephemeral(5),
@@ -366,7 +366,7 @@ mod tests {
                     },
                     Block {
                         label: Identifier::Ephemeral(6),
-                        instrs: vec![Instr::retq],
+                        instrs: vec![Instr::ret],
                     },
                     Block {
                         label: Identifier::Ephemeral(3),
@@ -421,7 +421,7 @@ mod tests {
                 },
                 Block {
                     label: Identifier::Ephemeral(6),
-                    instrs: vec![Instr::retq],
+                    instrs: vec![Instr::ret],
                 },
                 Block {
                     label: Identifier::Ephemeral(5),
@@ -441,7 +441,7 @@ mod tests {
                 blocks: vec![
                     Block {
                         label: Identifier::Ephemeral(4),
-                        instrs: vec![Instr::retq],
+                        instrs: vec![Instr::ret],
                     },
                     Block {
                         label: Identifier::Ephemeral(1),
@@ -489,7 +489,7 @@ mod tests {
                 },
                 Block {
                     label: Identifier::Ephemeral(4),
-                    instrs: vec![Instr::retq],
+                    instrs: vec![Instr::ret],
                 },
                 Block {
                     label: Identifier::Ephemeral(5),

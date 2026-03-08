@@ -159,7 +159,7 @@ impl DataflowAnalysis {
 
         // Following algoirthm from textbook
         for (i, l_after) in alive_before_instrs {
-            if let Instr::movq(s_arg, d_arg) = i
+            if let Instr::mov(s_arg, d_arg) = i
                 && let Some(s) = Location::try_from_arg(s_arg)
                 && let Some(d) = Location::try_from_arg(d_arg)
             {
@@ -175,11 +175,11 @@ impl DataflowAnalysis {
                         graph.add_edge(loc_to_node[&d], loc_to_node[v], ());
                     }
                 }
-            } else if let Instr::movzbq(s_arg, d_arg) = i
+            } else if let Instr::movzx(s_arg, d_arg) = i
                 && let Some(s) = Location::try_from_arg(s_arg)
                 && let Some(d) = Location::try_from_arg(d_arg)
             {
-                // If instruction is movzbq, for each v in L_after, if v
+                // If instruction is movzx, for each v in L_after, if v
                 // is neither s nor d, add edge (d, v)
                 for v in l_after {
                     if v != &s && v != &d && !matches!(v, Location::Id(Identifier::Global(_))) {
@@ -245,7 +245,7 @@ impl DataflowAnalysis {
 
         for i in instrs {
             match i {
-                Instr::movq(s, d) => {
+                Instr::mov(s, d) => {
                     if let Some(s_loc) = Location::try_from_arg(s)
                         && !matches!(s_loc, Location::Id(Identifier::Global(_)))
                         && let Some(d_loc) = Location::try_from_arg(d)
@@ -267,27 +267,7 @@ impl DataflowAnalysis {
                         graph.add_edge(*s_node, *d_node, ());
                     }
                 }
-                Instr::mov(s, d) => {
-                    let d_loc = if let ArgValue::Reg(d_reg) = &d.value {
-                        Location::Reg(d_reg.to_quad())
-                    } else {
-                        unreachable!()
-                    };
-                    if let Some(s_loc) = Location::try_from_arg(s)
-                        && !matches!(s_loc, Location::Id(Identifier::Global(_)))
-                    {
-                        if !loc_to_node.contains_key(&s_loc) {
-                            panic!(
-                                "Couldn't find location node for {s_loc:?} - most likely, it is read but never written to"
-                            );
-                        }
-
-                        let s_node = loc_to_node.get(&s_loc).unwrap();
-                        let d_node = loc_to_node.get(&d_loc).unwrap();
-                        graph.add_edge(*s_node, *d_node, ());
-                    }
-                }
-                Instr::movzbq(s, d) => {
+                Instr::movzx(s, d) => {
                     let s_loc = if let ArgValue::Reg(s_reg) = &s.value {
                         Location::Reg(s_reg.to_quad())
                     } else {
@@ -332,36 +312,35 @@ impl DataflowAnalysis {
 
         for i in instrs {
             match i {
-                Instr::addq(arg, arg1)
-                | Instr::subq(arg, arg1)
-                | Instr::movq(arg, arg1)
-                | Instr::xorq(arg, arg1)
-                | Instr::cmpq(arg, arg1)
-                | Instr::sarq(arg, arg1)
-                | Instr::salq(arg, arg1)
-                | Instr::andq(arg, arg1)
-                | Instr::imulq(arg, arg1)
-                | Instr::leaq(arg, arg1) => {
+                Instr::add(arg, arg1)
+                | Instr::sub(arg, arg1)
+                | Instr::mov(arg, arg1)
+                | Instr::xor(arg, arg1)
+                | Instr::cmp(arg, arg1)
+                | Instr::sar(arg, arg1)
+                | Instr::sal(arg, arg1)
+                | Instr::and(arg, arg1)
+                | Instr::imul(arg, arg1)
+                | Instr::lea(arg, arg1) => {
                     count_for_arg(arg);
                     count_for_arg(arg1);
                 }
 
-                Instr::negq(arg)
-                | Instr::pushq(arg)
-                | Instr::popq(arg)
-                | Instr::callq_ind(arg, _)
-                | Instr::movzbq(_, arg)
-                | Instr::mov(arg, _)
+                Instr::neg(arg)
+                | Instr::push(arg)
+                | Instr::pop(arg)
+                | Instr::call_ind(arg, _)
+                | Instr::movzx(_, arg)
                 | Instr::jmp_tail(arg, _)
-                | Instr::idivq(arg) => {
+                | Instr::idiv(arg) => {
                     count_for_arg(arg);
                 }
 
                 Instr::set(_, _)
                 | Instr::jmp(_)
-                | Instr::callq(_, _)
+                | Instr::call(_, _)
                 | Instr::jmpcc(_, _)
-                | Instr::retq
+                | Instr::ret
                 | Instr::cqto => {}
             }
         }
@@ -385,34 +364,33 @@ fn make_empty_loc_graph(
 fn locs_read(i: &Instr) -> Vec<Location> {
     let mut locations = Vec::new();
     match i {
-        Instr::addq(s, d)
-        | Instr::subq(s, d)
-        | Instr::imulq(s, d)
-        | Instr::xorq(s, d)
-        | Instr::cmpq(s, d)
-        | Instr::andq(s, d)
-        | Instr::salq(s, d)
-        | Instr::sarq(s, d) => {
+        Instr::add(s, d)
+        | Instr::sub(s, d)
+        | Instr::imul(s, d)
+        | Instr::xor(s, d)
+        | Instr::cmp(s, d)
+        | Instr::and(s, d)
+        | Instr::sal(s, d)
+        | Instr::sar(s, d) => {
             locations = [s, d]
                 .into_iter()
                 .filter_map(Location::try_from_arg)
                 .collect();
         }
-        Instr::negq(r)
-        | Instr::movq(r, _)
-        | Instr::pushq(r)
-        | Instr::leaq(r, _)
-        | Instr::mov(r, _) => {
+        Instr::neg(r)
+        | Instr::mov(r, _)
+        | Instr::push(r)
+        | Instr::lea(r, _) => {
             if let Some(loc) = Location::try_from_arg(r) {
                 locations.push(loc);
             }
         }
-        Instr::movzbq(r, _) => {
+        Instr::movzx(r, _) => {
             if let Some(loc) = Location::try_from_arg(r) {
                 locations.push(loc);
             }
         }
-        Instr::callq(_, num_args) => {
+        Instr::call(_, num_args) => {
             if *num_args > MAX_REGISTER_ARGS as u16 {
                 unimplemented!("Spilling args onto stack not implemented");
             }
@@ -424,7 +402,7 @@ fn locs_read(i: &Instr) -> Vec<Location> {
                     .map(|r| Location::Reg(*r)),
             );
         }
-        Instr::callq_ind(func, num_args) | Instr::jmp_tail(func, num_args) => {
+        Instr::call_ind(func, num_args) | Instr::jmp_tail(func, num_args) => {
             if *num_args > MAX_REGISTER_ARGS as u16 {
                 unimplemented!("Spilling args onto stack not implemented");
             }
@@ -440,7 +418,7 @@ fn locs_read(i: &Instr) -> Vec<Location> {
                     .map(|r| Location::Reg(*r)),
             );
         }
-        Instr::idivq(divisor) => {
+        Instr::idiv(divisor) => {
             if let Some(divisor_loc) = Location::try_from_arg(divisor) {
                 locations.push(divisor_loc)
             }
@@ -449,7 +427,7 @@ fn locs_read(i: &Instr) -> Vec<Location> {
         }
         Instr::cqto => locations.push(Location::Reg(Register::rax)),
 
-        Instr::popq(_) | Instr::retq | Instr::set(_, _) | Instr::jmp(_) | Instr::jmpcc(_, _) => {}
+        Instr::pop(_) | Instr::ret | Instr::set(_, _) | Instr::jmp(_) | Instr::jmpcc(_, _) => {}
     };
     locations
 }
@@ -457,25 +435,24 @@ fn locs_read(i: &Instr) -> Vec<Location> {
 fn locs_written(i: &Instr) -> Vec<Location> {
     let mut locations = Vec::new();
     match i {
-        Instr::addq(_, r)
-        | Instr::subq(_, r)
-        | Instr::imulq(_, r)
-        | Instr::negq(r)
-        | Instr::movq(_, r)
-        | Instr::movzbq(_, r)
-        | Instr::popq(r)
-        | Instr::xorq(_, r)
-        | Instr::andq(_, r)
-        | Instr::sarq(_, r)
-        | Instr::salq(_, r)
-        | Instr::leaq(_, r)
+        Instr::add(_, r)
+        | Instr::sub(_, r)
+        | Instr::imul(_, r)
+        | Instr::neg(r)
         | Instr::mov(_, r)
+        | Instr::movzx(_, r)
+        | Instr::pop(r)
+        | Instr::xor(_, r)
+        | Instr::and(_, r)
+        | Instr::sar(_, r)
+        | Instr::sal(_, r)
+        | Instr::lea(_, r)
         | Instr::set(_, r) => {
             if let Some(loc) = Location::try_from_arg(r) {
                 locations.push(loc);
             }
         }
-        Instr::callq(func_id, _) => {
+        Instr::call(func_id, _) => {
             locations.extend(CALLER_SAVED_REGISTERS.iter().map(|r| Location::Reg(*r)));
 
             // Consider r15 to be written by a call to __gc_collect()
@@ -486,16 +463,16 @@ fn locs_written(i: &Instr) -> Vec<Location> {
                 locations.push(Location::Reg(Register::r15));
             }
         }
-        Instr::callq_ind(_, _) | Instr::jmp_tail(_, _) => {
+        Instr::call_ind(_, _) | Instr::jmp_tail(_, _) => {
             locations.extend(CALLER_SAVED_REGISTERS.iter().map(|r| Location::Reg(*r)));
         }
-        Instr::idivq(_) => {
+        Instr::idiv(_) => {
             locations.extend([Location::Reg(Register::rax), Location::Reg(Register::rdx)])
         }
         Instr::cqto => {
             locations.push(Location::Reg(Register::rdx))
         }
-        Instr::pushq(_) | Instr::retq | Instr::cmpq(_, _) | Instr::jmp(_) | Instr::jmpcc(_, _) => {}
+        Instr::push(_) | Instr::ret | Instr::cmp(_, _) | Instr::jmp(_) | Instr::jmpcc(_, _) => {}
     };
 
     locations
