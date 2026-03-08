@@ -193,7 +193,7 @@ impl Register {
         }
     }
 
-    pub fn convert_width(&self, width: &Width) -> Self {
+    pub fn convert_width(&self, width: Width) -> Self {
         match width {
             Width::Quad => self.to_quad(),
             Width::Double => self.to_double(),
@@ -211,7 +211,7 @@ impl Register {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub enum Width {
     Byte,
     Word,

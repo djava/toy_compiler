@@ -37,6 +37,8 @@ mod optimize_fallthrough;
 pub use optimize_fallthrough::OptimizeFallthrough;
 mod disambiguate_subscript;
 pub use disambiguate_subscript::DisambiguateSubscript;
+mod resolve_width;
+pub use resolve_width::ResolveWidth;
 
 #[enum_dispatch]
 pub trait ASTPass {
@@ -103,4 +105,5 @@ pub enum X86toX86 {
     PatchInstructions,
     PreludeConclusion,
     OptimizeFallthrough,
+    ResolveWidth,
 }
