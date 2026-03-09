@@ -241,14 +241,17 @@ impl ast::Expr {
                 op.type_of(&e_type)
                     .expect("Failed type check in get_type - invalid op")
             }
-            ast::Expr::Call(func, args) => {
+            ast::Expr::Call(func, _) => {
                 if let ValueType::FunctionType(_, ret_type) = func.get_type(env) {
                     *ret_type
                 } else {
                     panic!("Failed type check in get_type - invalid callee")
                 }
             }
-            ast::Expr::Id(identifier) => env[identifier].clone(),
+            ast::Expr::Id(identifier) => env
+                .get(identifier)
+                .unwrap_or_else(|| panic!("missing type for id {identifier:?}"))
+                .clone(),
             ast::Expr::Ternary(_, pos, _) => pos.get_type(env),
             ast::Expr::StatementBlock(_, expr) => expr.get_type(env),
             ast::Expr::Tuple(exprs) => {
@@ -270,7 +273,7 @@ impl ast::Expr {
                         panic!("Failed get_type - Indexed with non-constant")
                     }
                 }
-                ValueType::ArrayType(elem, n) => *elem,
+                ValueType::ArrayType(elem, _) => *elem,
                 _ => panic!("Failed get_type - Indexed invalid LHS"),
             },
             ast::Expr::Allocate(_, value_type) => {
@@ -303,10 +306,7 @@ fn check_special_functions(
         let arr_type = args[0].type_check(env, &None);
         assert_eq!(args.len(), 2);
         assert!(matches!(arr_type, ValueType::ArrayType(_, _)));
-        assert!(matches!(
-            args[1].type_check(env, &None),
-            ValueType::IntType
-        ));
+        assert!(matches!(args[1].type_check(env, &None), ValueType::IntType));
         if let ValueType::ArrayType(elem_type, _) = arr_type {
             Some(*elem_type)
         } else {
@@ -317,10 +317,7 @@ fn check_special_functions(
         let arr_type = args[0].type_check(env, &None);
         assert_eq!(args.len(), 3);
         assert!(matches!(arr_type, ValueType::ArrayType(_, _)));
-        assert!(matches!(
-            args[1].type_check(env, &None),
-            ValueType::IntType
-        ));
+        assert!(matches!(args[1].type_check(env, &None), ValueType::IntType));
 
         let elem_type = if let ValueType::ArrayType(elem_type, _) = arr_type {
             *elem_type

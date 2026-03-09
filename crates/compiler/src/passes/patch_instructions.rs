@@ -211,6 +211,7 @@ mod tests {
             ast_passes: vec![
                 ASTtoAST::from(TypeCheck),
                 ASTtoAST::from(RemoveComplexOperands),
+                ASTtoAST::from(TypeCheck),
             ],
             ast_to_ir_pass: ASTtoIR::from(TranslateASTtoIR),
             ir_passes: vec![],
