@@ -165,12 +165,12 @@ parser! {
             // Lowest Precendence: Infix Operators, left-associative
             l:(@) op:operator() r:@ { Expr::Binary(Box::new(l), op, Box::new(r)) }
             --
+            // Prefix operators
+            op:operator() val:@ { Expr::Unary(op, Box::new(val)) }
+            --
             // Postfix operators
             e:(@) [TokenValue::OpenBracket] idx:expr() [TokenValue::CloseBracket] { Expr::Subscript(Box::new(e), Box::new(idx)) }
             func:@ [TokenValue::OpenParen] args:(expr() ** [TokenValue::Comma]) [TokenValue::CloseParen] { Expr::Call(Box::new(func), args) }
-            --
-            // Prefix operators
-            op:operator() val:@ { Expr::Unary(op, Box::new(val)) }
             --
             // Highest: Atoms
             [TokenValue::Identifier(id)] { Expr::Id(id) }

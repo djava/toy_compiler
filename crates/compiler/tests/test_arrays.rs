@@ -771,3 +771,176 @@ print_int(a[1])
         expected_outputs: VecDeque::from(vec![10, 10]),
     });
 }
+
+// ── Arrays of bools ──────────────────────────────────────────────
+
+#[test]
+fn test_bool_array_read() {
+    execute_test_case(TestCase {
+        input: "fn main() -> int { a = [true, false]
+if a[0] { print_int(1) } else { print_int(0) }
+if a[1] { print_int(1) } else { print_int(0) }
+}",
+        inputs: VecDeque::new(),
+        expected_outputs: VecDeque::from(vec![1, 0]),
+    });
+}
+
+#[test]
+fn test_bool_array_three_elements() {
+    execute_test_case(TestCase {
+        input: "fn main() -> int { a = [false, true, false]
+if a[0] { print_int(1) } else { print_int(0) }
+if a[1] { print_int(1) } else { print_int(0) }
+if a[2] { print_int(1) } else { print_int(0) }
+}",
+        inputs: VecDeque::new(),
+        expected_outputs: VecDeque::from(vec![0, 1, 0]),
+    });
+}
+
+#[test]
+fn test_bool_array_write() {
+    execute_test_case(TestCase {
+        input: "fn main() -> int { a = [false, false]
+a[0] = true
+if a[0] { print_int(1) } else { print_int(0) }
+if a[1] { print_int(1) } else { print_int(0) }
+}",
+        inputs: VecDeque::new(),
+        expected_outputs: VecDeque::from(vec![1, 0]),
+    });
+}
+
+#[test]
+fn test_bool_array_overwrite() {
+    execute_test_case(TestCase {
+        input: "fn main() -> int { a = [true, true]
+a[0] = false
+a[1] = false
+if a[0] { print_int(1) } else { print_int(0) }
+if a[1] { print_int(1) } else { print_int(0) }
+}",
+        inputs: VecDeque::new(),
+        expected_outputs: VecDeque::from(vec![0, 0]),
+    });
+}
+
+#[test]
+fn test_bool_array_not_element() {
+    execute_test_case(TestCase {
+        input: "fn main() -> int { a = [true, false]
+if !a[0] { print_int(1) } else { print_int(0) }
+if !a[1] { print_int(1) } else { print_int(0) }
+}",
+        inputs: VecDeque::new(),
+        expected_outputs: VecDeque::from(vec![0, 1]),
+    });
+}
+
+#[test]
+fn test_bool_array_and_elements() {
+    execute_test_case(TestCase {
+        input: "fn main() -> int { a = [true, false, true]
+if a[0] && a[1] { print_int(1) } else { print_int(0) }
+if a[0] && a[2] { print_int(1) } else { print_int(0) }
+}",
+        inputs: VecDeque::new(),
+        expected_outputs: VecDeque::from(vec![0, 1]),
+    });
+}
+
+#[test]
+fn test_bool_array_or_elements() {
+    execute_test_case(TestCase {
+        input: "fn main() -> int { a = [false, true]
+if a[0] || a[1] { print_int(1) } else { print_int(0) }
+if a[0] || a[0] { print_int(1) } else { print_int(0) }
+}",
+        inputs: VecDeque::new(),
+        expected_outputs: VecDeque::from(vec![1, 0]),
+    });
+}
+
+#[test]
+fn test_bool_array_element_as_while_condition() {
+    execute_test_case(TestCase {
+        input: "fn main() -> int { a = [true, false]
+x = 0
+while a[0] {
+    x = x + 1
+    a[0] = false
+}
+print_int(x)
+}",
+        inputs: VecDeque::new(),
+        expected_outputs: VecDeque::from(vec![1]),
+    });
+}
+
+#[test]
+fn test_bool_array_write_in_branch() {
+    execute_test_case(TestCase {
+        input: "fn main() -> int { a = [false, false]
+x = read_int()
+if x > 0 {
+    a[0] = true
+} else {
+    a[1] = true
+}
+if a[0] { print_int(1) } else { print_int(0) }
+if a[1] { print_int(1) } else { print_int(0) }
+}",
+        inputs: VecDeque::from(vec![1]),
+        expected_outputs: VecDeque::from(vec![1, 0]),
+    });
+}
+
+#[test]
+fn test_bool_array_write_in_branch_false() {
+    execute_test_case(TestCase {
+        input: "fn main() -> int { a = [false, false]
+x = read_int()
+if x > 0 {
+    a[0] = true
+} else {
+    a[1] = true
+}
+if a[0] { print_int(1) } else { print_int(0) }
+if a[1] { print_int(1) } else { print_int(0) }
+}",
+        inputs: VecDeque::from(vec![-1]),
+        expected_outputs: VecDeque::from(vec![0, 1]),
+    });
+}
+
+#[test]
+fn test_bool_array_store_comparison() {
+    // Store a comparison result into a bool array element
+    execute_test_case(TestCase {
+        input: "fn main() -> int { a = [false, false]
+x = read_int()
+a[0] = x > 0
+a[1] = x < 0
+if a[0] { print_int(1) } else { print_int(0) }
+if a[1] { print_int(1) } else { print_int(0) }
+}",
+        inputs: VecDeque::from(vec![5]),
+        expected_outputs: VecDeque::from(vec![1, 0]),
+    });
+}
+
+#[test]
+fn test_bool_array_independence() {
+    // Modifying one bool array should not affect another
+    execute_test_case(TestCase {
+        input: "fn main() -> int { a = [true, true]
+b = [false, false]
+a[0] = false
+if a[0] { print_int(1) } else { print_int(0) }
+if b[0] { print_int(1) } else { print_int(0) }
+}",
+        inputs: VecDeque::new(),
+        expected_outputs: VecDeque::from(vec![0, 0]),
+    });
+}
