@@ -104,7 +104,7 @@ fn replace_tuples_in_expr(expr: &mut Expr, type_env: &mut TypeEnv) {
                     .map(|e| e.type_check(type_env, &None))
                     .collect(),
             );
-            *expr = get_initialize_allocation_expr(elems, tup_type);
+            *expr = get_initialize_allocation_expr(elems, tup_type, type_env);
         }
         Expr::Array(elems) => {
             let arr_type = ValueType::ArrayType(
@@ -116,7 +116,7 @@ fn replace_tuples_in_expr(expr: &mut Expr, type_env: &mut TypeEnv) {
                 ),
                 elems.len(),
             );
-            *expr = get_initialize_allocation_expr(elems, arr_type);
+            *expr = get_initialize_allocation_expr(elems, arr_type, type_env);
         }
         Expr::Closure(id, captures) => {
             let tup_type = ValueType::TupleType(
@@ -127,7 +127,7 @@ fn replace_tuples_in_expr(expr: &mut Expr, type_env: &mut TypeEnv) {
             let mut elems = std::iter::once(Expr::GlobalSymbol(id.clone()))
                 .chain(captures.iter().map(|i| Expr::Id(i.clone())))
                 .collect();
-            *expr = get_initialize_allocation_expr(&mut elems, tup_type);
+            *expr = get_initialize_allocation_expr(&mut elems, tup_type, type_env);
         }
         Expr::Subscript(expr, _) => {
             replace_tuples_in_expr(expr, type_env);
@@ -137,7 +137,7 @@ fn replace_tuples_in_expr(expr: &mut Expr, type_env: &mut TypeEnv) {
     }
 }
 
-fn get_initialize_allocation_expr(elems: &mut Vec<Expr>, tup_type: ValueType) -> Expr {
+fn get_initialize_allocation_expr(elems: &mut Vec<Expr>, tup_type: ValueType, type_env: &mut TypeEnv) -> Expr {
     let free_ptr = Expr::GlobalSymbol(global!(GC_FREE_PTR));
     let fromspace_end = Expr::GlobalSymbol(global!(GC_FROMSPACE_END));
     let collect = |n| {
@@ -150,7 +150,9 @@ fn get_initialize_allocation_expr(elems: &mut Vec<Expr>, tup_type: ValueType) ->
     let bytes = POINTER_SIZE + POINTER_SIZE * elems.len() as i64;
 
     let cmp_ephemeral = Identifier::new_ephemeral();
+    type_env.insert(cmp_ephemeral.clone(), ValueType::IntType);
     let out_ephemeral = Identifier::new_ephemeral();
+    type_env.insert(out_ephemeral.clone(), ValueType::PointerType(Box::new(tup_type.clone())));
 
     // Important: We're going to run this pass AFTER
     // RemoveComplexOperands, so any of the expressions in statements

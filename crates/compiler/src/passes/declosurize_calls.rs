@@ -1,4 +1,3 @@
-
 use crate::{
     passes::ASTPass,
     syntax_trees::{ast::*, shared::*},
@@ -31,100 +30,122 @@ impl ASTPass for DeclosurizeCalls {
     fn run_pass(self, mut m: Program) -> Program {
         for f in m.functions.iter_mut() {
             for s in f.body.iter_mut() {
-                declosurize_for_statement(s);
+                declosurize_for_statement(s, &mut f.types);
             }
         }
         m
     }
 }
 
-fn declosurize_for_statement(s: &mut Statement) {
+fn declosurize_for_statement(s: &mut Statement, env: &mut TypeEnv) {
     match s {
-        Statement::Assign(_, expr, _) => declosurize_for_expr(expr),
-        Statement::Expr(expr) => declosurize_for_expr(expr),
+        Statement::Assign(_, expr, _) => declosurize_for_expr(expr, env),
+        Statement::Expr(expr) => declosurize_for_expr(expr, env),
         Statement::Conditional(expr, statements, statements1) => {
-            declosurize_for_expr(expr);
+            declosurize_for_expr(expr, env);
             for s in statements {
-                declosurize_for_statement(s);
+                declosurize_for_statement(s, env);
             }
             for s in statements1 {
-                declosurize_for_statement(s);
+                declosurize_for_statement(s, env);
             }
         }
         Statement::WhileLoop(expr, statements) => {
-            declosurize_for_expr(expr);
+            declosurize_for_expr(expr, env);
             for s in statements {
-                declosurize_for_statement(s);
+                declosurize_for_statement(s, env);
             }
         }
         Statement::Return(expr) => {
-            declosurize_for_expr(expr);
+            declosurize_for_expr(expr, env);
         }
     }
 }
 
-fn declosurize_for_expr(e: &mut Expr) {
+fn declosurize_for_expr(e: &mut Expr, env: &mut TypeEnv) {
     match e {
         Expr::Call(func, args) => {
-            declosurize_for_expr(func);
+            declosurize_for_expr(func, env);
             for a in args.iter_mut() {
-                declosurize_for_expr(a);
+                declosurize_for_expr(a, env);
             }
 
             // If it's externed, this will be a GlobalSymbol instead of
             // an ID
             if let Expr::Id(clos_id) = &**func {
+                let clos_type = env[clos_id].clone();
                 let fn_ptr_id = Identifier::new_ephemeral();
+                env.insert(
+                    fn_ptr_id.clone(),
+                    ValueType::PointerType(Box::new(clos_type.clone())),
+                );
+
                 let result_id = Identifier::new_ephemeral();
+                if let ValueType::TupleType(elems) = &clos_type
+                    && let ValueType::FunctionType(_, ret_type) = &elems[0]
+                {
+                    env.insert(result_id.clone(), *ret_type.clone());
+                } else {
+                    panic!("Closure function type was not function ({clos_type:?})");
+                }
+
                 let mut args_with_capture = vec![Expr::Id(clos_id.clone())];
                 args_with_capture.extend(args.clone());
 
-                *e = Expr::StatementBlock(
-                    vec![
-                        Statement::Assign(
-                            AssignDest::Id(fn_ptr_id.clone()),
-                            Expr::Subscript(
-                                Box::new(Expr::Id(clos_id.clone())),
-                                Box::new(Expr::Constant(Value::I64(0))),
-                            ),
-                            None,
-                        ),
-                        Statement::Assign(
-                            AssignDest::Id(result_id.clone()),
-                            Expr::Call(Box::new(Expr::Id(fn_ptr_id.clone())), args_with_capture),
-                            None,
-                        ),
-                    ],
-                    Box::new(Expr::Id(result_id.clone())),
-                );
+                let mut statements = vec![Statement::Assign(
+                    AssignDest::Id(fn_ptr_id.clone()),
+                    Expr::Subscript(
+                        Box::new(Expr::Id(clos_id.clone())),
+                        Box::new(Expr::Constant(Value::I64(0))),
+                    ),
+                    None,
+                )];
+
+                if env[&result_id] == ValueType::NoneType {
+                    // Zero-size types can't be assigned to because they
+                    // have size 0 (so no width), so just use a
+                    // statement instead.
+                    statements.push(Statement::Expr(Expr::Call(
+                        Box::new(Expr::Id(fn_ptr_id.clone())),
+                        args_with_capture,
+                    )));
+                } else {
+                    statements.push(Statement::Assign(
+                        AssignDest::Id(result_id.clone()),
+                        Expr::Call(Box::new(Expr::Id(fn_ptr_id.clone())), args_with_capture),
+                        None,
+                    ));
+                }
+
+                *e = Expr::StatementBlock(statements, Box::new(Expr::Id(result_id.clone())));
             }
         }
 
         Expr::BinaryOp(expr, _, expr1) => {
-            declosurize_for_expr(expr);
-            declosurize_for_expr(expr1);
+            declosurize_for_expr(expr, env);
+            declosurize_for_expr(expr1, env);
         }
         Expr::UnaryOp(_, expr) => {
-            declosurize_for_expr(expr);
+            declosurize_for_expr(expr, env);
         }
         Expr::Ternary(expr, expr1, expr2) => {
-            declosurize_for_expr(expr);
-            declosurize_for_expr(expr1);
-            declosurize_for_expr(expr2);
+            declosurize_for_expr(expr, env);
+            declosurize_for_expr(expr1, env);
+            declosurize_for_expr(expr2, env);
         }
         Expr::StatementBlock(statements, expr) => {
-            declosurize_for_expr(expr);
+            declosurize_for_expr(expr, env);
             for s in statements {
-                declosurize_for_statement(s);
+                declosurize_for_statement(s, env);
             }
         }
         Expr::Tuple(exprs) | Expr::Array(exprs) => {
             for e in exprs {
-                declosurize_for_expr(e);
+                declosurize_for_expr(e, env);
             }
         }
         Expr::Subscript(expr, _) => {
-            declosurize_for_expr(expr);
+            declosurize_for_expr(expr, env);
         }
 
         Expr::Constant(..)

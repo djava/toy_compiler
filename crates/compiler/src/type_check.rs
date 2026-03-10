@@ -55,7 +55,7 @@ impl ast::Expr {
                     } else {
                         for (a, typ) in args.iter_mut().zip(arg_types) {
                             assert_eq!(
-                                a.type_check(env, &Some(typ.clone())),
+                                strip_pointer(a.type_check(env, &Some(typ.clone()))),
                                 typ,
                                 "Passed wrong arg type `{a:?}` to function `{func:?}`"
                             )
@@ -71,7 +71,7 @@ impl ast::Expr {
                             "Wrong number of args passed to `{func:?}`"
                         );
                         for (arg_expr, expected) in args.iter_mut().zip(arg_types.iter().skip(1)) {
-                            let actual = arg_expr.type_check(env, &Some(expected.clone()));
+                            let actual = strip_pointer(arg_expr.type_check(env, &Some(expected.clone())));
                             assert_eq!(
                                 actual, *expected,
                                 "Passed wrong arg type `{actual:?}` to function `{func:?}`"
@@ -146,12 +146,8 @@ impl ast::Expr {
                 }
             }
             Subscript(exp, idx) => {
-                let exp_type = exp.type_check(env, &None);
-                let inner_type = match exp_type {
-                    ValueType::PointerType(inner) => *inner,
-                    t => t,
-                };
-                if let ValueType::TupleType(elems) = inner_type {
+                let exp_type = strip_pointer(exp.type_check(env, &None));
+                if let ValueType::TupleType(elems) = exp_type {
                     let const_idx = {
                         if let ast::Expr::Constant(Value::I64(val)) = &**idx {
                             val
@@ -164,7 +160,7 @@ impl ast::Expr {
                         "Indexed tuple out of bounds"
                     );
                     elems[*const_idx as usize].clone()
-                } else if let ValueType::ArrayType(elems, _) = inner_type {
+                } else if let ValueType::ArrayType(elems, _) = exp_type {
                     assert_eq!(
                         idx.type_check(env, &Some(ValueType::IntType)),
                         ValueType::IntType
@@ -245,11 +241,26 @@ impl ast::Expr {
                 op.type_of(&e_type)
                     .expect("Failed type check in get_type - invalid op")
             }
-            ast::Expr::Call(func, _) => {
-                if let ValueType::FunctionType(_, ret_type) = func.get_type(env) {
-                    *ret_type
+            ast::Expr::Call(func, args) => {
+                let func_type = strip_pointer(func.get_type(env));
+                if **func == ast::Expr::GlobalSymbol(global!(FN_SUBSCRIPT_ARRAY)) {
+                    let arr_type = strip_pointer(args[0].get_type(env));
+                    if let ValueType::ArrayType(elems, _) = arr_type {
+                        *elems.clone()
+                    } else {
+                        panic!(
+                            "Failed type check in get_type - Non-Array passed to __subscript_array: {:?} ({:?})",
+                            args[0],
+                            args[0].get_type(env)
+                        )
+                    }
+                } else if let ValueType::FunctionType(_, ret_type) = &func_type {
+                    *ret_type.clone()
+                } else if let ValueType::TupleType(elems) = &func_type &&
+                          let ValueType::FunctionType(_, ret_type) = &elems[0] {
+                    *ret_type.clone()
                 } else {
-                    panic!("Failed type check in get_type - invalid callee")
+                    panic!("Failed type check in get_type - invalid callee: {func:?} ({func_type:?})")
                 }
             }
             ast::Expr::Id(identifier) => env
@@ -270,11 +281,7 @@ impl ast::Expr {
                 exprs.len(),
             ),
             ast::Expr::Subscript(expr, idx) => {
-                let inner = match expr.get_type(env) {
-                    ValueType::PointerType(inner) => *inner,
-                    t => t,
-                };
-                match inner {
+                match strip_pointer(expr.get_type(env)) {
                     ValueType::TupleType(mut elems) => {
                         if let ast::Expr::Constant(Value::I64(idx_val)) = **idx {
                             elems.remove(idx_val as usize)
@@ -313,7 +320,7 @@ fn check_special_functions(
         Some(ValueType::IntType)
     } else if *func == GlobalSymbol(global!(FN_SUBSCRIPT_ARRAY)) {
         // Can be called with any array type and an index
-        let arr_type = args[0].type_check(env, &None);
+        let arr_type = strip_pointer(args[0].type_check(env, &None));
         assert_eq!(args.len(), 2);
         assert!(matches!(arr_type, ValueType::ArrayType(_, _)));
         assert!(matches!(args[1].type_check(env, &None), ValueType::IntType));
@@ -324,7 +331,7 @@ fn check_special_functions(
         }
     } else if *func == GlobalSymbol(global!(FN_ASSIGN_TO_ARRAY_ELEM)) {
         // Can be called with any array type, an index and a value
-        let arr_type = args[0].type_check(env, &None);
+        let arr_type = strip_pointer(args[0].type_check(env, &None));
         assert_eq!(args.len(), 3);
         assert!(matches!(arr_type, ValueType::ArrayType(_, _)));
         assert!(matches!(args[1].type_check(env, &None), ValueType::IntType));
@@ -339,6 +346,20 @@ fn check_special_functions(
         Some(ValueType::NoneType)
     } else {
         None
+    }
+}
+
+fn strip_pointer_ref(t: &ValueType) -> &ValueType {
+    match t {
+        ValueType::PointerType(x) => &**x,
+        t => t,
+    }
+}
+
+fn strip_pointer(t: ValueType) -> ValueType {
+    match t {
+        ValueType::PointerType(x) => *x,
+        t => t,
     }
 }
 
@@ -374,11 +395,7 @@ impl ast::Statement {
                         }
                     }
                     AssignDest::Subscript(tup_id, idx) => {
-                        let inner_type = match env.get(tup_id) {
-                            Some(ValueType::PointerType(inner)) => Some(inner.as_ref()),
-                            Some(t) => Some(t),
-                            None => None,
-                        };
+                        let inner_type = env.get(tup_id).map(strip_pointer_ref);
                         if let Some(ValueType::TupleType(elems)) = inner_type {
                             assert!(
                                 *idx >= 0 && *idx < elems.len() as i64,
@@ -505,7 +522,7 @@ impl ast::Program {
                         ValueType::IntType,
                         ValueType::Indeterminate,
                     ],
-                    Box::new(ValueType::Indeterminate),
+                    Box::new(ValueType::NoneType),
                 ),
             ),
         ];
