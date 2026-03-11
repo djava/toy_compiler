@@ -634,62 +634,6 @@ void print_bool(int64_t x) {
   }
 }
 
-void print_void() {
-  printf("#<void>");
-}
-
-void print_vecbegin() {
-  printf("#(");
-}
-
-void print_space() {
-  printf(" ");
-}
-
-void print_vecend() {
-  printf(")");
-}
-
-void print_ellipsis() {
-  printf("#(...)");
-}
-
-/* to do: need to cycle detection. -Jeremy */
-void print_any(int64_t any) {
-  switch (any_tag(any)) {
-  case ANY_TAG_INT:
-    printf("%" PRId64, any >> ANY_TAG_LEN);
-    break;
-  case ANY_TAG_BOOL:
-    if (any >> ANY_TAG_LEN) {
-      printf("#t");
-    } else {
-      printf("#f");
-    }
-    break;
-  case ANY_TAG_VEC: {
-    int64_t* vector_ptr = (int64_t*) (any & ~ANY_TAG_MASK);
-    int64_t tag = vector_ptr[0];
-    unsigned char len = get_vector_length(tag);
-    printf("#(");
-    for (int i = 0; i != len; ++i) {
-      print_any(vector_ptr[i + 1]); // this is wrong -Jeremy
-    }
-    printf(")");
-    break;
-  }
-  case ANY_TAG_FUN:
-    printf("#<procedure>");
-    break;
-  case ANY_TAG_VOID:
-    printf("#<void>");
-    break;
-  default:
-    printf("unrecognized!");
-    exit(-1);
-  }
-}
-
 void print_heap(int64_t** rootstack_ptr)
 {
   printf("rootstack len = %ld\n", rootstack_ptr - __gc_rootstack_begin);

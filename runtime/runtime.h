@@ -39,6 +39,9 @@ void print_int(int64_t x);
 void print_bool(int64_t x);
 
 void print_heap(int64_t** rootstack_ptr);
+
+void print_vector(int64_t *ptr);
+
 // Print string
 void print_str(int64_t *ptr);
 
