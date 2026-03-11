@@ -40,6 +40,24 @@ fn interpret_expr(
                 outputs.push_back(val);
 
                 Some(Value::None)
+            } else if **func == GlobalSymbol(global!(FN_PRINT_STR)) && args.len() == 1 {
+                if let Some(Value::Array(chars)) =
+                    interpret_expr(&args[0], inputs, outputs, val_env, func_env)
+                {
+                    println!(
+                        "[OUTPUT]: {}",
+                        chars
+                            .into_iter()
+                            .map(|v| if let Value::Char(c) = v {
+                                c
+                            } else {
+                                panic!("Arg to print_str was not chars")
+                            })
+                            .collect::<String>()
+                    );
+                }
+
+                Some(Value::None)
             } else {
                 let func_val = interpret_expr(&**func, inputs, outputs, val_env, func_env);
                 if let Some(Value::Function(name, _, _)) = func_val

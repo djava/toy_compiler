@@ -17,6 +17,7 @@ pub const GC_ROOTSTACK_END: &str = "__gc_rootstack_end";
 
 // Built-in function names
 pub const FN_PRINT_INT: &str = "print_int";
+pub const FN_PRINT_STR: &str = "print_str";
 pub const FN_READ_INT: &str = "read_int";
 pub const FN_LEN: &str = "len";
 pub const FN_GC_COLLECT: &str = "__gc_collect";
@@ -27,6 +28,7 @@ pub const FN_ASSIGN_TO_ARRAY_ELEM: &str = "__assign_to_array_elem";
 pub static EXTERNED_FUNCTIONS: LazyLock<Vec<Identifier>> = LazyLock::new(|| {
     [
         FN_PRINT_INT,
+        FN_PRINT_STR,
         FN_READ_INT,
         FN_LEN,
         FN_GC_COLLECT,

@@ -39,13 +39,8 @@ void print_int(int64_t x);
 void print_bool(int64_t x);
 
 void print_heap(int64_t** rootstack_ptr);
-void print_vector(int64_t* vector_ptr);
-void print_vecbegin();
-void print_vecend();
-void print_space();
-
-void print_ellipsis();
-void print_any(int64_t any);
+// Print string
+void print_str(int64_t *ptr);
 
 int64_t len(int64_t* ptr);
 int64_t __subscript_array(int64_t *ptr, int64_t idx);

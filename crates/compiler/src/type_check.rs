@@ -479,6 +479,13 @@ impl ast::Program {
                 ValueType::FunctionType(vec![ValueType::IntType], Box::new(ValueType::NoneType)),
             ),
             (
+                global!(FN_PRINT_STR),
+                ValueType::FunctionType(
+                    vec![ValueType::ArrayType(Box::new(ValueType::CharType))],
+                    Box::new(ValueType::NoneType),
+                ),
+            ),
+            (
                 global!(FN_LEN),
                 ValueType::FunctionType(
                     vec![ValueType::TupleType(vec![])],

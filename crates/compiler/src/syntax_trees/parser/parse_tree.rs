@@ -124,7 +124,9 @@ parser! {
 
         rule none_type() -> ValueType = [TokenValue::NoneType] { ValueType::NoneType }
 
-        rule _type() -> ValueType = array_type() / tuple_type() / primitive_type() / callable_type() / none_type()
+        rule string_type() -> ValueType = [TokenValue::StringType] { ValueType::ArrayType(Box::new(ValueType::CharType)) }
+
+        rule _type() -> ValueType = array_type() / tuple_type() / primitive_type() / callable_type() / none_type() / string_type()
 
         // Trailing comma is mandatory for one elem but optional for multiple
         rule tuple_elements() -> Vec<Expr<'t>> =

@@ -95,6 +95,7 @@ fn to_ast_expr(pte: pt::Expr, func_id: &Identifier) -> ast::Expr {
         pt::Expr::StringLiteral(s) => {
             let c: Vec<_> = s
                 .chars()
+                .chain(std::iter::once('\0'))
                 .map(|c| ast::Expr::Constant(Value::Char(c)))
                 .collect();
 
