@@ -53,8 +53,9 @@ fn run_assembler(p: X86Program) -> Result<(), String> {
     let asm = format!("{p}");
 
     let out_file = NamedTempFile::new().map_err(|e| format!("failed to create temp file: {e}"))?;
-    let mut asm_command = std::process::Command::new("gcc")
-        .args([
+    
+    let (program, args) = if cfg!(target_os = "linux") {
+        ("gcc", vec![
             "-x",
             "assembler",
             "-c",
@@ -62,6 +63,23 @@ fn run_assembler(p: X86Program) -> Result<(), String> {
             out_file.path().to_str().unwrap(),
             "-",
         ])
+    } else if cfg!(target_os = "windows") {
+        // Run in WSL if we're on windows
+        ("wsl", vec![
+            "gcc",
+            "-x",
+            "assembler",
+            "-c",
+            "-o",
+            out_file.path().to_str().unwrap(),
+            "-",
+        ])
+    } else {
+        panic!("Running on unexpected OS")
+    };
+
+    let mut asm_command = std::process::Command::new(program)
+        .args(args)
         .stdin(std::process::Stdio::piped())
         .stdout(std::process::Stdio::piped())
         .stderr(std::process::Stdio::piped())
