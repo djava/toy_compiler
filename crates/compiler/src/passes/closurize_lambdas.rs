@@ -1,4 +1,3 @@
-
 use crate::{
     passes::ASTPass,
     syntax_trees::{ast::*, shared::*},
@@ -170,7 +169,9 @@ fn find_and_disambiguate_captures_for_statement(
     match s {
         Statement::Assign(assign_dest, expr, _) => {
             match assign_dest {
-                AssignDest::Id(id) | AssignDest::Subscript(id, _) => {
+                AssignDest::Id(id)
+                | AssignDest::Subscript(id, _)
+                | AssignDest::UncheckedArraySubscript(id, _, _) => {
                     if let Some(new_id) = is_id_in_parent(id, this_env) {
                         *id = new_id.clone();
                         captures.push(new_id);
@@ -333,6 +334,9 @@ fn replace_captures_with_tup_reference_for_statement(
                         captures_id,
                         captures,
                     );
+                }
+                AssignDest::UncheckedArraySubscript(..) => {
+                    panic!("UncheckedArraySubscript shouldn't exist yet")
                 }
             }
             replace_captures_with_tup_reference_for_expr(expr, captures_id, captures);

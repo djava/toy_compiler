@@ -884,10 +884,17 @@ fn assigndest_to_arg(dest: SizedAssignDest<()>) -> x86::Arg {
             // as is convention
             x86::Arg::new_deref(
                 Register::r11,
-                (POINTER_SIZE + (offset * dest.size as i64))
-                    .try_into()
-                    .unwrap(),
+                (POINTER_SIZE * (1 + offset as i64)) as i32,
                 Width::from(dest.size),
+            )
+        }
+        AssignDest::UncheckedArraySubscript(_, offset, elem_size) => {
+            // Assumes that the id-ptr has already been moved into r11,
+            // as is convention
+            x86::Arg::new_deref(
+                Register::r11,
+                (POINTER_SIZE + (offset * elem_size as i64)) as i32,
+                Width::from(elem_size),
             )
         }
         AssignDest::ComplexSubscript(_) => {

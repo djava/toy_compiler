@@ -1,4 +1,3 @@
-
 use crate::{
     constants::*,
     passes::ASTPass,
@@ -137,7 +136,11 @@ fn replace_tuples_in_expr(expr: &mut Expr, type_env: &mut TypeEnv) {
     }
 }
 
-fn get_initialize_allocation_expr(elems: &mut Vec<Expr>, tup_type: ValueType, type_env: &mut TypeEnv) -> Expr {
+fn get_initialize_allocation_expr(
+    elems: &mut Vec<Expr>,
+    tup_type: ValueType,
+    type_env: &mut TypeEnv,
+) -> Expr {
     let free_ptr = Expr::GlobalSymbol(global!(GC_FREE_PTR));
     let fromspace_end = Expr::GlobalSymbol(global!(GC_FROMSPACE_END));
     let collect = |n| {
@@ -159,7 +162,10 @@ fn get_initialize_allocation_expr(elems: &mut Vec<Expr>, tup_type: ValueType, ty
     let cmp_ephemeral = Identifier::new_ephemeral();
     type_env.insert(cmp_ephemeral.clone(), ValueType::IntType);
     let out_ephemeral = Identifier::new_ephemeral();
-    type_env.insert(out_ephemeral.clone(), ValueType::PointerType(Box::new(tup_type.clone())));
+    type_env.insert(
+        out_ephemeral.clone(),
+        ValueType::PointerType(Box::new(tup_type.clone())),
+    );
 
     // Important: We're going to run this pass AFTER
     // RemoveComplexOperands, so any of the expressions in statements
@@ -185,18 +191,34 @@ fn get_initialize_allocation_expr(elems: &mut Vec<Expr>, tup_type: ValueType, ty
         ),
         Statement::Assign(
             AssignDest::Id(out_ephemeral.clone()),
-            Expr::Allocate(bytes as usize, tup_type),
+            Expr::Allocate(bytes as usize, tup_type.clone()),
             None,
         ),
     ];
 
-    statements.extend(elems.iter().enumerate().map(|(idx, e)| {
-        Statement::Assign(
-            AssignDest::Subscript(out_ephemeral.clone(), idx as i64),
-            e.clone(),
-            None,
-        )
-    }));
+    if let ValueType::ArrayType(elem_type, _len) = &tup_type {
+        // Tuple
+        statements.extend(elems.iter().enumerate().map(|(idx, e)| {
+            Statement::Assign(
+                AssignDest::UncheckedArraySubscript(
+                    out_ephemeral.clone(),
+                    idx as i64,
+                    elem_type.size(),
+                ),
+                e.clone(),
+                None,
+            )
+        }));
+    } else {
+        // Tuple
+        statements.extend(elems.iter().enumerate().map(|(idx, e)| {
+            Statement::Assign(
+                AssignDest::Subscript(out_ephemeral.clone(), idx as i64),
+                e.clone(),
+                None,
+            )
+        }));
+    };
 
     Expr::StatementBlock(statements, Box::new(Expr::Id(out_ephemeral)))
 }

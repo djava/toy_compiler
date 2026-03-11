@@ -114,7 +114,8 @@ fn replace_excess_use_for_statement(
                             AssignDest::Subscript(tuple_id.clone(), subscript_idx as i64);
                     }
                 }
-                AssignDest::Subscript(id, _idx) => {
+                AssignDest::Subscript(id, _idx)
+                | AssignDest::UncheckedArraySubscript(id, _idx, _) => {
                     if let Some(_subscript_idx) = excess_names.iter().position(|x| *x == id) {
                         // *assign_dest = AssignDest::Subscript((), ())
                         todo!(

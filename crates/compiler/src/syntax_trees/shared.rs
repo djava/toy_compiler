@@ -292,6 +292,7 @@ pub struct ComplexSubscript<E> {
 pub enum AssignDest<E> {
     Id(Identifier),
     Subscript(Identifier, i64),
+    UncheckedArraySubscript(Identifier, i64, usize),
     ComplexSubscript(ComplexSubscript<E>)
 }
 

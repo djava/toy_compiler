@@ -139,7 +139,8 @@ fn interpret_statement_chain<'a>(
                 AssignDest::Id(id) => {
                     val_env.insert(id.clone(), result);
                 }
-                AssignDest::Subscript(id, index) => {
+                AssignDest::Subscript(id, index)
+                | AssignDest::UncheckedArraySubscript(id, index, _) => {
                     if let Some(Value::Tuple(elems)) = val_env.get_mut(id) {
                         elems[*index as usize] = result;
                     } else {

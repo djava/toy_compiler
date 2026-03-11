@@ -71,7 +71,9 @@ impl ast::Expr {
                             "Wrong number of args passed to `{func:?}`"
                         );
                         for (arg_expr, expected) in args.iter_mut().zip(arg_types.iter().skip(1)) {
-                            let actual = arg_expr.type_check(env, &Some(expected.clone())).strip_pointer();
+                            let actual = arg_expr
+                                .type_check(env, &Some(expected.clone()))
+                                .strip_pointer();
                             assert_eq!(
                                 actual, *expected,
                                 "Passed wrong arg type `{actual:?}` to function `{func:?}`"
@@ -256,11 +258,14 @@ impl ast::Expr {
                     }
                 } else if let ValueType::FunctionType(_, ret_type) = &func_type {
                     *ret_type.clone()
-                } else if let ValueType::TupleType(elems) = &func_type &&
-                          let ValueType::FunctionType(_, ret_type) = &elems[0] {
+                } else if let ValueType::TupleType(elems) = &func_type
+                    && let ValueType::FunctionType(_, ret_type) = &elems[0]
+                {
                     *ret_type.clone()
                 } else {
-                    panic!("Failed type check in get_type - invalid callee: {func:?} ({func_type:?})")
+                    panic!(
+                        "Failed type check in get_type - invalid callee: {func:?} ({func_type:?})"
+                    )
                 }
             }
             ast::Expr::Id(identifier) => env
@@ -280,19 +285,17 @@ impl ast::Expr {
                 ),
                 exprs.len(),
             ),
-            ast::Expr::Subscript(expr, idx) => {
-                match expr.get_type(env).strip_pointer() {
-                    ValueType::TupleType(mut elems) => {
-                        if let ast::Expr::Constant(Value::I64(idx_val)) = **idx {
-                            elems.remove(idx_val as usize)
-                        } else {
-                            panic!("Failed get_type - Indexed with non-constant")
-                        }
+            ast::Expr::Subscript(expr, idx) => match expr.get_type(env).strip_pointer() {
+                ValueType::TupleType(mut elems) => {
+                    if let ast::Expr::Constant(Value::I64(idx_val)) = **idx {
+                        elems.remove(idx_val as usize)
+                    } else {
+                        panic!("Failed get_type - Indexed with non-constant")
                     }
-                    ValueType::ArrayType(elem, _) => *elem,
-                    _ => panic!("Failed get_type - Indexed invalid LHS"),
                 }
-            }
+                ValueType::ArrayType(elem, _) => *elem,
+                _ => panic!("Failed get_type - Indexed invalid LHS"),
+            },
             ast::Expr::Allocate(_, value_type) => {
                 ValueType::PointerType(Box::new(value_type.clone()))
             }
@@ -380,8 +383,9 @@ impl ast::Statement {
                             env.insert(id.clone(), t);
                         }
                     }
-                    AssignDest::Subscript(tup_id, idx) => {
-                        let inner_type = env.get(tup_id).map(|t| t.clone().strip_pointer());
+                    AssignDest::Subscript(id, idx)
+                    | AssignDest::UncheckedArraySubscript(id, idx, _) => {
+                        let inner_type = env.get(id).map(|t| t.clone().strip_pointer());
                         if let Some(ValueType::TupleType(elems)) = inner_type {
                             assert!(
                                 *idx >= 0 && *idx < elems.len() as i64,
@@ -395,7 +399,7 @@ impl ast::Statement {
                             );
                             assert_eq!(*elem_type, t);
                         } else {
-                            panic!("Couldn't find tuple to assign into: `{tup_id:?}`")
+                            panic!("Couldn't find tuple to assign into: `{id:?}`")
                         }
                     }
                     AssignDest::ComplexSubscript(complex) => {
