@@ -347,7 +347,7 @@ fn generate_for_assign(
                 ret.extend(cont);
     
                 ret
-            } else if let ValueType::ArrayType(elems, _) = lhs_type {
+            } else if let ValueType::ArrayType(elems) = lhs_type {
                 // Array
                 let mut ret = vec![ir::Statement::Assign(
                     ast_to_ir_assigndest(dest, expr_size),

@@ -127,7 +127,7 @@ impl ast::Expr {
             }
             Array(elements) => {
                 let expected_elem_type = expected_type.clone().map_or(None, |t| {
-                    if let ValueType::ArrayType(e, _) = t {
+                    if let ValueType::ArrayType(e) = t {
                         Some(*e)
                     } else {
                         None
@@ -140,11 +140,11 @@ impl ast::Expr {
                         assert_eq!(e.type_check(env, &expected_elem_type), first_type);
                     }
 
-                    ValueType::ArrayType(Box::new(first_type), elements.len())
+                    ValueType::ArrayType(Box::new(first_type))
                 } else {
                     expected_elem_type
-                        .map(|e| ValueType::ArrayType(Box::new(e), 0))
-                        .unwrap_or(ValueType::ArrayType(Box::new(ValueType::Indeterminate), 0))
+                        .map(|e| ValueType::ArrayType(Box::new(e)))
+                        .unwrap_or(ValueType::ArrayType(Box::new(ValueType::Indeterminate)))
                 }
             }
             Subscript(exp, idx) => {
@@ -162,7 +162,7 @@ impl ast::Expr {
                         "Indexed tuple out of bounds"
                     );
                     elems[*const_idx as usize].clone()
-                } else if let ValueType::ArrayType(elems, _) = exp_type {
+                } else if let ValueType::ArrayType(elems) = exp_type {
                     assert_eq!(
                         idx.type_check(env, &Some(ValueType::IntType)),
                         ValueType::IntType
@@ -247,7 +247,7 @@ impl ast::Expr {
                 let func_type = func.get_type(env).strip_pointer();
                 if **func == ast::Expr::GlobalSymbol(global!(FN_SUBSCRIPT_ARRAY)) {
                     let arr_type = args[0].get_type(env).strip_pointer();
-                    if let ValueType::ArrayType(elems, _) = arr_type {
+                    if let ValueType::ArrayType(elems) = arr_type {
                         *elems.clone()
                     } else {
                         panic!(
@@ -283,7 +283,6 @@ impl ast::Expr {
                         .get(0)
                         .map_or(ValueType::Indeterminate, |e| e.get_type(env)),
                 ),
-                exprs.len(),
             ),
             ast::Expr::Subscript(expr, idx) => match expr.get_type(env).strip_pointer() {
                 ValueType::TupleType(mut elems) => {
@@ -293,7 +292,7 @@ impl ast::Expr {
                         panic!("Failed get_type - Indexed with non-constant")
                     }
                 }
-                ValueType::ArrayType(elem, _) => *elem,
+                ValueType::ArrayType(elem) => *elem,
                 _ => panic!("Failed get_type - Indexed invalid LHS"),
             },
             ast::Expr::Allocate(_, value_type) => {
@@ -318,16 +317,16 @@ fn check_special_functions(
         assert_eq!(args.len(), 1);
         assert!(matches!(
             args[0].type_check(env, &None),
-            ValueType::TupleType(_) | ValueType::ArrayType(_, _)
+            ValueType::TupleType(_) | ValueType::ArrayType(_)
         ));
         Some(ValueType::IntType)
     } else if *func == GlobalSymbol(global!(FN_SUBSCRIPT_ARRAY)) {
         // Can be called with any array type and an index
         let arr_type = args[0].type_check(env, &None).strip_pointer();
         assert_eq!(args.len(), 2);
-        assert!(matches!(arr_type, ValueType::ArrayType(_, _)));
+        assert!(matches!(arr_type, ValueType::ArrayType(_)));
         assert!(matches!(args[1].type_check(env, &None), ValueType::IntType));
-        if let ValueType::ArrayType(elem_type, _) = arr_type {
+        if let ValueType::ArrayType(elem_type) = arr_type {
             Some(*elem_type)
         } else {
             unreachable!()
@@ -336,10 +335,10 @@ fn check_special_functions(
         // Can be called with any array type, an index and a value
         let arr_type = args[0].type_check(env, &None).strip_pointer();
         assert_eq!(args.len(), 3);
-        assert!(matches!(arr_type, ValueType::ArrayType(_, _)));
+        assert!(matches!(arr_type, ValueType::ArrayType(_)));
         assert!(matches!(args[1].type_check(env, &None), ValueType::IntType));
 
-        let elem_type = if let ValueType::ArrayType(elem_type, _) = arr_type {
+        let elem_type = if let ValueType::ArrayType(elem_type) = arr_type {
             *elem_type
         } else {
             unreachable!();
@@ -392,11 +391,7 @@ impl ast::Statement {
                                 "Indexed tuple out of bounds"
                             );
                             assert_eq!(elems[*idx as usize], t);
-                        } else if let Some(ValueType::ArrayType(elem_type, len)) = inner_type {
-                            assert!(
-                                *idx >= 0 && *idx < len as i64,
-                                "Indexed array out of bounds"
-                            );
+                        } else if let Some(ValueType::ArrayType(elem_type)) = inner_type {
                             assert_eq!(*elem_type, t);
                         } else {
                             panic!("Couldn't find tuple to assign into: `{id:?}`")
@@ -407,7 +402,7 @@ impl ast::Statement {
                         assert_eq!(idx_type, ValueType::IntType);
 
                         let cont_type = complex.container.type_check(env, &None);
-                        if let ValueType::ArrayType(elem_type, _) = cont_type {
+                        if let ValueType::ArrayType(elem_type) = cont_type {
                             assert_eq!(*elem_type, t);
                         } else if let ValueType::TupleType(elem_types) = cont_type
                             && let ast::Expr::Constant(Value::I64(idx_const)) = complex.index
@@ -498,7 +493,7 @@ impl ast::Program {
                 global!(FN_SUBSCRIPT_ARRAY),
                 ValueType::FunctionType(
                     vec![
-                        ValueType::ArrayType(Box::new(ValueType::Indeterminate), 0),
+                        ValueType::ArrayType(Box::new(ValueType::Indeterminate)),
                         ValueType::IntType,
                     ],
                     Box::new(ValueType::Indeterminate),
@@ -508,7 +503,7 @@ impl ast::Program {
                 global!(FN_ASSIGN_TO_ARRAY_ELEM),
                 ValueType::FunctionType(
                     vec![
-                        ValueType::ArrayType(Box::new(ValueType::Indeterminate), 0),
+                        ValueType::ArrayType(Box::new(ValueType::Indeterminate)),
                         ValueType::IntType,
                         ValueType::Indeterminate,
                     ],

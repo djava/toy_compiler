@@ -52,7 +52,7 @@ fn disambiguate_for_statement(s: &mut Statement, type_env: &mut TypeEnv) {
                 let container_type = container.type_check(type_env, &None);
                 if let ValueType::TupleType(elem_types) = &container_type {
                     simplify_subscript_assign_for_tuple(s, elem_types);
-                } else if let ValueType::ArrayType(_, _) = &container_type {
+                } else if let ValueType::ArrayType(_) = &container_type {
                     *s = Statement::Expr(Expr::Call(
                         Box::new(Expr::GlobalSymbol(global!(FN_ASSIGN_TO_ARRAY_ELEM))),
                         vec![
@@ -66,7 +66,7 @@ fn disambiguate_for_statement(s: &mut Statement, type_env: &mut TypeEnv) {
                 let dest_id_type = type_env
                     .get(dest_id)
                     .expect("Couldn't find dest type for subscript assign");
-                if let ValueType::ArrayType(_, _) = dest_id_type {
+                if let ValueType::ArrayType(_) = dest_id_type {
                     *s = Statement::Expr(Expr::Call(
                         Box::new(Expr::GlobalSymbol(global!(FN_ASSIGN_TO_ARRAY_ELEM))),
                         vec![
@@ -141,7 +141,7 @@ fn disambiguate_for_expr(e: &mut Expr, type_hint: Option<&ValueType>, type_env: 
             }
         }
         Expr::Array(exprs) => {
-            let elem_type_hint = if let Some(ValueType::ArrayType(elems_type, _)) = type_hint {
+            let elem_type_hint = if let Some(ValueType::ArrayType(elems_type)) = type_hint {
                 Some(&**elems_type)
             } else {
                 None
@@ -155,7 +155,7 @@ fn disambiguate_for_expr(e: &mut Expr, type_hint: Option<&ValueType>, type_env: 
             disambiguate_for_expr(expr, None, type_env);
 
             let expr_type = expr.type_check(type_env, &type_hint.cloned());
-            if let ValueType::ArrayType(_, _) = expr_type {
+            if let ValueType::ArrayType(_) = expr_type {
                 *e = Expr::Call(
                     Box::new(Expr::GlobalSymbol(global!(FN_SUBSCRIPT_ARRAY))),
                     vec![*expr.clone(), *idx.clone()],

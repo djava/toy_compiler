@@ -253,7 +253,14 @@ fn translate_allocation(
     bytes: usize,
     value_type: ValueType,
 ) -> Vec<Instr> {
-    let tag = i64::from_ne_bytes(make_allocation_tag(value_type).to_ne_bytes());
+    let tag = if let ValueType::TupleType(_) = value_type {
+        i64::from_ne_bytes(make_tuple_tag(value_type).to_ne_bytes())
+    } else if let ValueType::ArrayType(elem_type) = &value_type {
+        let elem_count = (bytes - size_of::<ArrayTag>()) / elem_type.size();
+        i64::from_ne_bytes(make_array_tag(value_type, elem_count).to_ne_bytes())
+    } else {
+        panic!("Allocation for non-tuple/array type?")
+    };
 
     // Bump allocator pointer, write tag. pointer is in r11
     let mut ret = vec![
@@ -296,8 +303,8 @@ fn translate_allocation(
     ret
 }
 
-fn make_allocation_tag(value_type: ValueType) -> u64 {
-    if let ValueType::TupleType(elems) = value_type {
+fn make_tuple_tag(tuple_type: ValueType) -> u64 {
+    if let ValueType::TupleType(elems) = tuple_type {
         if elems.len() > MAX_TUPLE_ELEMENTS {
             unimplemented!("The compiler has a max of {MAX_TUPLE_ELEMENTS} tuple elements")
         }
@@ -312,7 +319,14 @@ fn make_allocation_tag(value_type: ValueType) -> u64 {
             .with_length(elems.len() as u8)
             .with_pointer_mask(pointer_mask)
             .into_bits()
-    } else if let ValueType::ArrayType(elems, len) = value_type {
+    } else {
+        panic!("Passed non-tuple to make_tuple_type")
+    }
+}
+
+
+fn make_array_tag(value_type: ValueType, len: usize) -> u64 {
+     if let ValueType::ArrayType(elems) = value_type {
         let pointer_mask = matches!(*elems, ValueType::PointerType(_));
 
         ArrayTag::new()
@@ -322,7 +336,7 @@ fn make_allocation_tag(value_type: ValueType) -> u64 {
             .with_pointer_mask(pointer_mask)
             .into_bits()
     } else {
-        panic!("Passed non-tuple ValueType to make_tuple_tag")
+        panic!("Passed non-array ValueType to make_array_tag")
     }
 }
 

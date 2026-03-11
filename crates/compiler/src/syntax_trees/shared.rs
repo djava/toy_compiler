@@ -53,7 +53,7 @@ pub enum ValueType {
     FunctionType(Vec<ValueType>, Box<ValueType>),
     BoolType,
     TupleType(Vec<ValueType>),
-    ArrayType(Box<ValueType>, usize),
+    ArrayType(Box<ValueType>),
     PointerType(Box<ValueType>),
     NoneType,
     Indeterminate,
@@ -66,7 +66,7 @@ impl ValueType {
             ValueType::FunctionType(_, _) => POINTER_SIZE as _,
             ValueType::BoolType => 1,
             ValueType::TupleType(_) => POINTER_SIZE as _,
-            ValueType::ArrayType(_, _) => POINTER_SIZE as _,
+            ValueType::ArrayType(_) => POINTER_SIZE as _,
             ValueType::PointerType(_) => POINTER_SIZE as _,
             ValueType::NoneType => 0,
             ValueType::Indeterminate => panic!("Size of indeterminate value type"),
@@ -94,7 +94,6 @@ impl From<&Value> for ValueType {
                         .map(ValueType::from)
                         .unwrap_or(ValueType::Indeterminate),
                 ),
-                elems.len(),
             ),
             Value::Function(_, arg_types, ret_type) => {
                 Self::FunctionType(arg_types.clone(), Box::new(ret_type.clone()))
@@ -131,7 +130,7 @@ impl PartialEq for ValueType {
             }
             (Self::FunctionType(l0, l1), Self::FunctionType(r0, r1)) => l0 == r0 && l1 == r1,
             (Self::PointerType(l0), Self::PointerType(r0)) => l0 == r0,
-            (Self::ArrayType(typ, len), Self::ArrayType(typ1, len1)) => typ == typ1 && len == len1,
+            (Self::ArrayType(typ), Self::ArrayType(typ1)) => typ == typ1,
             _ => core::mem::discriminant(self) == core::mem::discriminant(other),
         }
     }

@@ -111,8 +111,8 @@ parser! {
             { ValueType::TupleType(types) }
 
         rule array_type() -> ValueType =
-            [TokenValue::ArrayType] [TokenValue::Less] typ:_type() [TokenValue::Comma] [TokenValue::Int(len)] [TokenValue::Greater]
-            { ValueType::ArrayType(Box::new(typ), len as usize) }
+            [TokenValue::ArrayType] [TokenValue::Less] typ:_type() [TokenValue::Greater]
+            { ValueType::ArrayType(Box::new(typ)) }
 
         rule callable_type() -> ValueType =
             [TokenValue::CallableType] [TokenValue::Less]

@@ -113,7 +113,6 @@ fn replace_tuples_in_expr(expr: &mut Expr, type_env: &mut TypeEnv) {
                         .map(|e| e.type_check(type_env, &None))
                         .unwrap_or(ValueType::Indeterminate),
                 ),
-                elems.len(),
             );
             *expr = get_initialize_allocation_expr(elems, arr_type, type_env);
         }
@@ -150,8 +149,8 @@ fn get_initialize_allocation_expr(
         )
     };
 
-    let bytes = if let ValueType::ArrayType(elems, len) = &tup_type {
-        (size_of::<ArrayTag>() + elems.size() * len) as i64
+    let bytes = if let ValueType::ArrayType(elem_type) = &tup_type {
+        (size_of::<ArrayTag>() + elem_type.size() * elems.len()) as i64
     } else {
         // Tuples are padded to 8 bytes per elem regardless of the elem
         // size so that the GC can work correctly without a bunch of
@@ -196,7 +195,7 @@ fn get_initialize_allocation_expr(
         ),
     ];
 
-    if let ValueType::ArrayType(elem_type, _len) = &tup_type {
+    if let ValueType::ArrayType(elem_type) = &tup_type {
         // Tuple
         statements.extend(elems.iter().enumerate().map(|(idx, e)| {
             Statement::Assign(

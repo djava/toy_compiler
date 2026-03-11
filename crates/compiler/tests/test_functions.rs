@@ -1771,7 +1771,7 @@ fn main() {
 #[test]
 fn test_function_takes_array_param() {
     execute_test_case(TestCase {
-        input: "fn sum_arr(a: array<int, 3>) -> int {
+        input: "fn sum_arr(a: array<int>) -> int {
     return a[0] + a[1] + a[2]
 }
 
@@ -1787,7 +1787,7 @@ fn main() {
 #[test]
 fn test_function_modifies_array_param() {
     execute_test_case(TestCase {
-        input: "fn set_first(a: array<int, 2>, val: int) {
+        input: "fn set_first(a: array<int>, val: int) {
     a[0] = val
 }
 
@@ -1806,7 +1806,7 @@ fn main() {
 #[test]
 fn test_function_returns_array() {
     execute_test_case(TestCase {
-        input: "fn make_arr(x: int, y: int) -> array<int, 2> {
+        input: "fn make_arr(x: int, y: int) -> array<int> {
     return [x, y]
 }
 
@@ -1823,7 +1823,7 @@ fn main() {
 #[test]
 fn test_function_array_and_int_params() {
     execute_test_case(TestCase {
-        input: "fn scale(a: array<int, 3>, factor: int) -> int {
+        input: "fn scale(a: array<int>, factor: int) -> int {
     return (a[0] + a[1] + a[2]) * factor
 }
 
