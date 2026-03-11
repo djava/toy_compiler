@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <assert.h>
+#include <string.h>
 #include "runtime.h"
 
 // To do: we need to account for the "any" type. -Jeremy
@@ -850,8 +851,11 @@ int64_t proxy_vec_set(int64_t* vec, int i, int64_t arg) {
 #define TUPLE_LENGTH_TAG_SHIFT 1
 
 // Array tag field extraction constants (see ArrayTag in syntax_trees/shared.rs)
-#define ARRAY_LENGTH_TAG_MASK 0x0FFFFFFFFFFFFFFF
-#define ARRAY_LENGTH_TAG_SHIFT 2
+#define ARRAY_LENGTH_TAG_SHIFT 5
+#define ARRAY_LENGTH_TAG_MASK 0x01FFFFFFFFFFFFFF
+
+#define ARRAY_ELEM_SIZE_TAG_SHIFT 2
+#define ARRAY_ELEM_SIZE_TAG_MASK 0x7
 
 int64_t len(int64_t* ptr) {
   if ((*ptr >> TAG_IS_ARRAY_SHIFT) & TAG_IS_ARRAY_MASK) {
@@ -869,7 +873,13 @@ int64_t __subscript_array(int64_t *ptr, int64_t idx) {
     printf("Tried to read idx %ld of array with len %ld\n", idx, length);
     exit(1);
   } else {
-    return ptr[1 + idx];
+    const size_t elem_size = (*ptr >> ARRAY_ELEM_SIZE_TAG_SHIFT) & ARRAY_ELEM_SIZE_TAG_MASK;
+    int64_t idx_offset = sizeof(int64_t) + elem_size * idx;
+    uint8_t* idx_ptr = (&((uint8_t*)ptr)[idx_offset]);
+    
+    int64_t elem = 0;
+    memcpy(&elem, idx_ptr, elem_size);
+    return elem;
   }
 }
 
@@ -879,6 +889,25 @@ void __assign_to_array_elem(int64_t *ptr, int64_t idx, int64_t value) {
     printf("Tried to assign to idx %ld of array with len %ld\n", idx, length);
     exit(1);
   } else {
-    ptr[1 + idx] = value;
+    const size_t elem_size = (*ptr >> ARRAY_ELEM_SIZE_TAG_SHIFT) & ARRAY_ELEM_SIZE_TAG_MASK;
+    int64_t idx_offset = sizeof(int64_t) + elem_size * idx;
+    uint8_t *elem_ptr = &(((uint8_t *)ptr)[idx_offset]);
+    switch (elem_size) {
+      case 1:
+        *(int8_t*)elem_ptr = (int8_t)value;
+        break;
+      case 2:
+        *(int16_t*)elem_ptr = (int16_t)value;
+        break;
+      case 4:
+        *(int32_t*)elem_ptr = (int32_t)value;
+        break;
+      case 8:
+        *(int64_t*)elem_ptr = (int64_t)value;
+        break;
+      default:
+        printf("__assign_to_array_elem: Invalid elem size: %lu\n", elem_size);
+        exit(1);
+    }
   }
 }

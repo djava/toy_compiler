@@ -147,7 +147,11 @@ fn get_initialize_allocation_expr(elems: &mut Vec<Expr>, tup_type: ValueType, ty
         )
     };
 
-    let bytes = POINTER_SIZE + POINTER_SIZE * elems.len() as i64;
+    let bytes = if let ValueType::ArrayType(elems, len) = &tup_type {
+        (size_of::<ArrayTag>() + elems.size() * len) as i64
+    } else {
+        (size_of::<TupleTag>() as i64 + POINTER_SIZE * elems.len() as i64) as i64
+    };
 
     let cmp_ephemeral = Identifier::new_ephemeral();
     type_env.insert(cmp_ephemeral.clone(), ValueType::IntType);

@@ -283,6 +283,7 @@ fn make_allocation_tag(value_type: ValueType) -> u64 {
         ArrayTag::new()
             .with_forwarding(false)
             .with_length(len as u64)
+            .with_elem_size(elems.size())
             .with_pointer_mask(pointer_mask)
             .into_bits()
     } else {
@@ -824,7 +825,7 @@ fn assigndest_to_arg(dest: SizedAssignDest<()>) -> x86::Arg {
             // as is convention
             x86::Arg::new_deref(
                 Register::r11,
-                (POINTER_SIZE + (offset * POINTER_SIZE)).try_into().unwrap(),
+                (POINTER_SIZE + (offset * dest.size as i64)).try_into().unwrap(),
                 Width::from(dest.size)
             )
         }

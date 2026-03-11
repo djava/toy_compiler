@@ -64,7 +64,7 @@ impl ValueType {
         match self {
             ValueType::IntType => 8,
             ValueType::FunctionType(_, _) => POINTER_SIZE as _,
-            ValueType::BoolType => 8,
+            ValueType::BoolType => 1,
             ValueType::TupleType(_) => POINTER_SIZE as _,
             ValueType::ArrayType(_, _) => POINTER_SIZE as _,
             ValueType::PointerType(_) => POINTER_SIZE as _,
@@ -313,7 +313,9 @@ pub struct TupleTag {
 pub struct ArrayTag {
     pub forwarding: bool,
     pub pointer_mask: bool,
-    #[bits(60)]
+    #[bits(3)]
+    pub elem_size: usize,
+    #[bits(57)]
     pub length: u64,
     #[bits(1, default = true)]
     pub is_array: bool,
