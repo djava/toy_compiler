@@ -320,8 +320,16 @@ fn replace_captures_with_tup_reference_for_statement(
                             AssignDest::Subscript(captures_id.clone(), (capture_idx + 1) as _);
                     }
                 }
-                AssignDest::Subscript(_, _) => {
-                    unimplemented!("Turns out indexing into captured variables is annoying, sorry");
+                AssignDest::Subscript(id, idx) => {
+                    if let Some(capture_idx) = captures.iter().position(|i| i == id) {
+                        *assign_dest = AssignDest::ComplexSubscript(ComplexSubscript {
+                            container: Expr::Subscript(
+                                Box::new(Expr::Id(captures_id.clone())),
+                                Box::new(Expr::Constant(Value::I64(1 + capture_idx as i64))),
+                            ),
+                            index: Expr::Constant(Value::I64(*idx)),
+                        });
+                    }
                 }
                 AssignDest::ComplexSubscript(complex) => {
                     replace_captures_with_tup_reference_for_expr(
