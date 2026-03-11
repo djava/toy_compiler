@@ -7,11 +7,11 @@ use crate::{passes::X86Pass, syntax_trees::x86::*};
 /// registers.
 ///
 /// Patches out:
-/// - Trivial `movq` (src == dest),
+/// - Trivial `mov` (src == dest),
 /// - Both operands are memory dereferences,
 /// - Large immediates (>32 bits) paired with memory destinations
-/// - `cmpq` with an immediate as the second operand
-/// - `imulq`/`leaq` with a non-register dest.
+/// - `cmp` with an immediate as the second operand
+/// - `imul`/`lea` with a non-register dest.
 ///
 /// It is mandatory to run this pass
 ///

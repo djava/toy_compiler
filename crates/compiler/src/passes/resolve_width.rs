@@ -3,6 +3,25 @@ use crate::{
     syntax_trees::{x86::*},
 };
 
+/// `ResolveWidth` Pass
+///
+/// Reconciles mismatched argument widths within each instruction by
+/// widening narrower arguments to match their partner and inserting
+/// sign- or zero-extension instructions (`movsx`/`movzx`) when
+/// required. Also truncates immediate values to fit their target width.
+/// This is the final pass before optional jump cleanup, and must run
+/// after `PreludeConclusion` so that all physical register assignments
+/// are in place.
+///
+/// It is mandatory to run this pass
+///
+/// Pre-conditions:
+/// - `RegisterAllocation` (all `Arg::Variable` resolved)
+/// - `PreludeConclusion` (frame fully constructed)
+///
+/// Post-conditions:
+/// - All instruction operands have matching widths
+/// - Any required sign- or zero-extension is explicit
 #[derive(Debug)]
 pub struct ResolveWidth;
 

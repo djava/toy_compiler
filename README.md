@@ -63,13 +63,15 @@ The compiler works in three stages: AST passes, a translation to a flat IR, then
 
 1. **RegisterAllocation** — Replaces every `Variable` argument with a real register or stack slot. First runs liveness analysis (backward dataflow over the CFG) to determine which variables have interfering lifetimes. Then builds an interference graph and colors it greedily, biasing moves so that move-related variables end up in the same location when possible. Overflows to the stack when registers run out. Tuple pointers are kept on a separate GC root stack so the garbage collector can find them across function calls.
 
-2. **PatchInstructions** — Fixes up instruction formats that x86 doesn't actually support, usually by adding a `movq` to a temporary register before/after the instruction (ie. an instruction with two memory dereference arguments gets split into a `movq` then the instruction). Also elides trivial moves.
+2. **PatchInstructions** — Fixes up instruction formats that x86 doesn't actually support, usually by adding a `mov` to a temporary register before/after the instruction (ie. an instruction with two memory dereference arguments gets split into a `mov` then the instruction). Also elides trivial moves.
 
 3. **PreludeConclusion** — Wraps each function with its stack frame setup and teardown: saving callee-saved registers, allocating stack space, initializing the GC root stack on entry to `main`, and restoring everything on exit.
 
-4. **RemoveJumps** *(optional)* — Removes unconditional jumps to the immediately following block.
+4. **ResolveWidth** — Reconciles mismatched argument widths within each instruction, inserting `movsx`/`movzx` extension instructions where needed and truncating immediates to fit their target width.
 
-5. **OptimizeFallthrough** *(optional)* — Reorders basic blocks so that the most common fall-through path doesn't need a jump at all.
+5. **RemoveJumps** *(optional)* — Removes unconditional jumps to the immediately following block.
+
+6. **OptimizeFallthrough** *(optional)* — Reorders basic blocks so that the most common fall-through path doesn't need a jump at all.
 
 ## Runtime
 
