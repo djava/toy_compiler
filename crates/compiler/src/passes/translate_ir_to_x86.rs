@@ -714,7 +714,7 @@ fn translate_call(
     }
 
     for (name, num_args, instr_fn) in SPECIAL_FUNCTIONS {
-        if func.value == ir::AtomValue::Variable(global!(name)) {
+        if func.value == ir::AtomValue::GlobalSymbol(global!(name)) {
             if args.len() != num_args {
                 panic!(
                     "Wrong number of args to special function `{name}` (Expected {num_args}, Got {}",
